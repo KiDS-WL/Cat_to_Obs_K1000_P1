@@ -24,7 +24,7 @@ else:
     outfile = sys.argv[4]
     blind = sys.argv[5]
     ccorr = sys.argv[6]
-
+    
 #open the ldac catalogue using functions in ldac.py
 #tests have shown ldac.py is much faster than using astropy
 ldac_cat = ldac.LDACCat(infile)
@@ -72,32 +72,11 @@ e1_corr = e1_inbin - c1
 e2_corr = e2_inbin - c2
 
 #Write out to output file - crucial that RA/DEC (in degrees) are double precision
-#If you don't have that you round to a couple of arcsec
+#If you don't have that you round to a couple of arcsec for fields with ra > 100
 hdulist = fits.BinTableHDU.from_columns(  
-    [fits.Column(name='ALPHA_J2000', format='D', array=ra_inbin),  
-     fits.Column(name='DELTA_J2000', format='D', array=dec_inbin),  
-     fits.Column(name='e1', format='E', array=e1_corr),  
-     fits.Column(name='e2', format='E', array=e2_corr),  
-     fits.Column(name='weight', format='E', array=w_inbin)])
-#hdulist.writeto(outfile, overwrite=True)
-
-
-# I'm now going to create a new empty ldac table
-newldac_table = ldac.LDACTable(hdu=None)
-newldac_table.setname('OBJECTS')
-
-#adding the array to the table
-#newldac_table['ALPHA_J2000']=ra_inbin
-#newldac_table['DELTA_J2000']=dec_inbin
-#newldac_table['e1']=e1_inbin
-#newldac_table['e2']=e1_inbin
-#newldac_table['weight']=w_inbin
-
-newldac_table['ALPHA_J2000']=ldac_table['ALPHA_J2000']
-newldac_table['DELTA_J2000']=ldac_table['DELTA_J2000']
-newldac_table['e1']=ldac_table[e1colname]
-newldac_table['e2']=ldac_table[e2colname]
-newldac_table['weight']=ldac_table[wtcolname]
-                          
-#and write out the table
-newldac_table.saveas(outfile,overwrite=True)
+    [fits.Column(name='ALPHA_J2000', format='1D', unit='deg',array=ra_inbin),  
+     fits.Column(name='DELTA_J2000', format='1D', unit='deg',array=dec_inbin),  
+     fits.Column(name='e1', format='1E', array=e1_corr),  
+     fits.Column(name='e2', format='1E', array=e2_corr),  
+     fits.Column(name='weight', format='1E', array=w_inbin)])
+hdulist.writeto(outfile, overwrite=True)
