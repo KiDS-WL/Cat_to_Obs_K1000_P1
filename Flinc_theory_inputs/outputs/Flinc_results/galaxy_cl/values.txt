@@ -1,0 +1,8 @@
+is_auto = True
+nbin = 2
+nbin_a = 2
+nbin_b = 2
+sample_a = 'lens_flinc'
+sample_b = 'lens_flinc'
+save_name = ''
+sep_name = 'ell'
