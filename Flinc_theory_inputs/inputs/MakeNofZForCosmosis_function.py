@@ -85,20 +85,26 @@ def MakeNofz_fits(input_files,outputfileName,OneBin_nofzFileName,neff,type='lowe
 
 
 nBins_lens=2
+nBins_source=5
 # neff=[1.5099137858524687,1.5413199175708638 , 1.6196461014383043, 0.8268988140297754]
-neff=[1,1]
-OutputFileName='lens_flinc_nofz.fits'
-OneBin_nofzFileName='lens_flinc_nofz_1bin.fits'
+neff=[1,1,1,1,1,1,1]
+OutputFileName='lens_and_source_flinc_nofz.fits'
+OneBin_nofzFileName='lens_and_source_flinc_nofz_1bin.fits'
 input_files=[]
 for bin1 in range(nBins_lens):
 	fileNameInput='numida/lens/'+'nOfZ_hist_BOSSA_tomo'+str(bin1)+'.dat'
 	input_files.append(fileNameInput)
+for bin1 in range(nBins_source):
+	fileNameInput='numida/source/'+'nOfZ_hist_KiDSVDA_tomo'+str(bin1)+'.dat'
+	input_files.append(fileNameInput)
+
+
 
 
 MakeNofz_fits(input_files,OutputFileName,OneBin_nofzFileName,neff,type='lowerEdge',suffix='lens_flinc')
 
 
-nBins_source=5
+
 # neff=[1.5099137858524687,1.5413199175708638 , 1.6196461014383043, 0.8268988140297754]
 neff=[1,1,1,1,1]
 OutputFileName='source_flinc_nofz.fits'
