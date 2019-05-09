@@ -11,6 +11,11 @@
 # Script history information:
 # 2nd May 2019:  Started based on do_all script for pipeline processing - thanks to Thomas and co
 
+# File inclusions:
+# This file has the links to where your version of Python lives
+# We expect treecorr to be installed as part of this
+. ./progs.ini
+
 ##
 ## function definitions:
 ##
@@ -166,8 +171,7 @@ mkdir -p $STATDIR/Pkk
 
 # And we're going to make some TMP files along the way that we'll want to easily delete so
 USER=`whoami`
-TMPDIR=/home/$USER/TMPDIR/2ptStats/
-mkdir -p $TMPDIR
+mkdir -p $TMPDIR # defined in progs.ini to be either in /home or /data depending on where you're running this script
 
 # The set-up below is for data
 # We will need different file names for running through Flinc
@@ -231,7 +235,7 @@ do
         # script to select galaxies between zmin/zmax from ${MASTERCAT} and write out to ${TOMOCAT}_$i.cat
         # If CCORR is true, subtract off a c-term from the e1/e2 columns 
         #Also returns the correction applied to stdout which we send to $C_RECORD
-        python create_tomocats.py $zmin $zmax ${MASTERCAT} ${TOMOCAT}_$i.fits $BLIND $CCORR
+        $P_PYTHON create_tomocats.py $zmin $zmax ${MASTERCAT} ${TOMOCAT}_$i.fits $BLIND $CCORR
 
         # Check that the tomographic catalogues have been created and exit if they don't 
         test -f ${TOMOCAT}_$i.fits || \
@@ -258,7 +262,7 @@ do
       { echo "Error: Tomographic catalogue ${TOMOCAT}_$JZBIN.fits does not exist! Run MODE CREATETOMO!"; exit 1; }
 
     # Run treecorr
-    python calc_xi_w_treecorr.py $BININFO $LINNOTLOG ${TOMOCAT}_$IZBIN.fits ${TOMOCAT}_$JZBIN.fits $outxi
+    $P_PYTHON calc_xi_w_treecorr.py $BININFO $LINNOTLOG ${TOMOCAT}_$IZBIN.fits ${TOMOCAT}_$JZBIN.fits $outxi
 
     # Did it work?
     test -f $outxi || \
@@ -347,9 +351,6 @@ do
     test -f ${xifile} || \
     { echo "Error: KiDS-$PATCH XI results $outxiN do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; } 
 
-    # set the path to bjutils library
-    export LD_LIBRARY_PATH=/home/ma/src/CosmoFisherForecast/bjutils/lib/
-
     # These are the options for inputs for the c program xi2bandpow.c:
     # 1: <working directory>
     # 2: <input file identifier>
@@ -406,10 +407,10 @@ do
     # The output is saved in the same folder as the input
     OutputFileIdentifier=nbins_${nEllBins}_Ell_${minEll}_${maxEll}_zbins_${IZBIN}_${JZBIN}
 
-    # now run the program
-    /home/ma/src/CosmoFisherForecast/bandpowers/xi2bandpow ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
-                                                       ${BININFOARR[0]} ${BININFOARR[1]} ${BININFOARR[2]} ${BININFOARR[1]} ${BININFOARR[2]} \
-                                                       ${nEllBins} ${minEll} ${maxEll} ${CorrType} ${AppodisationWidth}
+    # now run the program (location is stored in progs.ini)
+    $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
+                  ${BININFOARR[0]} ${BININFOARR[1]} ${BININFOARR[2]} ${BININFOARR[1]} ${BININFOARR[2]} \
+                  ${nEllBins} ${minEll} ${maxEll} ${CorrType} ${AppodisationWidth}
 
 
     outPkk=${InputFolderName}/xi2bandpow_output_${OutputFileIdentifier}.dat
