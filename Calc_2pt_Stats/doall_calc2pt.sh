@@ -162,15 +162,15 @@ fi
 ## Define some environment variables that are used in several modes
 # If the file structures/names change, these will need editing
 
+#Ensure all the directories that we want exist
+mkdir -p $OD/TOMOCATS
+
 # STATDIR is the directory where all the results will go
 STATDIR=${OD}/OUTSTATS
-#Ensure all the directories that we want exist
-mkdir -p $STATDIR/TOMOCATS
 mkdir -p $STATDIR/XI
 mkdir -p $STATDIR/Pkk
 
 # And we're going to make some TMP files along the way that we'll want to easily delete so
-USER=`whoami`
 mkdir -p $TMPDIR # defined in progs.ini to be either in /home or /data depending on where you're running this script
 
 # The set-up below is for data
@@ -201,7 +201,7 @@ fi
 
 # Define the name for our output ascii file from Treecorr
 BININFOARR=($BININFO)
-outxi=$OD/XI/XI_K1000_${PATCH}_nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}.asc
+outxi=$STATDIR/XI/XI_K1000_${PATCH}_nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}.asc
 
 ##=================================================================
 ##
@@ -285,8 +285,8 @@ do
 
     # check do the files exist?
     tail=nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}.asc
-    outxiN=$OD/XI/XI_K1000_N_$tail
-    outxiS=$OD/XI/XI_K1000_S_$tail
+    outxiN=$STATDIR/XI/XI_K1000_N_$tail
+    outxiS=$STATDIR/XI/XI_K1000_S_$tail
 
     test -f ${outxiN} || \
     { echo "Error: KiDS-N XI results $outxiN do not exist. Run MODE XI -p N!"; exit 1; } 
@@ -322,7 +322,7 @@ do
     
     #finally put the header back
 
-    outxi=$OD/XI/XI_K1000_ALL_$tail
+    outxi=$STATDIR/XI/XI_K1000_ALL_$tail
     cat $TMPDIR/xi_header $TMPDIR/xi_comb > $outxi
 
     # Did it work?
@@ -346,7 +346,7 @@ do
 
     # check does the correct xi files exist?
     InputFileIdentifier=nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}
-    xifile=$OD/XI/XI_K1000_${PATCH}_$InputFileIdentifier.asc
+    xifile=$STATDIR/XI/XI_K1000_${PATCH}_$InputFileIdentifier.asc
 
     test -f ${xifile} || \
     { echo "Error: KiDS-$PATCH XI results $outxiN do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; } 
@@ -367,16 +367,17 @@ do
     # 13: <log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin; <0 for no apodisation]>
 
     #This is where the input 2pt correlations are kept in the format that the xi2bandpow expects them
-    InputFolderName=$OD/Pkk
+    InputFolderName=$STATDIR/Pkk
 
     # The files need to have this naming convention:  xi2bandpow_input_${InputFileIdentifier}.dat
     # They also need to have only 2 (3 if cosmic shear) columns with no other lines or comments:
     # theta[arcmin]    correlation_function[xi_+ if cosmic shear]         [xi_- if cosmic shear]
 
-    # Lets use awk to convert the Treecorr output into the expected format.  
+    # Lets use awk to convert the Treecorr output into the expected format.
+    # and remove the header
     # Treecorr: #   R_nom       meanR       meanlogR       xip          xim         xip_im      xim_im      sigma_xi      weight       npairs
 
-    awk '{print $1, $4, $5}' < $xifile > $InputFolderName/xi2bandpow_input_${InputFileIdentifier}.dat
+    awk '(NR>1){print $1, $4, $5}' < $xifile > $InputFolderName/xi2bandpow_input_${InputFileIdentifier}.dat
 
     # We'll hardwire this as we don't need to use this module for anything other that calculating Pkk
     # so we can directly edit this if we change the parameters
@@ -407,10 +408,20 @@ do
     # The output is saved in the same folder as the input
     OutputFileIdentifier=nbins_${nEllBins}_Ell_${minEll}_${maxEll}_zbins_${IZBIN}_${JZBIN}
 
+    #${BININFOARR[1]} ${BININFOARR[2]} are the edges of the bin
+    # this code wants the min/max bin centres though....
+    # need to improve this part of the code so it's not hardwired
+    mintheta=0.55
+    maxtheta=280.0
+    
     # now run the program (location is stored in progs.ini)
     $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
-                  ${BININFOARR[0]} ${BININFOARR[1]} ${BININFOARR[2]} ${BININFOARR[1]} ${BININFOARR[2]} \
+                  ${BININFOARR[0]} $mintheta $maxtheta $mintheta $maxtheta \
                   ${nEllBins} ${minEll} ${maxEll} ${CorrType} ${AppodisationWidth}
+
+#    $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
+#                  ${BININFOARR[0]} ${BININFOARR[1]} ${BININFOARR[2]} ${BININFOARR[1]} ${BININFOARR[2]} \
+#                  ${nEllBins} ${minEll} ${maxEll} ${CorrType} ${AppodisationWidth}
 
 
     outPkk=${InputFolderName}/xi2bandpow_output_${OutputFileIdentifier}.dat
