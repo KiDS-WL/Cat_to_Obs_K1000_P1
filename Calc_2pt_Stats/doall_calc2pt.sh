@@ -37,8 +37,8 @@ function printUsage
   echo "       -v lensfit version"
   echo "       -n ntomo number of tomographic source bins, followed by bin edges z_B(ntomo+1)"
   echo "       -t nbins number of theta bins, theta_min, theta_max"
-  echo "       -i cross correlate bins i with j"
-  echo "       -j cross correlate bins i with j"
+  echo "       -i cross correlate bins i with j - for GGL i is the lens bin"
+  echo "       -j cross correlate bins i with j - for GGL j is the source bin"
   echo "       -c c-corr on? true/false"
   echo "       -l linear not log bins? true/false"
   echo "       -b which blind?"
@@ -169,6 +169,7 @@ mkdir -p $OD/TOMOCATS
 STATDIR=${OD}/OUTSTATS
 mkdir -p $STATDIR/XI
 mkdir -p $STATDIR/Pkk
+mkdir -p $STATDIR/GT
 
 # And we're going to make some TMP files along the way that we'll want to easily delete so
 mkdir -p $TMPDIR # defined in progs.ini to be either in /home or /data depending on where you're running this script
@@ -349,7 +350,7 @@ do
     xifile=$STATDIR/XI/XI_K1000_${PATCH}_$InputFileIdentifier.asc
 
     test -f ${xifile} || \
-    { echo "Error: KiDS-$PATCH XI results $outxiN do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; } 
+    { echo "Error: KiDS-$PATCH XI results $xifile do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; } 
 
     # These are the options for inputs for the c program xi2bandpow.c:
     # 1: <working directory>
@@ -382,7 +383,7 @@ do
     # We'll hardwire this as we don't need to use this module for anything other that calculating Pkk
     # so we can directly edit this if we change the parameters
     # number of ell bins for the output bandpower in log space
-    nEllBins=10
+    nEllBins=5
 
     # minimum ell used
     minEll=100.0
@@ -403,7 +404,7 @@ do
     # It has 3 columns for non-cosmic shear cases:
     # ell bandpow err
     # And 4 columns for cosmic shear:
-    # ell E-bandPower err B-bandPower err
+    # ell l*2(E-bandPower/2pi) err  l*2(B-bandPower/2pi) err
     # ell is the log-central value
     # The output is saved in the same folder as the input
     OutputFileIdentifier=nbins_${nEllBins}_Ell_${minEll}_${maxEll}_zbins_${IZBIN}_${JZBIN}
@@ -411,7 +412,7 @@ do
     #${BININFOARR[1]} ${BININFOARR[2]} are the edges of the bin
     # this code wants the min/max bin centres though....
     # need to improve this part of the code so it's not hardwired
-    mintheta=0.55
+    mintheta=0.07
     maxtheta=280.0
     
     # now run the program (location is stored in progs.ini)
@@ -433,14 +434,49 @@ do
 
   fi
 done
+##==========================================================================
+#
+#    \"GAMMAT\": calculate gamma_t and gamma_x for cross bin combination i j"
+#    We want to use this mode for both the shear-ratio test and the main 3x2pt
+#    Analysis so it needs to be flexible
 
+for mode in ${MODE}
+do
+  if [ "$mode" = "GAMMAT" ]; then
+
+    echo "Starting mode GAMMAT: to calculate GAMMAT for bin combination \
+          Lens bin $IZBIN, source bin $JZBIN with a total number of tomo bins $BININFO"
+
+    lenscat=$OD/GGLCATS/2dflens_data_lenses_bz$IZBIN.fits
+    rancat=$OD/GGLCATS/2dflens_random_lenses_bz$IZBIN.fits
+
+    # check does the correct lens/source/random files exist?
+    test -f ${lenscat} || \
+      { echo "Error: Lens catalogue $lenscat does not exist."; exit 1; } 
+    test -f ${rancat} || \
+      { echo "Error: Random catalogue $rancat does not exist."; exit 1; } 
+    test -f ${TOMOCAT}_$JZBIN.fits || \
+      { echo "Error: Tomographic catalogue ${TOMOCAT}_$JZBIN.fits does not exist! Run MODE CREATETOMO!"; exit 1; }
+
+    # where do we want to write the output to?
+    tail=nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}.asc
+    outgt=$STATDIR/GT/GT_K1000_${PATCH}_$tail
+
+    # Run treecorr - using the Mandelbaum estimator that subtracts off the random signal
+    $P_PYTHON calc_gt_w_treecorr.py $BININFO $LINNOTLOG $lenscat $rancat ${TOMOCAT}_$JZBIN.fits $outgt
+
+    # Did it work?
+    test -f $outgt || \
+      { echo "Error: GGL measurement $outgt was not created! !"; exit 1; }
+    echo "Success: Leaving mode GAMMAT"
+
+  fi
+done
 
 ##=================================================================
 # To be written
 #  echo ""           
 #  echo "      \"COSEBIS\": calculate En/Bn for tomo bin combination i j "
-#  echo ""           
-#  echo ""           
-#  echo "      \"GAMMAT\": calculate gamma_t and gamma_x for cross bin combination i j"
+#  echo ""  
 #  echo ""           
 #  echo "      \"Pgk\": calculate GGL Band powers to cross bin combination i j"
