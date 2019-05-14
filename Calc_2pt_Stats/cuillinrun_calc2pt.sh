@@ -46,7 +46,7 @@ mkdir -p $LOGDIR
 #Lets submit the XI-calculation to different nodes	    
 #This is for the default 6 bins
 
-#: <<'=runmelater'
+: <<'=runmelater'
 for patch in N S
 do
     
@@ -66,25 +66,36 @@ do
     sbatch --job-name=tomo_${ibin}_${jbin} \
 	        --output=$LOGDIR/XI_${ibin}_${jbin}.log \
 	        --error=$LOGDIR/XI_${ibin}_${jbin}.error \
-	        --time=0:40:00 \
+	        --time=8:40:00 \
 	        --exclusive \
 	        --constraint="datadisk" \
 	        --tasks-per-node=1 \
 	        --mem=0G \
-	        doall_calc2pt.sh -m XI -i $ibin -j $jbin -p $patch -t "600 0.06 600"
+	        doall_calc2pt.sh -m XI -i $ibin -j $jbin -p $patch -t "600 0.06 300"
     ((jbin = jbin + 1))
   done
 done
 done
-#=runmelater
+=runmelater
 
 # Do you want to combine the tomographic catalogues?  Safe to do this on the head node
-#for ibin in {1..6}
-#do
-#	jbin=$ibin
-#  while [[ $jbin -le 6 ]]
-#  do
-#  ./doall_calc2pt.sh -m COMBINE -i $ibin -j $jbin -p ALL
-#  ((jbin = jbin + 1))
-#  done
-#done   
+for ibin in {1..6}
+do
+	jbin=$ibin
+  while [[ $jbin -le 6 ]]
+  do
+  ./doall_calc2pt.sh -m COMBINE -i $ibin -j $jbin -p ALL -t "600 0.06 300"
+  ((jbin = jbin + 1))
+  done
+done   
+
+# Do you want to calculate Pkk?  Safe to do this on the head node
+for ibin in {1..6}
+do
+	jbin=$ibin
+  while [[ $jbin -le 6 ]]
+  do
+  ./doall_calc2pt.sh -m Pkk -i $ibin -j $jbin -p ALL -t "600 0.06 300"
+  ((jbin = jbin + 1))
+  done
+done   
