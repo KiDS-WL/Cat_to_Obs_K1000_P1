@@ -1,7 +1,13 @@
 ########################################################################
 # Code to generate BOSS and 2dFLenS data and random lens catalogues    #
 # in the KiDS regions, including magnitude weights, from the           #
-# publicly-available datasets.                                         #
+# publicly-available datasets. 
+# Author:  Chris Blake
+# Questions to: cblake@swin.edu.au
+# Original version 13th May 2019                                        #
+# History
+#
+#
 ########################################################################
 
 import sys
@@ -12,45 +18,54 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 
-def main():
-# Redshift bin for catalogues
-  ired = 1 # (1) 0.2-0.5 (2) 0.4-0.6 (3) 0.5-0.75
-
-# Generate the lens catalogues
-  makecats(ired)
-
-# Run test plots of the lens catalogues
-#  testcats(ired)
-  return
-
+#============================================
 # Generate the lens catalogues
 def makecats(ired):
 
+# Read in KiDS photometric catalogue both N and S
+# (rmin_N,rmax_N,dmin_N,dmax_N) are returned as the precise boundaries of the KiDS-N region
+# (rmin_S,rmax_S,dmin_S,dmax_S) are returned as the precise boundaries of the KiDS-S region
+  raskids,deckids,grcolkids,ricolkids,rmagkids,rmin_N,rmax_N,dmin_N,dmax_N,rmin_S,rmax_S,dmin_S,dmax_S = readkids()
+
 # Read in BOSS data and random lenses
+
+# K1000-N has rough min/max RA (238.6, 128.4) and min/max DEC (-4.1, 3.1)
+# We want to measure GGL out to 6 degrees so we should select the BOSS region
+# to be 6.0 degrees larger than the KiDS region (buffer for good measure)
+
 # (R.A., Dec.) boundaries to use for BOSS catalogue
-  rmin,rmax,dmin,dmax = 120.,250.,-90.,10.
+  edge = 6.0
+  rmin,rmax,dmin,dmax = rmin_N-edge,rmax_N+edge,dmin_N-edge,dmax_N+edge
   rasbossdat,decbossdat,redbossdat,weicompbossdat,weifkpbossdat,nbossdat = readboss(1,ired,rmin,rmax,dmin,dmax)
   rasbossran,decbossran,redbossran,weicompbossran,weifkpbossran,nbossran = readboss(2,ired,rmin,rmax,dmin,dmax)
+  
+# You might want to sub-sample the BOSS randoms to increase your speed
+# We need high signal-to-noise random gamma_t signals though so we do not sub-sample here
 # Sub-sample BOSS randoms to 40x data for consistency with 2dFLenS
-  cut = np.random.choice(nbossran,40*nbossdat,replace=False)
-  rasbossran,decbossran,redbossran,weicompbossran,weifkpbossran = rasbossran[cut],decbossran[cut],redbossran[cut],weicompbossran[cut],weifkpbossran[cut]
-  nbossran = 40*nbossdat
-  print 'Sub-sampled BOSS randoms to',nbossran,'lenses'
+#  cut = np.random.choice(nbossran,40*nbossdat,replace=False)
+#  rasbossran,decbossran,redbossran,weicompbossran,weifkpbossran = rasbossran[cut],decbossran[cut], \
+#                                                                  redbossran[cut],weicompbossran[cut],weifkpbossran[cut]
+#  nbossran = 40*nbossdat
+#  print 'Sub-sampled BOSS randoms to',nbossran,'lenses'
 
-# Read in 2dFLenS data and random lenses
+# Read in 2dFLenS data and random lenses 
+# We do not need to apply ra/dec cuts here as 2dFLenS is designed to overlap with KiDS
   ras2dfdat,dec2dfdat,red2dfdat,weifkp2dfdat,n2dfdat = read2dflens(1,ired)
   ras2dfran,dec2dfran,red2dfran,weifkp2dfran,n2dfran = read2dflens(2,ired)
 # completeness weights=1 for 2dFLenS
   weicomp2dfdat,weicomp2dfran = np.ones(n2dfdat),np.ones(n2dfran)
 
-# Read in KiDS photometric catalogue
-# (rmin,rmax,dmin,dmax) are the boundaries of the 2 KiDS regions
-  raskids,deckids,grcolkids,ricolkids,rmagkids,rmin1,rmax1,dmin1,dmax1,rmin2,rmax2,dmin2,dmax2 = readkids()
-
 # Find KiDS mags/colours of BOSS and 2dFLenS data lenses
 # iphot is a flag which is 1 if there is a photometry match, otherwise 0
-  grcolbossdat,ricolbossdat,rmagbossdat,iphotbossdat = matchlenstosource(rasbossdat,decbossdat,raskids,deckids,grcolkids,ricolkids,rmagkids,rmin1,rmax1,dmin1,dmax1,rmin2,rmax2,dmin2,dmax2)
-  grcol2dfdat,ricol2dfdat,rmag2dfdat,iphot2dfdat = matchlenstosource(ras2dfdat,dec2dfdat,raskids,deckids,grcolkids,ricolkids,rmagkids,rmin1,rmax1,dmin1,dmax1,rmin2,rmax2,dmin2,dmax2)
+
+  grcolbossdat,ricolbossdat,rmagbossdat,iphotbossdat = matchlenstosource(rasbossdat,decbossdat,raskids,deckids,\
+                                                                         grcolkids,ricolkids,rmagkids,\
+                                                                         rmin_N,rmax_N,dmin_N,dmax_N,\
+                                                                         rmin_S,rmax_S,dmin_S,dmax_S)
+  grcol2dfdat,ricol2dfdat,rmag2dfdat,iphot2dfdat = matchlenstosource(ras2dfdat,dec2dfdat,raskids,deckids,\
+                                                                     grcolkids,ricolkids,rmagkids,\
+                                                                     rmin_N,rmax_N,dmin_N,dmax_N,\
+                                                                     rmin_S,rmax_S,dmin_S,dmax_S)
 
 # Determine magnitude weights of 2dFLenS data with BOSS as reference
   cutboss = (iphotbossdat > 0)
@@ -64,42 +79,52 @@ def makecats(ired):
   weimagbossdat = np.ones(nbossdat)
   weimagbossdat[cutboss] = calcmagweights(magsbossdat,mags2dfdat,weicomp2dfdat[cut2df])
 # magnitudes=0 and weights=1 for randoms
-  iphotbossran,weimagbossran,grcolbossran,ricolbossran,rmagbossran = np.zeros(nbossran,dtype='int'),np.ones(nbossran),np.zeros(nbossran),np.zeros(nbossran),np.zeros(nbossran)
-  iphot2dfran,weimag2dfran,grcol2dfran,ricol2dfran,rmag2dfran = np.zeros(n2dfran,dtype='int'),np.ones(n2dfran),np.zeros(n2dfran),np.zeros(n2dfran),np.zeros(n2dfran)
-
+  
+  iphotbossran,weimagbossran,grcolbossran,ricolbossran,rmagbossran = np.zeros(nbossran,dtype='int'),np.ones(nbossran),\
+                                                                     np.zeros(nbossran),np.zeros(nbossran),np.zeros(nbossran)
+  iphot2dfran,weimag2dfran,grcol2dfran,ricol2dfran,rmag2dfran = np.zeros(n2dfran,dtype='int'),np.ones(n2dfran),\
+                                                                np.zeros(n2dfran),np.zeros(n2dfran),np.zeros(n2dfran)
 # Write out fits file catalogues
-  if (ired == 1):
-    cred = '_bz1'
-  elif (ired == 2):
-    cred = '_bz2'
-  else:
-    cred = '_bz3'
-  outfile = 'boss_data_lenses' + cred + '.fits'
-  writelenscat(outfile,rasbossdat,decbossdat,redbossdat,weicompbossdat,weifkpbossdat,iphotbossdat,weimagbossdat,grcolbossdat,ricolbossdat,rmagbossdat)
-  outfile = 'boss_random_lenses' + cred + '.fits'
-  writelenscat(outfile,rasbossran,decbossran,redbossran,weicompbossran,weifkpbossran,iphotbossran,weimagbossran,grcolbossran,ricolbossran,rmagbossran)
-  outfile = '2dflens_data_lenses' + cred + '.fits'
-  writelenscat(outfile,ras2dfdat,dec2dfdat,red2dfdat,weicomp2dfdat,weifkp2dfdat,iphot2dfdat,weimag2dfdat,grcol2dfdat,ricol2dfdat,rmag2dfdat)
-  outfile = '2dflens_random_lenses' + cred + '.fits'
-  writelenscat(outfile,ras2dfran,dec2dfran,red2dfran,weicomp2dfran,weifkp2dfran,iphot2dfran,weimag2dfran,grcol2dfran,ricol2dfran,rmag2dfran)
+  outfile = OUTDIR +'/BOSS_data_z' + str(ired) + '.fits'
+  writelenscat(outfile,rasbossdat,decbossdat,redbossdat,weicompbossdat,weifkpbossdat,\
+                       iphotbossdat,weimagbossdat,grcolbossdat,ricolbossdat,rmagbossdat)
+  outfile = OUTDIR +'/BOSS_random_z' + str(ired) + '.fits'
+  writelenscat(outfile,rasbossran,decbossran,redbossran,weicompbossran,weifkpbossran,\
+                       iphotbossran,weimagbossran,grcolbossran,ricolbossran,rmagbossran)
+  outfile = OUTDIR +'/2dFLenS_data_z' + str(ired) + '.fits'
+  writelenscat(outfile,ras2dfdat,dec2dfdat,red2dfdat,weicomp2dfdat,weifkp2dfdat,\
+                       iphot2dfdat,weimag2dfdat,grcol2dfdat,ricol2dfdat,rmag2dfdat)
+  outfile = OUTDIR +'/2dFLenS_random_z' + str(ired) + '.fits'
+  writelenscat(outfile,ras2dfran,dec2dfran,red2dfran,weicomp2dfran,weifkp2dfran,\
+                       iphot2dfran,weimag2dfran,grcol2dfran,ricol2dfran,rmag2dfran)
   return
 
+#============================================
 # Read in KiDS photometric catalogue
 def readkids():
-  print '\nReading in KiDS source data...'
-  stem = '/Users/cblake/Data/kids1000/'
+  print '\nReading in KiDS bright source data...'
+
   raskids,deckids,grcolkids,ricolkids,rmagkids = [],[],[],[],[]
+
+  # Read in KiDS N and KiDS S and combine into a single data vector
+  # Do not do this with anything other than a bright sample
+
   for ireg in range(1,3):
     if (ireg == 1):
-      datfile = 'kids1000_N_col.fits'
+      datfile = 'K1000_N_'+KiDS_VER
     else:
-      datfile = 'kids1000_S_col.fits'
-    print stem+datfile
-    hdulist = fits.open(stem+datfile)
-    table = hdulist[1].data
+      datfile = 'K1000_S_'+KiDS_VER
+
+    hdulist = fits.open(KiDS_DIR+'/'+datfile)
+
+    # The KiDS catalogues are ldac tables in the 2nd extension
+    table = hdulist[2].data
+    
     raskids1 = table.field('ALPHA_J2000')
+    # trick to deal with the zero-crossing
     if (ireg == 2):
       raskids1[raskids1 > 180.] -= 360.
+
     deckids1 = table.field('DELTA_J2000')
     raskids = np.append(raskids,raskids1)
     deckids = np.append(deckids,deckids1)
@@ -110,17 +135,26 @@ def readkids():
     grcolkids = np.append(grcolkids,gmaggaap-rmaggaap)
     ricolkids = np.append(ricolkids,rmaggaap-imaggaap)
     rmagkids = np.append(rmagkids,rmagtot)
-    if (ireg == 1):
-      rmin1,rmax1,dmin1,dmax1 = np.amin(raskids1),np.amax(raskids1),np.amin(deckids1),np.amax(deckids1)
-    else:
-      rmin2,rmax2,dmin2,dmax2 = np.amin(raskids1),np.amax(raskids1),np.amin(deckids1),np.amax(deckids1)
-    hdulist.close()
-  print len(raskids),'KiDS sources'
-  raskids[raskids < 0.] += 360.
-  return raskids,deckids,grcolkids,ricolkids,rmagkids,rmin1,rmax1,dmin1,dmax1,rmin2,rmax2,dmin2,dmax2
 
+    if (ireg == 1):
+      rmin_N,rmax_N,dmin_N,dmax_N = np.amin(raskids1),np.amax(raskids1),np.amin(deckids1),np.amax(deckids1)
+    else:
+      rmin_S,rmax_S,dmin_S,dmax_S = np.amin(raskids1),np.amax(raskids1),np.amin(deckids1),np.amax(deckids1)
+    hdulist.close()
+
+  print len(raskids),'KiDS sources'
+  # trick to deal with the zero-crossing
+  raskids[raskids < 0.] += 360.
+  
+  return raskids,deckids,grcolkids,ricolkids,rmagkids,rmin_N,rmax_N,dmin_N,dmax_N,rmin_S,rmax_S,dmin_S,dmax_S
+
+#============================================
 # Read in BOSS lenses: datopt -- 1) data 2) random
 def readboss(datopt,ired,rmin,rmax,dmin,dmax):
+
+  # this will break if the file name is longer than 500
+  datfile=np.chararray(2, itemsize=500)
+
   if (datopt == 1):
     print '\nReading in BOSS data lenses...'
   else:
@@ -128,36 +162,55 @@ def readboss(datopt,ired,rmin,rmax,dmin,dmax):
   if (ired == 1):
     zmin,zmax = 0.2,0.5
   elif (ired == 2):
-    zmin,zmax = 0.4,0.6
-  else:
     zmin,zmax = 0.5,0.75
-  stem = '/Users/cblake/Data/boss/'
-  if (datopt == 1):
-    datfile = 'galaxy_DR12v5_CMASSLOWZTOT_North.fits'
   else:
-    datfile = 'random0_DR12v5_CMASSLOWZTOT_North.fits'
-  print stem+datfile
-  hdulist = fits.open(stem+datfile)
-  table = hdulist[1].data
-  rasboss = table.field('RA')
-  decboss = table.field('DEC')
-  redboss = table.field('Z')
+    zmin,zmax = 0.4,0.6  # Overlap bin - not used
   if (datopt == 1):
-    weicp = table.field('WEIGHT_CP')
-    weinoz = table.field('WEIGHT_NOZ')
-    weisys = table.field('WEIGHT_SYSTOT')
-    weicompboss = weisys*(weinoz+weicp-1.)
+    datfile[0] = 'galaxy_DR12v5_CMASSLOWZTOT_North.fits'
+    nfiles = 1
   else:
-    weicompboss = np.ones(len(rasboss))
-  weifkpboss = table.field('WEIGHT_FKP')
-  hdulist.close()
-  print len(rasboss),'BOSS lenses'
-  cut = (rasboss > rmin) & (rasboss < rmax) & (decboss > dmin) & (decboss < dmax) & (redboss > zmin) & (redboss < zmax)
-  rasboss,decboss,redboss,weicompboss,weifkpboss = rasboss[cut],decboss[cut],redboss[cut],weicompboss[cut],weifkpboss[cut]
-  nboss = len(rasboss)
-  print 'Cut to',nboss,'BOSS lenses with',rmin,'< R.A. <',rmax,dmin,'< Dec. <',dmax,zmin,'< z <',zmax
-  return rasboss,decboss,redboss,weicompboss,weifkpboss,nboss
+    datfile[0] = 'random0_DR12v5_CMASSLOWZTOT_North.fits'
+    datfile[1] = 'random1_DR12v5_CMASSLOWZTOT_North.fits'
+    nfiles = 2
 
+  #rasboss_out,decboss_out,redboss_out,weicompboss_out,weifkpboss_out = [],[],[],[],[]
+
+  # read in files - there are two for the randoms
+  for ifile in range(nfiles):
+    hdulist = fits.open(BOSS_DIR+'/'+datfile[ifile])
+    table = hdulist[1].data
+    rasboss = table.field('RA')
+    decboss = table.field('DEC')
+    redboss = table.field('Z')
+    weifkpboss = table.field('WEIGHT_FKP')
+    if (datopt == 1):
+      weicp = table.field('WEIGHT_CP')
+      weinoz = table.field('WEIGHT_NOZ')
+      weisys = table.field('WEIGHT_SYSTOT')
+      weicompboss = weisys*(weinoz+weicp-1.)
+      print len(rasboss),'BOSS lenses'
+    else:
+      weicompboss = np.ones(len(rasboss))
+      print len(rasboss),'BOSS randoms', ifile
+    hdulist.close()
+
+    #ra/dec cuts
+    cut = (rasboss > rmin) & (rasboss < rmax) & (decboss > dmin) & (decboss < dmax) & (redboss > zmin) & (redboss < zmax)
+
+    rasboss_out=rasboss[cut]    
+    decboss_out=decboss[cut]
+    redboss_out=redboss[cut]
+    weicompboss_out=weicompboss[cut]
+    weifkpboss_out=weifkpboss[cut] 
+  
+    if (ifile>0):
+      rasboss_out=np.append(rasboss_out,rasboss[cut]) 
+
+  nboss = len(rasboss_out)
+  print 'Cut to',nboss,'BOSS lenses with',rmin,'< R.A. <',rmax,dmin,'< Dec. <',dmax,zmin,'< z <',zmax
+  return rasboss_out,decboss_out,redboss_out,weicompboss_out,weifkpboss_out,nboss
+
+#============================================
 # Read in 2dFLenS lenses: datopt -- 1) data 2) random
 def read2dflens(datopt,ired):
   if (datopt == 1):
@@ -166,7 +219,6 @@ def read2dflens(datopt,ired):
   else:
     print '\nReading in 2dFLenS random lenses...'
     nset = 40
-  stem = '/Users/cblake/Work/2dflens/cats/'
   ras2df,dec2df,red2df,weifkp2df = [],[],[],[]
   for iset in range(nset):
     for ireg in range(1,3):
@@ -176,21 +228,25 @@ def read2dflens(datopt,ired):
         creg = '_atlas_kidss_160105'
       if (ired == 1):
         cred = '_bz1'
-      elif (ired == 2):
-        cred = '_bz2'
-      else:
+      elif (ired == 2):  # this is not a typo - Since the random catalogues have been created I have renamed 
+                         # bins 2 and 3 as we will not use the overlap bin and it's easier to script over bins 1&2
+                         # rather than over bins 1&3
         cred = '_bz3'
+      else:
+        cred = '_bz2'
       if (datopt == 1):
-        datfile = stem + 'data' + cred + creg + '_ntar.dat'
+        datfile = twodF_DIR + '/data' + cred + creg + '_ntar.dat'
       else:
         if (iset < 9):
           cset = '00' + str(iset+1)
         else:
           cset = '0' + str(iset+1)
-        datfile = stem + 'rand' + cset + cred + creg + '_ntar.dat'
+        datfile = twodF_DIR + '/rand' + cset + cred + creg + '_ntar.dat'
       print datfile
+
       f = open(datfile,'r')
       lines = f.readlines()[3:]
+
       for line in lines:
         fields = line.split()
         ras2df.append(float(fields[0]))
@@ -203,6 +259,7 @@ def read2dflens(datopt,ired):
   print n2df,'2dFLenS lenses'
   return ras2df,dec2df,red2df,weifkp2df,n2df
 
+#============================================
 # Find magnitudes/colours of closest source to each lens
 def matchlenstosource(raslens,declens,rassource,decsource,grcolsource,ricolsource,rmagsource,rmin1,rmax1,dmin1,dmax1,rmin2,rmax2,dmin2,dmax2):
   print '\nFinding closest source to each lens...'
@@ -220,7 +277,9 @@ def matchlenstosource(raslens,declens,rassource,decsource,grcolsource,ricolsourc
   indexsource,sep,d3d = coolens.match_to_catalog_sky(coosource)
   grcollens1,ricollens1,rmaglens1 = grcolsource[indexsource],ricolsource[indexsource],rmagsource[indexsource]
   cut = (sep.arcsec < separcmax)
-  raslens1,declens1,grcollens1,ricollens1,rmaglens1,indexlens1 = raslens1[cut],declens1[cut],grcollens1[cut],ricollens1[cut],rmaglens1[cut],indexlens1[cut]
+  raslens1,declens1,grcollens1,ricollens1,rmaglens1,indexlens1 = raslens1[cut],declens1[cut], \
+                                                                 grcollens1[cut],ricollens1[cut],\
+                                                                 rmaglens1[cut],indexlens1[cut]
   nlens = len(raslens1)
   print nlens,'lenses matched within',separcmax,'arcsec'
   grcollens[indexlens1] = grcollens1
@@ -229,6 +288,7 @@ def matchlenstosource(raslens,declens,rassource,decsource,grcolsource,ricolsourc
   iphotlens[indexlens1] = 1
   return grcollens,ricollens,rmaglens,iphotlens
 
+#============================================
 # Determine weights of catalogue to match magnitudes of reference using
 # the KV450 DIR method
 def calcmagweights(magscat,magsref,weiref):
@@ -267,12 +327,13 @@ def calcmagweights(magscat,magsref,weiref):
   print 'Mean catalogue weight =',np.average(weicat)
   return weicat
 
+#============================================
 # Write out lens fits catalogue
 def writelenscat(outfile,raslens,declens,redlens,weicomplens,weifkplens,iphotlens,weimaglens,grcollens,ricollens,rmaglens):
   print '\nWriting out lens catalogue...'
   print outfile
-  col1 = fits.Column(name='RA',format='D',array=raslens)
-  col2 = fits.Column(name='DEC',format='D',array=declens)
+  col1 = fits.Column(name='ALPHA_J2000',format='D',array=raslens)
+  col2 = fits.Column(name='DELTA_J2000',format='D',array=declens)
   col3 = fits.Column(name='Z',format='E',array=redlens)
   col4 = fits.Column(name='WEICOMP',format='E',array=weicomplens)
   col5 = fits.Column(name='WEIFKP',format='E',array=weifkplens)
@@ -285,14 +346,15 @@ def writelenscat(outfile,raslens,declens,redlens,weicomplens,weifkplens,iphotlen
   hdulist.writeto(outfile)
   return
 
+#============================================
 # Read in lens fits catalogue
 def readlenscat(infile):
   print '\nReading in lens catalogue...'
   print infile
   hdulist = fits.open(infile)
   table = hdulist[1].data
-  raslens = table.field('RA')
-  declens = table.field('DEC')
+  raslens = table.field('ALPHA_J2000')
+  declens = table.field('DELTA_J2000')
   redlens = table.field('Z')
   weicomplens = table.field('WEICOMP')
   weifkplens = table.field('WEIFKP')
@@ -306,6 +368,7 @@ def readlenscat(infile):
   print 'Read in',nlens,'lenses'
   return raslens,declens,redlens,weicomplens,weifkplens,iphotlens,weimaglens,grcollens,ricollens,rmaglens,nlens
 
+#============================================
 # Run test plots of the lens catalogues
 def testcats(ired):
   opt = 4 # 1) (R.A., Dec.) overplot
@@ -314,7 +377,8 @@ def testcats(ired):
           # 4) weighted distributions
           # 5) weights
 # Read in lens fits catalogues
-  stem = '/Users/cblake/Data/kids1000/lenscats/'
+#  stem = '/Users/cblake/Data/kids1000/lenscats/'
+  stem = '/disk09/KIDS/K1000_TWO_PT_STATS/GGLCATS/'
   if (ired == 1):
     cred = '_bz1'
     zmin,zmax = 0.2,0.5
@@ -499,5 +563,34 @@ def testcats(ired):
     sys.exit()
   return
 
-if __name__ == '__main__':
-  main()
+#===================================
+# We're now ready to run the script with command line options
+# To do this in main we would need to define them as global
+
+# Read in user input to set the location of the input/output and the desired bin
+if len(sys.argv) <6: 
+    #print("Usage: %s nbins theta_min(arcmin) theta_max(arcmin) lin_not_log(true or false)? lenscat.fits \
+    #        randomcat.fits sourcecat.fits outfilename" % sys.argv[0]) 
+  print "Usage: %s lens_bin KiDS_Location KiDS_Version BOSS_Location 2dFLenS_Location Out_Directory" % sys.argv[0] 
+  print "Example python makelenscats.py 1 /disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH/ rband_mask_BRIGHT_v3.cat \
+          /disk09/KIDS/K1000_TWO_PT_STATS/GGLCATS/BOSS_original /disk09/KIDS/K1000_TWO_PT_STATS/GGLCATS/2dFLenS_original \
+          /disk09/KIDS/K1000_TWO_PT_STATS/GGLCATS/"
+  sys.exit(1)
+else:
+  ired = int(sys.argv[1]) 
+  KiDS_DIR = sys.argv[2]
+  KiDS_VER = sys.argv[3]
+  BOSS_DIR = sys.argv[4]
+  twodF_DIR = sys.argv[5]
+  OUTDIR = sys.argv[6]
+
+# Redshift bin for catalogues
+# These are fixed by the Sanchez et al paper and so
+# we hardwire these properties here
+#  ired #(1) 0.2-0.5 (2) 0.5-0.75 (3) overlap - 0.4-0.6 - not used
+
+# Generate the lens catalogues
+makecats(ired)
+
+# Run test plots of the lens catalogues
+#  testcats(ired)
