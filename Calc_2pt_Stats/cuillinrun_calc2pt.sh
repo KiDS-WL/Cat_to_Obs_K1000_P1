@@ -76,7 +76,6 @@ do
   done
 done
 done
-=runmelater
 
 # Do you want to combine the tomographic catalogues?  Safe to do this on the head node
 for ibin in {1..6}
@@ -97,5 +96,17 @@ do
   do
   ./doall_calc2pt.sh -m Pkk -i $ibin -j $jbin -p ALL -t "600 0.06 300"
   ((jbin = jbin + 1))
+  done
+done   
+
+=runmelater
+
+# Do you want to calculate GGL?  do not do this on the head node
+for ibin in {1..2}
+do
+	for jbin in {1..6}
+  do
+  ./doall_calc2pt.sh -m GAMMAT -i $ibin -j $jbin -p N -g BOSS -t "6 0.5 300"
+  #./doall_calc2pt.sh -m GAMMAT -i $ibin -j $jbin -p S -g 2dFLenS 
   done
 done   

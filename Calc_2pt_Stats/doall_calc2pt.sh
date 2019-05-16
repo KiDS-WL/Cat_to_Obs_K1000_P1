@@ -33,6 +33,7 @@ function printUsage
   echo "       -d /path/to/catalogues"
   echo "       -o /path/to/results"
   echo "       -p patch name N or S"
+  echo "       -g GGL sample ID (e.g 2dFLenS or BOSS)"
   echo "       -m list of modes"
   echo "       -v lensfit version"
   echo "       -n ntomo number of tomographic source bins, followed by bin edges z_B(ntomo+1)"
@@ -84,6 +85,7 @@ LENSFIT_VER=v3
 # Analyse either North or South - and use the COMBINE mode 
 # to combine the results.  Can be N, S, ALL     
 PATCH=N
+GGL_ID=BOSS
 # Information about the tomographic bins
 # Format:  ntomo, zb_edges (ntomo+ 1)
 TOMOINFO="6 0.1 0.3 0.5 0.7 0.9 1.2 2.0"
@@ -108,7 +110,7 @@ BLIND=A
 # Parse command line arguments
 MODE=""
 
-while getopts ":d:o:p:m:v:n:t:i:j:c:" opt; do
+while getopts ":d:o:p:g:m:v:n:t:i:j:c:" opt; do
   case $opt in
     d)
       MD=$OPTARG
@@ -118,6 +120,9 @@ while getopts ":d:o:p:m:v:n:t:i:j:c:" opt; do
       ;;
     p)
       PATCH=$OPTARG
+      ;;
+    g)
+      GGL_ID=$OPTARG
       ;;
     m)
       MODE="$OPTARG"
@@ -447,8 +452,8 @@ do
     echo "Starting mode GAMMAT: to calculate GAMMAT for bin combination \
           Lens bin $IZBIN, source bin $JZBIN with a total number of tomo bins $BININFO"
 
-    lenscat=$OD/GGLCATS/2dflens_data_lenses_bz$IZBIN.fits
-    rancat=$OD/GGLCATS/2dflens_random_lenses_bz$IZBIN.fits
+    lenscat=$OD/GGLCATS/${GGL_ID}_data_z$IZBIN.fits
+    rancat=$OD/GGLCATS/${GGL_ID}_random_z$IZBIN.fits
 
     # check does the correct lens/source/random files exist?
     test -f ${lenscat} || \

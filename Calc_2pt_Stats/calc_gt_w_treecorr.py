@@ -31,15 +31,10 @@ else:
     outfile = sys.argv[8]
 
 # prepare the catalogues
-# TBD: edit the GGL catalogue creation code to spit out ALPHA_J2000, DELTA_J2000 keywords
 
-#lenscat = treecorr.Catalog(fitscat1, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
-#                                  w_col='weight')
-#rancat = treecorr.Catalog(fitscat2, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
-#                                  w_col='weight')
-lenscat = treecorr.Catalog(lenscatname, ra_col='RA', dec_col='DEC', ra_units='deg', dec_units='deg', \
+lenscat = treecorr.Catalog(lenscatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
                                   w_col='WEICOMP')
-rancat = treecorr.Catalog(rancatname, ra_col='RA', dec_col='DEC', ra_units='deg', dec_units='deg', \
+rancat = treecorr.Catalog(rancatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
                                   w_col='WEICOMP')
 sourcecat = treecorr.Catalog(sourcecatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
                                   g1_col='e1', g2_col='e2', w_col='weight')
