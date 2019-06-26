@@ -14,6 +14,7 @@ The original datasets you need:
 https://data.sdss.org/sas/dr12/boss/lss/
 wget https://data.sdss.org/sas/dr12/boss/lss/galaxy_DR12v5_CMASSLOWZTOT_North.fits.gz
 wget https://data.sdss.org/sas/dr12/boss/lss/random0_DR12v5_CMASSLOWZTOT_North.fits.gz
+wget https://data.sdss.org/sas/dr12/boss/lss/random1_DR12v5_CMASSLOWZTOT_North.fits.gz
 
 - The 2dFLenS LRG data and random catalogue in both KIDS-S and KiDS-N, I have prepared new versions on the 
 2dFLenS website in the revised DR12 redshift slices:
