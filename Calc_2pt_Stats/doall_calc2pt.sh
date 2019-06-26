@@ -76,11 +76,11 @@ function printUsage
 }
 
 ## Defaults
-# Main Directory where the master catalogues are stored
+# Main Directory where the master KIDS catalogues are stored
 MD=/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH     
 #Output Directory
 OD=/disk09/KIDS/K1000_TWO_PT_STATS/   
-# Catalogue Version numbery
+# Catalogue Version number
 LENSFIT_VER=v3             
 # Analyse either North or South - and use the COMBINE mode 
 # to combine the results.  Can be N, S, ALL     
@@ -105,12 +105,15 @@ CCORR=true
 LINNOTLOG=false
 # Which blind do you want to use?
 BLIND=A
+# Do you want to define the input catalogue yourself with the -u 
+# user defined catalogue option - if yes we need to set
+USERCAT=false
 
 
 # Parse command line arguments
 MODE=""
 
-while getopts ":d:o:p:g:m:v:n:t:i:j:c:" opt; do
+while getopts ":d:o:p:g:m:v:n:t:i:j:c:u:" opt; do
   case $opt in
     d)
       MD=$OPTARG
@@ -151,6 +154,9 @@ while getopts ":d:o:p:g:m:v:n:t:i:j:c:" opt; do
     b)
       BLIND=$OPTARG
       ;;
+    u)
+      USERCAT=$OPTARG
+      ;;
     
   esac
 done
@@ -177,15 +183,22 @@ mkdir -p $STATDIR/Pkk
 mkdir -p $STATDIR/GT
 
 # And we're going to make some TMP files along the way that we'll want to easily delete so
-mkdir -p $TMPDIR # defined in progs.ini to be either in /home or /data depending on where you're running this script
+mkdir -p $TMPDIR # defined in progs.ini to be either in /home or /data depending on where 
+                #you're running this script
 
-# The set-up below is for data
-# We will need different file names for running through Flinc
+# The default is to work with the main KiDS catalogue
+# but you might want to work on mock data, in which case you can 
+# fix the name of the mock catalogue with the -u option which sets MASTERCAT
 
-# MASTERCAT is the main KiDS catalogue
-MASTERCAT=${MD}/K1000_${PATCH}_9band_mask_BLINDED_${LENSFIT_VER}.cat
+if [ $USERCAT = "false" ]; then  # user catalogue has not been defined - use KIDS
+  MASTERCAT=${MD}/K1000_${PATCH}_9band_mask_BLINDED_${LENSFIT_VER}.cat
+  FILEHEAD=K1000_${PATCH}_BLIND_${BLIND}_${LENSFIT_VER}
+else  # set the filename of the output files to be the same as the name of the input fits catalogue
+  MASTERCAT=${MD}/$USERCAT
+  FILEHEAD=$USERCAT
+fi
 
-# TOMOCAT is the root name for the tomographic KiDS catalogue
+# TOMOCAT is the root name for the tomographic catalogue
 # created by mode CREATETOMO
 
 # To make life easier we will name our tomo bins with integer numbers 1,2,3,4,5,6
@@ -198,16 +211,16 @@ TOMOINFOARR=($TOMOINFO)
 NTOMO=${TOMOINFOARR[0]}
 
 if [ $CCORR = "true" ]; then
-  TOMOCAT=${OD}/TOMOCATS/K1000_${PATCH}_BLIND_${BLIND}_${LENSFIT_VER}_${NTOMO}Z
-  C_RECORD=${OD}/TOMOCATS/c_terms_K1000_${PATCH}_BLIND_${BLIND}_${LENSFIT_VER}_${NTOMO}Z.asc
+  TOMOCAT=${OD}/TOMOCATS/${FILEHEAD}_${NTOMO}Z
+  C_RECORD=${OD}/TOMOCATS/c_terms_${FILEHEAD}_${NTOMO}Z.asc
 else
-  TOMOCAT=${OD}/TOMOCATS/K1000_${PATCH}_BLIND_${BLIND}_${LENSFIT_VER}_NOCCORR_${NTOMO}Z
+  TOMOCAT=${OD}/TOMOCATS/${FILEHEAD}_NOCCORR_${NTOMO}Z
   C_RECORD=$TMPDIR/emptyfile  # just an empty file sent to the TMPDIR
 fi
 
 # Define the name for our output ascii file from Treecorr
 BININFOARR=($BININFO)
-outxi=$STATDIR/XI/XI_K1000_${PATCH}_nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}.asc
+outxi=$STATDIR/XI/XI_${FILEHEAD}_nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}.asc
 
 ##=================================================================
 ##
@@ -263,13 +276,13 @@ do
 
     # Check that the tomographic catalogue exist and exit if they don't 
     test -f ${TOMOCAT}_$IZBIN.fits || \
-      { echo "Error: Tomographic catalogue ${TOMOCAT}_$IZBIN.fits does not exist! Run MODE CREATETOMO!"; exit 1; }
+      { echo "Error: Tomographic catalogue ${TOMOCAT}_$IZBIN.fits does not exist! For KiDS run MODE CREATETOMO!"; exit 1; }
     test -f ${TOMOCAT}_$JZBIN.fits || \
-      { echo "Error: Tomographic catalogue ${TOMOCAT}_$JZBIN.fits does not exist! Run MODE CREATETOMO!"; exit 1; }
+      { echo "Error: Tomographic catalogue ${TOMOCAT}_$JZBIN.fits does not exist! For KiDS run MODE CREATETOMO!"; exit 1; }
 
     # Run treecorr
     $P_PYTHON calc_xi_w_treecorr.py $BININFO $LINNOTLOG ${TOMOCAT}_$IZBIN.fits ${TOMOCAT}_$JZBIN.fits $outxi
-
+ 
     # Did it work?
     test -f $outxi || \
       { echo "Error: Treecorr output $outxi was not created! !"; exit 1; }
@@ -352,7 +365,7 @@ do
 
     # check does the correct xi files exist?
     InputFileIdentifier=nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}
-    xifile=$STATDIR/XI/XI_K1000_${PATCH}_$InputFileIdentifier.asc
+    xifile=$STATDIR/XI/XI_${FILEHEAD}_$InputFileIdentifier.asc
 
     test -f ${xifile} || \
     { echo "Error: KiDS-$PATCH XI results $xifile do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; } 
@@ -388,7 +401,7 @@ do
     # We'll hardwire this as we don't need to use this module for anything other that calculating Pkk
     # so we can directly edit this if we change the parameters
     # number of ell bins for the output bandpower in log space
-    nEllBins=5
+    nEllBins=12
 
     # minimum ell used
     minEll=100.0
@@ -412,7 +425,7 @@ do
     # ell l*2(E-bandPower/2pi) err  l*2(B-bandPower/2pi) err
     # ell is the log-central value
     # The output is saved in the same folder as the input
-    OutputFileIdentifier=nbins_${nEllBins}_Ell_${minEll}_${maxEll}_zbins_${IZBIN}_${JZBIN}
+    OutputFileIdentifier=${FILEHEAD}_nbins_${nEllBins}_Ell_${minEll}_${maxEll}_zbins_${IZBIN}_${JZBIN}
 
     #${BININFOARR[1]} ${BININFOARR[2]} are the edges of the bin
     # this code wants the min/max bin centres though....
