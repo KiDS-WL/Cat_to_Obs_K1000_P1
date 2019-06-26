@@ -185,6 +185,7 @@ int main(int argc, char *argv[])
   // output band powers
   sprintf(name,"%s/xi2bandpow_output_%s.dat",path,outident);
   dat=bj_fileopen("w",name);
+  fprintf(dat,"#   ell         PEE             PEEerr          PBB                PBBerr\n");
   for (i=0;i<NOUT;i++) {
     if (corrtype==3) {
       fprintf(dat,"%15.10g\t%15.10g\t%15.10g\n",ell_centre[i],gsl_vector_get(derived2pt,i),sqrt(gsl_matrix_get(derived2pterr,i,i)));   // ell, bandpow, err
