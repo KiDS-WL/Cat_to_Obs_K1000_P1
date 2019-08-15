@@ -18,15 +18,13 @@ XY_or_chip=sys.argv[3] # X_Y or chip
 infile='%s_PSF_residuals_V1.0.0_%s.cat' %(patch, LFVER)
 
 #============================================================
-# Set up the figure
-fig = plt.figure(figsize=(8, 6))
-
 # Define custom colormaps: Set pixels with no sources to white
 cmap = plt.cm.jet
 cmap.set_bad('w', 1.)
 
-# Set the image grid
+# Set the figure and image grid
 if(XY_or_chip=='X_Y'):  # square
+    fig = plt.figure(figsize=(8, 6))
     grid = ImageGrid(fig, 111,          # as in plt.subplot(111)
                  nrows_ncols=(2,2),
                  axes_pad=0.25,
@@ -37,6 +35,7 @@ if(XY_or_chip=='X_Y'):  # square
                  cbar_pad=0.15,
                  )
 elif(XY_or_chip=='chip'): # row
+    fig = plt.figure(figsize=(6, 6))
     grid = ImageGrid(fig, 111,          # as in plt.subplot(111)
                  nrows_ncols=(1,4),
                  axes_pad=0.25,
@@ -132,8 +131,8 @@ for j in range (1,3):  # what do we want to bin?  And we may want to fix the col
 
     elif(XY_or_chip=='chip'):
 
-        de1_mean, xedges, yedges, binnum = binned_statistic_2d(chip, mag, de1,statistic='mean', bins=[32,10])
-        de2_mean, xedges, yedges, binnum = binned_statistic_2d(chip, mag, de2,statistic='mean', bins=[32,10])
+        de1_mean, xedges, yedges, binnum = binned_statistic_2d(chip, mag, de1,statistic='mean', bins=[32,10], range=[[0.5,32.5],[18.0,22.6]])
+        de2_mean, xedges, yedges, binnum = binned_statistic_2d(chip, mag, de2,statistic='mean', bins=[32,10], range=[[0.5,32.5],[18.0,22.6]])
         star_count, xsedges, ysedges, binnum = binned_statistic_2d(chip, mag, de2,statistic='count', bins=[32,10])
 
 
