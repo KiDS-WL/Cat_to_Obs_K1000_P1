@@ -1,0 +1,47 @@
+This is BibTeX, Version 0.99d (TeX Live 2015)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: K1000_ShearStats_Paper.aux
+The style file: aa.bst
+Database file #1: references.bib
+Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
+You've used 32 entries,
+            3039 wiz_defined-function locations,
+            909 strings with 18120 characters,
+and the built_in function-call counts, 31704 in all, are:
+= -- 2323
+> -- 4355
+< -- 5
++ -- 1457
+- -- 1425
+* -- 3063
+:= -- 6019
+add.period$ -- 32
+call.type$ -- 32
+change.case$ -- 603
+chr.to.int$ -- 32
+cite$ -- 32
+duplicate$ -- 588
+empty$ -- 824
+format.name$ -- 1498
+if$ -- 6124
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 31
+newline$ -- 100
+num.names$ -- 128
+pop$ -- 606
+preamble$ -- 1
+purify$ -- 603
+quote$ -- 0
+skip$ -- 476
+stack$ -- 0
+substring$ -- 604
+swap$ -- 5
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 288
+warning$ -- 0
+while$ -- 125
+width$ -- 0
+write$ -- 323
