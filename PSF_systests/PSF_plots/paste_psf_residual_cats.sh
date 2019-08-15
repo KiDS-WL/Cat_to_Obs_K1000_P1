@@ -6,7 +6,7 @@ allfiles=""
 
 VERSION=V1.0.0
 MD=/disk09/KIDS/KIDSCOLLAB_$VERSION/
-LFVER=glab_319d
+LFVER=glab_321
 #LFVER=svn_309b
 
 patch=$1
@@ -19,15 +19,28 @@ counter=0
 partcounter=0
 partfiles=""
 
-#while read field
-while read AWfield field dum dum
+while read field
+#while read AWfield field dum dum
 do
-    # check that the residual files exist  
+    # check that the residual files directory exists  
     if [ -d $MD/$field/checkplots/PSFRES_XI_$LFVER ]; then
 
-	    PSFres=$MD/$field/checkplots/PSFRES_XI_$LFVER/${field}*PSFres.cat
+	# check that files are contained within it
+
+	nfiles=`ls -l $MD/$field/checkplots/PSFRES_XI_$LFVER/${field}*PSFres.cat | wc -l`
+
+	if [ "$nfiles" -eq "0" ]; then
+	    echo "$nfiles no PSF checkplot files for field $field"
+	else
 	
+	    PSFres=$MD/$field/checkplots/PSFRES_XI_$LFVER/${field}*PSFres.cat
 	    allfiles=$allfiles" "$PSFres
+
+	fi
+	    
+    else
+	echo "Missing $MD/$field/checkplots/PSFRES_XI_$LFVER"
+	exit
     fi
 
     let counter=counter+1
