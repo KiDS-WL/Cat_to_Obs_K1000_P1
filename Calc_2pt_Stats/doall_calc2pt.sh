@@ -11,6 +11,11 @@
 # Script history information:
 # 2nd May 2019:  Started based on do_all script for pipeline processing - thanks to Thomas and co
 
+# File inclusions:
+# This file has the links to where your version of Python lives
+# We expect treecorr to be installed as part of this
+. ./progs.ini
+
 ##
 ## function definitions:
 ##
@@ -27,13 +32,14 @@ function printUsage
   echo "    will work from default settings. Possible arguments are:"
   echo "       -d /path/to/catalogues"
   echo "       -o /path/to/results"
-  echo "       -s patch name N or S"
+  echo "       -p patch name N or S"
+  echo "       -g GGL sample ID (e.g 2dFLenS or BOSS)"
   echo "       -m list of modes"
   echo "       -v lensfit version"
   echo "       -n ntomo number of tomographic source bins, followed by bin edges z_B(ntomo+1)"
   echo "       -t nbins number of theta bins, theta_min, theta_max"
-  echo "       -i cross correlate bins i with j"
-  echo "       -j cross correlate bins i with j"
+  echo "       -i cross correlate bins i with j - for GGL i is the lens bin"
+  echo "       -j cross correlate bins i with j - for GGL j is the source bin"
   echo "       -c c-corr on? true/false"
   echo "       -l linear not log bins? true/false"
   echo "       -b which blind?"
@@ -44,6 +50,8 @@ function printUsage
   echo "      \"CREATETOMO\": Cut catalogues into tomographic bins and calculate and subtract c-term"
   echo ""            
   echo "      \"XI\": calculate xi+/- for tomo bin combination i j"
+  echo ""  
+  echo "      \"COMBINE\": combine the XI results from N and S for cross bin combination i j"
   echo ""           
   echo "      \"COSEBIS\": calculate En/Bn for tomo bin combination i j "
   echo ""           
@@ -52,9 +60,7 @@ function printUsage
   echo "      \"GAMMAT\": calculate gamma_t and gamma_x for cross bin combination i j"
   echo ""           
   echo "      \"Pgk\": calculate GGL Band powers to cross bin combination i j"
-  echo ""           
-  echo "      \"COMBINE\": combine the results from N and S for cross bin combination i j"
-  echo ""           
+  echo ""       
   echo "IMPORTANT DEPENDENCIES:"
   echo "    This script uses TreeCorr version 4.0.  Previous versions do not have linear binning"
   echo "    which is essential for COSEBIS"
@@ -70,21 +76,22 @@ function printUsage
 }
 
 ## Defaults
-# Main Directory where the master catalogues are stored
+# Main Directory where the master KIDS catalogues are stored
 MD=/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH     
 #Output Directory
 OD=/disk09/KIDS/K1000_TWO_PT_STATS/   
-# Catalogue Version numbery
+# Catalogue Version number
 LENSFIT_VER=v3             
 # Analyse either North or South - and use the COMBINE mode 
-# to combine the results     
+# to combine the results.  Can be N, S, ALL     
 PATCH=N
+GGL_ID=BOSS
 # Information about the tomographic bins
 # Format:  ntomo, zb_edges (ntomo+ 1)
 TOMOINFO="6 0.1 0.3 0.5 0.7 0.9 1.2 2.0"
 # Information about the theta bins
 # Format:  nbins, theta_min, theta_max
-BININFO="7 0.5 300"
+BININFO="9 0.5 300"
 # Use a wrapper script to run over different bin 
 # combinations - making it easier to run in parrallel
 # This default correlates bin i=1 with bin j=2
@@ -98,12 +105,15 @@ CCORR=true
 LINNOTLOG=false
 # Which blind do you want to use?
 BLIND=A
+# Do you want to define the input catalogue yourself with the -u 
+# user defined catalogue option - if yes we need to set
+USERCAT=false
 
 
 # Parse command line arguments
 MODE=""
 
-while getopts ":d:o:s:m:v:n:t:i:j:c:" opt; do
+while getopts ":d:o:p:g:m:v:n:t:i:j:c:u:" opt; do
   case $opt in
     d)
       MD=$OPTARG
@@ -111,8 +121,11 @@ while getopts ":d:o:s:m:v:n:t:i:j:c:" opt; do
     o) 
       OD=$OPTARG
       ;;
-    s)
+    p)
       PATCH=$OPTARG
+      ;;
+    g)
+      GGL_ID=$OPTARG
       ;;
     m)
       MODE="$OPTARG"
@@ -141,6 +154,9 @@ while getopts ":d:o:s:m:v:n:t:i:j:c:" opt; do
     b)
       BLIND=$OPTARG
       ;;
+    u)
+      USERCAT=$OPTARG
+      ;;
     
   esac
 done
@@ -157,14 +173,35 @@ fi
 ## Define some environment variables that are used in several modes
 # If the file structures/names change, these will need editing
 
-# MASTERCAT is the main KiDS catalogue
-#MASTERCAT=${MD}/K1000_${PATCH}_9band_mask_BLINDED_${LENSFIT_VER}.cat
-MASTERCAT=${MD}/blinded_KIDS_9p0_m28p2.tmp
+#Ensure all the directories that we want exist
+mkdir -p $OD/TOMOCATS
 
-# TOMOCAT is the root name for the tomographic KiDS catalogue
+# STATDIR is the directory where all the results will go
+STATDIR=${OD}/OUTSTATS
+mkdir -p $STATDIR/XI
+mkdir -p $STATDIR/Pkk
+mkdir -p $STATDIR/GT
+
+# And we're going to make some TMP files along the way that we'll want to easily delete so
+mkdir -p $TMPDIR # defined in progs.ini to be either in /home or /data depending on where 
+                #you're running this script
+
+# The default is to work with the main KiDS catalogue
+# but you might want to work on mock data, in which case you can 
+# fix the name of the mock catalogue with the -u option which sets MASTERCAT
+
+if [ $USERCAT = "false" ]; then  # user catalogue has not been defined - use KIDS
+  MASTERCAT=${MD}/K1000_${PATCH}_9band_mask_BLINDED_${LENSFIT_VER}.cat
+  FILEHEAD=K1000_${PATCH}_BLIND_${BLIND}_${LENSFIT_VER}
+else  # set the filename of the output files to be the same as the name of the input fits catalogue
+  MASTERCAT=${MD}/$USERCAT
+  FILEHEAD=$USERCAT
+fi
+
+# TOMOCAT is the root name for the tomographic catalogue
 # created by mode CREATETOMO
 
-# To make life easier we will name our tomo bins with integer numbers 1,2,3,4,5
+# To make life easier we will name our tomo bins with integer numbers 1,2,3,4,5,6
 # Instead of the ZB boundaries
 # We want to use these scripts for 2D aswell though, so we will preface
 # with the total number of tomobins in the analysis
@@ -174,13 +211,16 @@ TOMOINFOARR=($TOMOINFO)
 NTOMO=${TOMOINFOARR[0]}
 
 if [ $CCORR = "true" ]; then
-  TOMOCAT=${OD}/TOMOCATS/K1000_${PATCH}_BLIND_${BLIND}_${LENSFIT_VER}_${NTOMO}Z
+  TOMOCAT=${OD}/TOMOCATS/${FILEHEAD}_${NTOMO}Z
+  C_RECORD=${OD}/TOMOCATS/c_terms_${FILEHEAD}_${NTOMO}Z.asc
 else
-  TOMOCAT=${OD}/TOMOCATS/K1000_${PATCH}_BLIND_${BLIND}_${LENSFIT_VER}_NOCCORR_${NTOMO}Z
+  TOMOCAT=${OD}/TOMOCATS/${FILEHEAD}_NOCCORR_${NTOMO}Z
+  C_RECORD=$TMPDIR/emptyfile  # just an empty file sent to the TMPDIR
 fi
 
-# STATDIR is the directory where all the results will go
-STATDIR=${OD}/OUTSTATS
+# Define the name for our output ascii file from Treecorr
+BININFOARR=($BININFO)
+outxi=$STATDIR/XI/XI_${FILEHEAD}_nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}.asc
 
 ##=================================================================
 ##
@@ -197,6 +237,10 @@ do
   
     echo "Starting mode CREATETOMO to cut catalogues into $NTOMO tomographic bins"
 
+    if [ $PATCH = "ALL" ]; then
+      { echo "MODE CREATETOMO only runs on PATCH N or S! Run MODE CREATETOMO -p N or -p S!"; exit 1; }
+    fi
+
     # Check that the Master catalogue exists and exit if it doesn't 
     test -f ${MASTERCAT} || \
       { echo "Error: Master catalogue ${MASTERCAT} does not exist! Exiting!"; exit 1; }
@@ -209,12 +253,13 @@ do
 
         # script to select galaxies between zmin/zmax from ${MASTERCAT} and write out to ${TOMOCAT}_$i.cat
         # If CCORR is true, subtract off a c-term from the e1/e2 columns 
-        python create_tomocats.py $zmin $zmax ${MASTERCAT} ${TOMOCAT}_$i.cat $BLIND CCORR
+        #Also returns the correction applied to stdout which we send to $C_RECORD
+        $P_PYTHON create_tomocats.py $zmin $zmax ${MASTERCAT} ${TOMOCAT}_$i.fits $BLIND $CCORR
 
         # Check that the tomographic catalogues have been created and exit if they don't 
-        test -f ${TOMOCAT}_$i.cat || \
-        { echo "Error: Tomographic catalogue ${TOMOCAT}_$i.cat have not been created!"; exit 1; }
-    done
+        test -f ${TOMOCAT}_$i.fits || \
+        { echo "Error: Tomographic catalogue ${TOMOCAT}_$i.fits have not been created!"; exit 1; }
+    done > $C_RECORD
 
     echo "Success: Leaving mode CREATETOMO"
   fi
@@ -230,18 +275,14 @@ do
     echo "Starting mode XI: calculate xi+/- for tomo bin combination $IZBIN $JZBIN with bins $BININFO"
 
     # Check that the tomographic catalogue exist and exit if they don't 
-    test -f ${TOMOCAT}_$IZBIN.cat || \
-      { echo "Error: Tomographic catalogue ${TOMOCAT}_$IZBIN.cat does not exist! Run MODE CREATETOMO!"; exit 1; }
-    test -f ${TOMOCAT}_$JZBIN.cat || \
-      { echo "Error: Tomographic catalogue ${TOMOCAT}_$JZBIN.cat does not exist! Run MODE CREATETOMO!"; exit 1; }
-
-    # Set the name for our output ascii file from Treecorr
-    BININFOARR=($BININFO)
-    outxi=$OD/XI/XI_nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}.asc
+    test -f ${TOMOCAT}_$IZBIN.fits || \
+      { echo "Error: Tomographic catalogue ${TOMOCAT}_$IZBIN.fits does not exist! For KiDS run MODE CREATETOMO!"; exit 1; }
+    test -f ${TOMOCAT}_$JZBIN.fits || \
+      { echo "Error: Tomographic catalogue ${TOMOCAT}_$JZBIN.fits does not exist! For KiDS run MODE CREATETOMO!"; exit 1; }
 
     # Run treecorr
-    python calc_xi_w_treecorr.py $BININFO $LINNOTLOG ${TOMOCAT}_$IZBIN.cat ${TOMOCAT}_$JZBIN.cat $outxi
-
+    $P_PYTHON calc_xi_w_treecorr.py $BININFO $LINNOTLOG ${TOMOCAT}_$IZBIN.fits ${TOMOCAT}_$JZBIN.fits $outxi
+ 
     # Did it work?
     test -f $outxi || \
       { echo "Error: Treecorr output $outxi was not created! !"; exit 1; }
@@ -250,16 +291,210 @@ do
   fi
 done
 
+##=================================================================
+#
+#   \"COMBINE\": combine the results from N and S for cross bin combination i j"
+
+for mode in ${MODE}
+do
+  if [ "$mode" = "COMBINE" ]; then
+
+    echo "Starting mode COMBINE: to combine the N/S results for tomo bin \
+          combination $IZBIN $JZBIN with bins $BININFO"
+
+    # check do the files exist?
+    tail=nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}.asc
+    outxiN=$STATDIR/XI/XI_K1000_N_$tail
+    outxiS=$STATDIR/XI/XI_K1000_S_$tail
+
+    test -f ${outxiN} || \
+    { echo "Error: KiDS-N XI results $outxiN do not exist. Run MODE XI -p N!"; exit 1; } 
+    test -f ${outxiS} || \
+    { echo "Error: KiDS-S XI results $outxiS do not exist. Run MODE XI -p S!"; exit 1; } 
+
+    # and now lets combine them using the fabulous awk
+    # which Tilman will be most scathing about, but I love it nevertheless
+    # first lets grab the header which we want to replicate
+
+    head -1 < $outxiN > $TMPDIR/xi_header
+
+    # paste the two catalogues together
+    
+    paste $outxiN $outxiS > $TMPDIR/xi_paste
+
+    # time for awk where we use npairs to weight every other
+    # column to get the average
+    # $10 = npairs in KiDS-N,  $20 = npairs in KiDS-S
+    # For the sigma_xi column I'm assuming ngals in N and S are similar and sum sigma_xi in quadrature
+    # This isn't correct but we don't really use the sigma_xi column ($8 and $18) 
+    # Finally give the sum of weights and the sum of npairs
+    
+    awk 'NR>1 {printf "%7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e\n", 
+                     ($1*$10 + $11*$20)/($10+$20), \
+                     ($2*$10 + $12*$20)/($10+$20), \
+                     ($3*$10 + $13*$20)/($10+$20), \
+                     ($4*$10 + $14*$20)/($10+$20), \
+                     ($5*$10 + $15*$20)/($10+$20), \
+                     ($6*$10 + $16*$20)/($10+$20), \
+                     ($7*$10 + $17*$20)/($10+$20), \
+                     sqrt($8*$8 + $18*$18), $9+$19, $10+$20}' < $TMPDIR/xi_paste > $TMPDIR/xi_comb
+    
+    #finally put the header back
+
+    outxi=$STATDIR/XI/XI_K1000_ALL_$tail
+    cat $TMPDIR/xi_header $TMPDIR/xi_comb > $outxi
+
+    # Did it work?
+    test -f $outxi || \
+      { echo "Error: Combined Treecorr output $outxi was not created! !"; exit 1; }
+    echo "Success: Leaving mode COMBINE"
+
+  fi
+done
+
+##==========================================================================
+#
+#    \"Pkk\": calculate cosmic shear Band powers for tomo bin combination i j "
+
+for mode in ${MODE}
+do
+  if [ "$mode" = "Pkk" ]; then
+
+    echo "Starting mode Pkk: to calculate cosmic shear Band powers for tomo bin combination \
+          combination $IZBIN $JZBIN with bins $BININFO"
+
+    # check does the correct xi files exist?
+    InputFileIdentifier=nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}
+    xifile=$STATDIR/XI/XI_${FILEHEAD}_$InputFileIdentifier.asc
+
+    test -f ${xifile} || \
+    { echo "Error: KiDS-$PATCH XI results $xifile do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; } 
+
+    # These are the options for inputs for the c program xi2bandpow.c:
+    # 1: <working directory>
+    # 2: <input file identifier>
+    # 3: <output file identifier>
+    # 4: <number of input angular bins>
+    # 5: <min input separation to use in conversion [arcmin] (xi_+ in case of ee)>
+    # 6: <max input separation to use in conversion [arcmin] (xi_+ in case of ee)>
+    # 7: <min input separation to use in conversion [arcmin] (xi_- in case of ee; otherwise unused)>
+    # 8: <max input separation to use in conversion [arcmin] (xi_- in case of ee; otherwise unused)>
+    # 9: <number of output ell bins>
+    # 10: <min output ell>
+    # 11: <max output ell>
+    # 12: <correlation type (1: ee; 2: ne; 3: gg)>
+    # 13: <log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin; <0 for no apodisation]>
+
+    #This is where the input 2pt correlations are kept in the format that the xi2bandpow expects them
+    InputFolderName=$STATDIR/Pkk
+
+    # The files need to have this naming convention:  xi2bandpow_input_${InputFileIdentifier}.dat
+    # They also need to have only 2 (3 if cosmic shear) columns with no other lines or comments:
+    # theta[arcmin]    correlation_function[xi_+ if cosmic shear]         [xi_- if cosmic shear]
+
+    # Lets use awk to convert the Treecorr output into the expected format.
+    # and remove the header
+    # Treecorr: #   R_nom       meanR       meanlogR       xip          xim         xip_im      xim_im      sigma_xi      weight       npairs
+
+    awk '(NR>1){print $1, $4, $5}' < $xifile > $InputFolderName/xi2bandpow_input_${InputFileIdentifier}.dat
+
+    # We'll hardwire this as we don't need to use this module for anything other that calculating Pkk
+    # so we can directly edit this if we change the parameters
+    # number of ell bins for the output bandpower in log space
+    nEllBins=12
+
+    # minimum ell used
+    minEll=100.0
+
+    # maximum ell used
+    maxEll=2000.0
+
+    # This mode is for Pkk, so we use CorrType 1
+    # type of correlation calculated
+    # correlation type (1: ee; 2: ne; 3: gg)
+    CorrType=1
+
+    # log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin
+    # 0 for no apodisation]
+    AppodisationWidth=0
+
+    # The output file is called xi2bandpow_output_${OutputFileIdentifier}.dat 
+    # It has 3 columns for non-cosmic shear cases:
+    # ell bandpow err
+    # And 4 columns for cosmic shear:
+    # ell l*2(E-bandPower/2pi) err  l*2(B-bandPower/2pi) err
+    # ell is the log-central value
+    # The output is saved in the same folder as the input
+    OutputFileIdentifier=${FILEHEAD}_nbins_${nEllBins}_Ell_${minEll}_${maxEll}_zbins_${IZBIN}_${JZBIN}
+
+    #${BININFOARR[1]} ${BININFOARR[2]} are the edges of the bin
+    # this code wants the min/max bin centres though....
+    # need to improve this part of the code so it's not hardwired
+    mintheta=0.07
+    maxtheta=280.0
+    
+    # now run the program (location is stored in progs.ini)
+    $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
+                  ${BININFOARR[0]} $mintheta $maxtheta $mintheta $maxtheta \
+                  ${nEllBins} ${minEll} ${maxEll} ${CorrType} ${AppodisationWidth}
+
+#    $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
+#                  ${BININFOARR[0]} ${BININFOARR[1]} ${BININFOARR[2]} ${BININFOARR[1]} ${BININFOARR[2]} \
+#                  ${nEllBins} ${minEll} ${maxEll} ${CorrType} ${AppodisationWidth}
+
+
+    outPkk=${InputFolderName}/xi2bandpow_output_${OutputFileIdentifier}.dat
+
+    # Did it work?
+    test -f $outPkk || \
+      { echo "Error: bandpower output $outPkk was not created! !"; exit 1; }
+    echo "Success: Leaving mode Pkk"
+
+  fi
+done
+##==========================================================================
+#
+#    \"GAMMAT\": calculate gamma_t and gamma_x for cross bin combination i j"
+#    We want to use this mode for both the shear-ratio test and the main 3x2pt
+#    Analysis so it needs to be flexible
+
+for mode in ${MODE}
+do
+  if [ "$mode" = "GAMMAT" ]; then
+
+    echo "Starting mode GAMMAT: to calculate GAMMAT for bin combination \
+          Lens bin $IZBIN, source bin $JZBIN with a total number of tomo bins $BININFO"
+
+    lenscat=$OD/GGLCATS/${GGL_ID}_data_z$IZBIN.fits
+    rancat=$OD/GGLCATS/${GGL_ID}_random_z$IZBIN.fits
+
+    # check does the correct lens/source/random files exist?
+    test -f ${lenscat} || \
+      { echo "Error: Lens catalogue $lenscat does not exist."; exit 1; } 
+    test -f ${rancat} || \
+      { echo "Error: Random catalogue $rancat does not exist."; exit 1; } 
+    test -f ${TOMOCAT}_$JZBIN.fits || \
+      { echo "Error: Tomographic catalogue ${TOMOCAT}_$JZBIN.fits does not exist! Run MODE CREATETOMO!"; exit 1; }
+
+    # where do we want to write the output to?
+    tail=nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}.asc
+    outgt=$STATDIR/GT/GT_K1000_${PATCH}_$tail
+
+    # Run treecorr - using the Mandelbaum estimator that subtracts off the random signal
+    $P_PYTHON calc_gt_w_treecorr.py $BININFO $LINNOTLOG $lenscat $rancat ${TOMOCAT}_$JZBIN.fits $outgt
+
+    # Did it work?
+    test -f $outgt || \
+      { echo "Error: GGL measurement $outgt was not created! !"; exit 1; }
+    echo "Success: Leaving mode GAMMAT"
+
+  fi
+done
 
 ##=================================================================
 # To be written
 #  echo ""           
 #  echo "      \"COSEBIS\": calculate En/Bn for tomo bin combination i j "
-#  echo ""           
-#  echo "      \"Pkk\": calculate cosmic shear Band powers for tomo bin combination i j "
-#  echo ""           
-#  echo "      \"GAMMAT\": calculate gamma_t and gamma_x for cross bin combination i j"
+#  echo ""  
 #  echo ""           
 #  echo "      \"Pgk\": calculate GGL Band powers to cross bin combination i j"
-#  echo ""           
-#  echo "      \"COMBINE\": combine the results from N and S for cross bin combination i j"

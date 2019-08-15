@@ -1,0 +1,7 @@
+is_auto = False
+nbin_a = 2
+nbin_b = 5
+sample_a = 'lens_flinc'
+sample_b = 'source_flinc'
+save_name = ''
+sep_name = 'theta'
