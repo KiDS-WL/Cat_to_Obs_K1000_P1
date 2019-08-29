@@ -132,17 +132,6 @@ En=np.zeros(nModes)
 Bn=np.zeros(nModes)
 
 for n in range(1,nModes+1):
-    folderName='/Users/marika_asgary/Documents/CosmicShear/COSEBIs/TLogs/' 
-    file = open(folderName+'/TpRadian'+str(n)+'_'+thetaRange+'.table')
-    Tp=np.loadtxt(file,comments='#')
-    file = open(folderName+'/TmRadian'+str(n)+'_'+thetaRange+'.table')
-    Tm=np.loadtxt(file,comments='#')
-    theta_t=np.exp(Tp[:,0])*arcmin
-    Tp_func=interp1d(theta_t, Tp[:,1])
-    Tm_func=interp1d(theta_t, Tm[:,1])
-    # 
-    TplusFileName=tfoldername+"/"+tplusfile+str(n)+"_"+thetaRange+".table"
-    TminusFileName=tfoldername+"/"+tminusfile+str(n)+"_"+thetaRange+".table"
     if(os.path.isfile(TplusFileName)):
         file = open(TplusFileName)
         tp=np.loadtxt(file,comments='#')
@@ -177,29 +166,6 @@ for n in range(1,nModes+1):
 
     tp_func=interp1d(tp[:,0], tp[:,1])
     tm_func=interp1d(tm[:,0], tm[:,1])
-
-    ##plots the T_p/m 
-    # pl.clf()
-    # # pl.xlim(thetamin,thetamax)
-    # pl.xscale('log')
-    # pl.xlabel(r'$\theta(arcmin)$')
-    # pl.ylabel(r'$T_{+n}(\theta)$')
-    # pl.plot(tp[:,0],tp_func(tp[:,0]),lw=2.0, label=r'python')
-    # pl.plot(theta_t,Tp[:,1],':r',lw=2.0, label=r'$n=$'+str(n))
-    # # pl.plot(tp[:,0],tp[:,1],lw=2.0, label=r'python')
-    # pl.legend(loc='best')
-    # pl.show()
-    # # 
-    # pl.clf()
-    # # pl.xlim(thetamin,thetamax)
-    # pl.xscale('log')
-    # pl.xlabel(r'$\theta(arcmin)$')
-    # pl.ylabel(r'$T_{-n}(\theta)$')
-    # pl.plot(tm[:,0],tm_func(tm[:,0]),lw=2.0, label=r'python')
-    # pl.plot(tm[:,0],Tm_func(tm[:,0]),':r',lw=2.0, label=r'$n=$'+str(n))
-    # # pl.plot(tm[:,0],tm[:,1],lw=2.0, label=r'python')
-    # pl.legend(loc='best')
-    # pl.show()
     # 
     integ_plus=tp_func(theta_mid)*theta_mid*xip[good_args]
     integ_minus=tm_func(theta_mid)*theta_mid*xim[good_args]
