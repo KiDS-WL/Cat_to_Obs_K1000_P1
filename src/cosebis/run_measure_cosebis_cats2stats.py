@@ -10,49 +10,50 @@ from measure_cosebis import tminus_quad, tplus,tminus
 from argparse import ArgumentParser
 
 
+# example run:
+# tmin=0.50
+# tmax=100.00
+# python run_measure_cosebis_cats2stats.py -i xi_nBins_1_Bin1_Bin1 -o nBins_1_Bin1_Bin1 --norm ./TLogsRootsAndNorms/Normalization_${tmin}-${tmax}.table -r ./TLogsRootsAndNorms/Root_${tmin}-${tmax}.table -b lin --thetamin ${tmin} --thetamax ${tmax} -n 20
+
 parser = ArgumentParser(description='Take input 2pcfs files and calculate COSEBIs')
 parser.add_argument("-i", "--inputfile", dest="inputfile",
-                    help="Input file name", metavar="inputFile",required=True)
+    help="Full Input file name", metavar="inputFile",required=True)
 
 parser.add_argument('-t','--theta_col', dest="theta_col", type=int,default=0, nargs='?',
-         help='column for theta')
+         help='column for theta, default is 0')
 
 parser.add_argument('-p','--xip_col', dest="xip_col", type=int,default=1, nargs='?',
-         help='column for xi_plus')
+         help='column for xi_plus, default is 1')
 
 parser.add_argument('-m','--xim_col', dest="xim_col", type=int,default=2, nargs='?',
-         help='column for xi_minus')
+         help='column for xi_minus, default is 2')
+
+
+parser.add_argument('--cfoldername', dest="cfoldername", 
+    help='full name and address of the folder for En/Bn files, default is cosebis_results',default="./cosebis_results",required=False)
 
 parser.add_argument("-o", "--outputfile", dest="outputfile"
                     ,help="output file name suffix. The outputs are cfoldername/En_${outputfile}.ascii and cfoldername/Bn_${outputfile}.ascii"
-                    , metavar="outputFile",required=True)
-
-parser.add_argument('--cfoldername', dest="cfoldername", help='name of the folder for En/Bn files',default="COSEBIs",required=False)
+                    ,metavar="outputFile",required=True)
 
 
-parser.add_argument('-b','--binning', dest="binning", help='log or linear binning',default="log",required=False)
+parser.add_argument('-b','--binning', dest="binning", help='log or lin binning, default is log',default="log",required=False)
 
 parser.add_argument('-n','--nCOSEBIs', dest="nModes", type=int,default=10, nargs='?',
-         help='number of COSEBIs modes to produce')
+         help='number of COSEBIs modes to produce, default is 10')
 
 parser.add_argument('-s','--thetamin', dest="thetamin", type=float,default=0.5, 
-    nargs='?', help='value of thetamin')
+    nargs='?', help='value of thetamin in arcmins')
 
 parser.add_argument('-l','--thetamax', dest="thetamax", type=float,default=300.0, 
-    nargs='?', help='value of thetamax')
+    nargs='?', help='value of thetamax, in arcmins')
 
+parser.add_argument('--tfoldername', dest="tfoldername", help='name and full address of the folder for Tplus Tminus files, will make it if it does not exist',default="Tplus_minus",required=False)
 parser.add_argument('--tplusfile', dest="tplusfile", help='name of Tplus file, will look for it before running the code',default="Tplus",required=False)
 parser.add_argument('--tminusfile', dest="tminusfile", help='name of Tplus file, will look for it before running the code',default="Tminus",required=False)
-parser.add_argument('--tfoldername', dest="tfoldername", help='name of the folder for Tplus Tminus files',default="Tplus_minus",required=False)
 
-parser.add_argument('-c','--norm', dest="normfile", help='normalisation file name for T_plus/minus', metavar="norm",required=True)
-parser.add_argument('-r','--root', dest="rootfile", help='roots file name for T_plus/minus', metavar="root",required=True)
-
-# parser.add_argument('-t','--type', dest="type",default='ee',
-#  help='type of inputfile: ee: cosmic shear, ne: galaxy-galaxy lensing, nn: galaxy clustering')
-
-# parser.add_argument('--type_GGL', dest="type_GGL",default='tangential',
-#  help='type of GGL output: tangential or cross. Default is tangential')
+parser.add_argument('-c','--norm', dest="normfile", help='normalisation file name and address for T_plus/minus', metavar="norm",required=True)
+parser.add_argument('-r','--root', dest="rootfile", help='roots file name and address for T_plus/minus', metavar="root",required=True)
 
 
 args = parser.parse_args()
@@ -129,9 +130,8 @@ if not os.path.exists(cfoldername):
 
 En=np.zeros(nModes)
 Bn=np.zeros(nModes)
-# print(thetaRange)
+
 for n in range(1,nModes+1):
-    # print(n)
     folderName='/Users/marika_asgary/Documents/CosmicShear/COSEBIs/TLogs/' 
     file = open(folderName+'/TpRadian'+str(n)+'_'+thetaRange+'.table')
     Tp=np.loadtxt(file,comments='#')
@@ -178,7 +178,7 @@ for n in range(1,nModes+1):
     tp_func=interp1d(tp[:,0], tp[:,1])
     tm_func=interp1d(tm[:,0], tm[:,1])
 
-
+    ##plots the T_p/m 
     # pl.clf()
     # # pl.xlim(thetamin,thetamax)
     # pl.xscale('log')
@@ -206,12 +206,8 @@ for n in range(1,nModes+1):
     # 
     Integral_plus=sum(integ_plus*delta_theta)
     Integral_minus=sum(integ_minus*delta_theta)
-    # print(Integral_plus,Integral_minus)
     En[n-1]=0.5*(Integral_plus+Integral_minus)/arcmin/arcmin
     Bn[n-1]=0.5*(Integral_plus-Integral_minus)/arcmin/arcmin
-    # print(En[n-1],Bn[n-1])
-
-# print(delta_theta)
 
 EnfileName=cfoldername+"/En_"+outputfile+".ascii"
 BnfileName=cfoldername+"/Bn_"+outputfile+".ascii"
