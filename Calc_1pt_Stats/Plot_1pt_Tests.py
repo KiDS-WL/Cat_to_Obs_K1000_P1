@@ -158,6 +158,8 @@ elif float(ZBlo)<float(ZBhi):
 else:
 	print "ZBlo %s is not lower than ZBhi %s. Amend this or set them both to None."
 	sys.exit()
+# Save the additive bias - this isn't acually used for anythin atm.
+np.savetxt('%s/Catalogues/K%s.Blind%s.ccorr_e1_e2.%s.dat'%(DIRECT,NorS,Blind,ZBlabel), np.c_[ np.mean(e1),np.mean(e2) ])
 
 
 def Bootstrap_Error(nboot, samples, weights):
@@ -173,41 +175,24 @@ def Bootstrap_Error(nboot, samples, weights):
 
 
 
-def MeanQ_VS_XY_CsMethod(Q, X,Y):
+def MeanQ_VS_XY(Q, X,Y):
 	num_XY_bins = 20
 	AvQ_grid, yedges, xedges, binnum = binned_statistic_2d(Y, X, Q,statistic='mean', bins=num_XY_bins)#, range=[[0.0,21000.],[0.0,21000.0]])
-	AvQ_grid[~np.isfinite(AvQ_grid)] = 0.
+	#AvQ_grid[~np.isfinite(AvQ_grid)] = 0.
 	return AvQ_grid
 
-def MeanQ_VS_XY(Q, X,Y):
-    num_XY_bins = 20
-
-    # The X,Y galaxy counts sorted into a num_XY_bins*num_XY_bins grid based on Xpos,Ypos
-    count_grid = np.histogram2d(X,Y,bins=num_XY_bins)[0]
-    Q_grid = np.zeros([ num_XY_bins,num_XY_bins ])
-    # The x,y indicies that each Xpos,Ypos gets assigned on the grid
-    grid_idx_x = ( num_XY_bins * (X-np.min(X)) / (np.max(X)-np.min(X)) ).astype(int)
-    grid_idx_y = ( num_XY_bins * (Y-np.min(Y)) / (np.max(Y)-np.min(X)) ).astype(int)
-    # Correct the one (max) element that is not rounded down to num_XY_bins -1
-    grid_idx_x[ grid_idx_x == num_XY_bins ] = num_XY_bins -1
-    grid_idx_y[ grid_idx_y == num_XY_bins ] = num_XY_bins -1
-    
-    Q_grid[grid_idx_y, grid_idx_x] += Q   
-    
-    # AVERAGE
-    AvQ_grid = Q_grid / count_grid
-    # Get rid of NaNs where we divided by 0
-    AvQ_grid[~np.isfinite(AvQ_grid)] = 0.
-    return AvQ_grid
 def Plot_XY_Grids(Q, lowlim, upplim, label, savename):
-    plt.figure(figsize=(8,7))
-    plt.imshow(Q, cmap='rainbow', interpolation='none', vmin=lowlim, vmax=upplim, origin='lower')
-    plt.ylabel(r'$Y_{\rm{pos}}$')
-    plt.xlabel(r'$X_{\rm{pos}}$')
-    plt.colorbar(label=label)
-    plt.savefig(savename)
-    #plt.show()
-    return
+	cmap = plt.cm.rainbow
+	cmap.set_bad('w', 1.)
+
+	plt.figure(figsize=(8,7))
+	plt.imshow(Q, cmap=cmap, interpolation='none', vmin=lowlim, vmax=upplim, origin='lower')
+	plt.ylabel(r'$Y_{\rm{pos}}$')
+	plt.xlabel(r'$X_{\rm{pos}}$')
+	plt.colorbar(label=label)
+	plt.savefig(savename)
+	#plt.show()
+	return
 
 
 
@@ -237,14 +222,14 @@ PSFe1_grid = MeanQ_VS_XY(PSFe1_d2, Xpos_d2,Ypos_d2)
 PSFe2_grid = MeanQ_VS_XY(PSFe2_d2, Xpos_d2,Ypos_d2)
 delta_PSFe1_grid = MeanQ_VS_XY(delta_PSFe1_d2, Xpos_d2,Ypos_d2)
 delta_PSFe2_grid = MeanQ_VS_XY(delta_PSFe2_d2, Xpos_d2,Ypos_d2)
-Plot_XY_Grids(1e6*PSFe1_grid, -1, 1, r'$\langle e_{{\rm PSF},1} \rangle \times 10^{-6}$', 
+Plot_XY_Grids(1e2*PSFe1_grid, -1, 1, r'$\langle e_{{\rm PSF},1} \rangle \times 10^{-2}$', 
 				'%s/GeneralPlots/K%s.Blind%s.MeanPSFe1_VS_XY.png' %(DIRECT,NorS,Blind) )
-Plot_XY_Grids(1e6*PSFe2_grid, -1, 1, r'$\langle e_{{\rm PSF},2} \rangle \times 10^{-6}$', 
+Plot_XY_Grids(1e2*PSFe2_grid, -1, 1, r'$\langle e_{{\rm PSF},2} \rangle \times 10^{-2}$', 
 				'%s/GeneralPlots/K%s.Blind%s.MeanPSFe2_VS_XY.png' %(DIRECT,NorS,Blind) )
 
-Plot_XY_Grids(1e6*delta_PSFe1_grid, -1, 1, r'$\langle \delta e_{{\rm PSF},1} \rangle \times 10^{-6}$', 
+Plot_XY_Grids(1e3*delta_PSFe1_grid, -1, 1, r'$\langle \delta e_{{\rm PSF},1} \rangle \times 10^{-3}$', 
 				'%s/GeneralPlots/K%s.Blind%s.MeandeltaPSFe1_VS_XY.png' %(DIRECT,NorS,Blind) )
-Plot_XY_Grids(1e6*delta_PSFe2_grid, -1, 1, r'$\langle \delta e_{{\rm PSF},2} \rangle \times 10^{-6}$', 
+Plot_XY_Grids(1e3*delta_PSFe2_grid, -1, 1, r'$\langle \delta e_{{\rm PSF},2} \rangle \times 10^{-3}$', 
 				'%s/GeneralPlots/K%s.Blind%s.MeandeltaPSFe2_VS_XY.png' %(DIRECT,NorS,Blind) )
 
 
@@ -322,6 +307,10 @@ def Plot_BinQx_VS_BinQy(Qx, Qy, weights, num_bins, labels, xlabel, ylabel, xlimi
 # ------------------------------------------------------------- 1-POINT STATISTICS PLOTS ------------------------------------------------------------- #
 # NOTE ON RETURNED ARRAY: bin_x_y_yerr[:,:,i] --> i=0 for x, i=1 for y, i=2 for yerr.
 
+print "Exiting as the next 1pt plots are expensive (~100s) to produce due to bootstrapping errors."
+sys.exit()
+
+
 Bootstrap = True	# Bootstrap errors? Takes ~nboot times longer! (nboot defined in Plot_BinQx_VS_BinQy)
 
 # MEAN ELLIPTICITY VS X/Ypos
@@ -357,6 +346,12 @@ bin_MAG_e_err = Plot_BinQx_VS_BinQy(np.vstack((MAG,MAG)), 1000*np.vstack((e1, e2
 '%s/GeneralPlots/K%s.Blind%s.MAG_VS_e.%s.png' %(DIRECT,NorS,Blind,ZBlabel), Bootstrap  )
 print "Finished binning and plotting e VS MAG" 
 
+# MEAN ELLIPTICITY VS ZB
+bin_ZB_e_err = Plot_BinQx_VS_BinQy(np.vstack((ZB,ZB)), 1000*np.vstack((e1, e2)), w, 5, 
+[r'$\langle e_1 \rangle$', r'$\langle e_2 \rangle$'], r'$z_{\rm B}$', r'$\langle e \rangle \times 10^{-3}$',
+[0.1,1.5], [-2.5,2.5], 
+'%s/GeneralPlots/K%s.Blind%s.ZB_VS_e.%s.png' %(DIRECT,NorS,Blind,ZBlabel), False  )
+print "Finished binning and plotting e VS ZB" 
 plt.show()
 
 
@@ -378,43 +373,6 @@ plt.show()
 
 
 
-################### FORMER REDUNDANT BINNING CODE ###################
-# Bin quantity x and plot VS quantity y
-sys.exit()
-def Redundant_Plot_BinQx_VS_BinQy(Qx, Qy, num_bins, labels, xlabel, ylabel, xlimits, ylimits, savename):
 
-	colors = ['magenta', 'dimgrey', 'darkblue', 'orange', 'lawngreen', 'red']
-	f, ((ax1)) = plt.subplots(1, 1, figsize=(8,7))
-
-	if len(Qx.shape) == 1:
-		Qx = np.reshape(Qx, (1,len(Qx)))
-		Qy = np.reshape(Qy, (1,len(Qy)))
-    
-	offset = [-0.01,0.01, -0.03,0.03]   
-	for i in range(Qy.shape[0]):
-		binx_centres = np.linspace(Qx[0,:].min(), Qx[0,:].max(), num_bins)	# Make the binning the same for	
-																			# if multiple quantities being plotted.
-		dx = binx_centres[1]-binx_centres[0]
-		binx_centres += dx/2.
-
-		# Average the corresponding Y's to the X's
-		biny_centres = np.zeros(num_bins)
-		biny_centres_err = np.zeros(num_bins)
-		for j in range(num_bins):
-			idx = np.where(np.logical_and(Qx[i,:]>=binx_centres[j]-dx/2, Qx[i,:]<binx_centres[j]+dx/2))[0]
-			biny_centres[j] = np.mean(Qy[i,idx]) 
-			biny_centres_err[j] = np.std(Qy[i,idx]) / np.sqrt(len(Qy[i,idx]))
-            
-		plt.errorbar(binx_centres+offset[i]*np.mean(binx_centres), biny_centres, yerr=biny_centres_err, fmt='o', color=colors[i],label=labels[i])
-	plt.xlabel(xlabel)
-	plt.ylabel(ylabel)
-	if ylimits != None:
-		plt.ylim(ylimits)
-	if xlimits != None:
-		plt.xlim(xlimits)
-	plt.legend(loc='best', frameon=False)
-	plt.savefig(savename)
-	#plt.show()
-	return
 
 
