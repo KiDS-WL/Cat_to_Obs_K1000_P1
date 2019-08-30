@@ -6,7 +6,7 @@ import math, os
 from matplotlib.patches import Rectangle
 from scipy.interpolate import interp1d
 from scipy import pi,sqrt,exp
-from measure_cosebis import tminus_quad, tplus,tminus
+from measure_cosebis import tminus_quad, tplus,tminus, str2bool
 from argparse import ArgumentParser
 
 
@@ -38,6 +38,7 @@ parser.add_argument("-o", "--outputfile", dest="outputfile"
 
 
 parser.add_argument('-b','--binning', dest="binning", help='log or lin binning, default is log',default="log",required=False)
+parser.add_argument('-f','--force',dest="force",nargs='?', help='Do not check if the bin edges match. Default is FALSE.',default=False,required=False)
 
 parser.add_argument('-n','--nCOSEBIs', dest="nModes", type=int,default=10, nargs='?',
          help='number of COSEBIs modes to produce, default is 10')
@@ -73,6 +74,7 @@ tminusfile=args.tminusfile
 tfoldername=args.tfoldername
 cfoldername=args.cfoldername
 binning=args.binning
+DontCheckBinEdges=str2bool(args.force)
 
 print('input file is '+inputfile+', making COSEBIs for '+str(nModes)+' modes and theta in ['+'%.2f' %thetamin+"'," 
     +'%.2f' %thetamax+"'], outputfiles are: "+cfoldername+"/En_"+outputfile+'.ascii and '+cfoldername+'/Bn_'+outputfile+'.ascii')
@@ -98,11 +100,12 @@ if(binning=='log'):
     delta_theta=theta_high-theta_low
 # 
     #check if the mid points are close enough
-    if((abs(theta_mid/theta[good_args]-1)<(delta_theta/10.)).all()):
-        print("I'm happy")
-    else:
-        print("Not happy with input thetas, exiting now ...")
-        exit()
+    if(DontCheckBinEdges==False):
+        if((abs(theta_mid/theta[good_args]-1)<(delta_theta/10.)).all()):
+            print("I'm happy")
+        else:
+            print("Not happy with input thetas, exiting now ...")
+            exit()
 elif(binning=='lin'):
     good_args=np.squeeze(np.argwhere((theta>thetamin) & (theta<thetamax)))
     nbins_within_range=len(theta[good_args])
