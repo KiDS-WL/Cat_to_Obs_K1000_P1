@@ -38,6 +38,7 @@ function printUsage
   echo "       -v lensfit version"
   echo "       -n ntomo number of tomographic source bins, followed by bin edges z_B(ntomo+1)"
   echo "       -t nbins number of theta bins, theta_min, theta_max"
+  echo "       -e COSEBIS theta_min, theta_max"
   echo "       -i cross correlate bins i with j - for GGL i is the lens bin"
   echo "       -j cross correlate bins i with j - for GGL j is the source bin"
   echo "       -c c-corr on? true/false"
@@ -62,8 +63,7 @@ function printUsage
   echo "      \"Pgk\": calculate GGL Band powers to cross bin combination i j"
   echo ""       
   echo "IMPORTANT DEPENDENCIES:"
-  echo "    This script uses TreeCorr version 4.0.  Previous versions do not have linear binning"
-  echo "    which is essential for COSEBIS"
+  echo "    This script uses TreeCorr version 4.0 to allow for linear or log binning"
   echo ""
   echo "EXAMPLES:"
   echo "    ./doall_calc2pt.sh -m \"CREATETOMO\""
@@ -89,9 +89,14 @@ GGL_ID=BOSS
 # Information about the tomographic bins
 # Format:  ntomo, zb_edges (ntomo+ 1)
 TOMOINFO="6 0.1 0.3 0.5 0.7 0.9 1.2 2.0"
-# Information about the theta bins
+# Information about the COSEBIS theta bins
+# Format:  theta_min, theta_max
+COSEBIS_BININFO="0.5 300"
+# Information about the XI theta bins
 # Format:  nbins, theta_min, theta_max
-BININFO="9 0.5 300"
+BININFO="300 0.24428841736054135 403.49549216938652"
+#This gives exact edges at 0.5 and 300 arcmin with 259 bins across that space.
+
 # Use a wrapper script to run over different bin 
 # combinations - making it easier to run in parrallel
 # This default correlates bin i=1 with bin j=2
@@ -139,6 +144,9 @@ while getopts ":d:o:p:g:m:v:n:t:i:j:c:u:" opt; do
     t)
       BININFO=$OPTARG
       ;;
+    e)
+      COSEBIS_BININFO=$OPTARG
+      ;;
     i)
       IZBIN=$OPTARG
       ;;
@@ -181,6 +189,7 @@ STATDIR=${OD}/OUTSTATS
 mkdir -p $STATDIR/XI
 mkdir -p $STATDIR/Pkk
 mkdir -p $STATDIR/GT
+mkdir -p $STATDIR/COSEBIS
 
 # And we're going to make some TMP files along the way that we'll want to easily delete so
 mkdir -p $TMPDIR # defined in progs.ini to be either in /home or /data depending on where 
@@ -218,7 +227,8 @@ else
   C_RECORD=$TMPDIR/emptyfile  # just an empty file sent to the TMPDIR
 fi
 
-# Define the name for our output ascii file from Treecorr
+# Define the name for our output ascii files from Treecorr etc
+COSEBIS_BININFOARR=($COSEBIS_BININFO)
 BININFOARR=($BININFO)
 outxi=$STATDIR/XI/XI_${FILEHEAD}_nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}.asc
 
@@ -505,25 +515,60 @@ do
     echo "Starting mode COSEBIS: to calculate COSEBIS for bin combination \
     Lens bin $IZBIN, source bin $JZBIN with a total number of tomo bins $BININFO"
 
-    # check does the correct lens/source/random files exist?
-    test -f ${lenscat} || \
-    { echo "Error: Lens catalogue $lenscat does not exist."; exit 1; }
-    test -f ${rancat} || \
-    { echo "Error: Random catalogue $rancat does not exist."; exit 1; }
-    test -f ${TOMOCAT}_$JZBIN.fits || \
-    { echo "Error: Tomographic catalogue ${TOMOCAT}_$JZBIN.fits does not exist! Run MODE CREATETOMO!"; exit 1; }
+    # check does the correct input xi file exist?
+    InputFileIdentifier=nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}
+    xifile=$STATDIR/XI/XI_${FILEHEAD}_$InputFileIdentifier.asc
+
+    test -f ${xifile} || \
+    { echo "Error: KiDS-$PATCH XI results $xifile do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; }
+
+    # check that the pre-computed COSEBIS tables exist
+    SRCLOC=../src/cosebis
+    normfile=$SRCLOC/TLogsRootsAndNorms/Normalization_${COSEBIS_BININFOARR[1]}-${COSEBIS_BININFOARR[2]}.table
+    rootfile=$SRCLOC/TLogsRootsAndNorms/Root_${COSEBIS_BININFOARR[1]}-${COSEBIS_BININFOARR[2]}.table
+
+    test -f ${normfile} || \
+    { echo "Error: COSEBIS pre-computed table $normfile is missing. Download from gitrepo!"; exit 1; }
+
+    test -f ${rootfile} || \
+    { echo "Error: COSEBIS pre-computed table $rootfile is missing. Download from gitrepo!"; exit 1; }
+
 
     # where do we want to write the output to?
-    tail=nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}.asc
-    outcosebis=$STATDIR/COSEBIS/COSEBIS_K1000_${PATCH}_$tail
+    filetail=COSEBIS_K1000_${PATCH}_nbins_${BININFOARR[0]}_theta_${COSEBIS_BININFOARR[1]}_${COSEBIS_BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}.asc
+    outcosebis=$STATDIR/COSEBIS/
 
-    # Run treecorr - using the Mandelbaum estimator that subtracts off the random signal
-    $P_PYTHON ../src/cosebis/run_measure_cosebis_cats2stats.py $BININFO $LINNOTLOG $lenscat $rancat \
-            ${TOMOCAT}_$JZBIN.fits$outcosebis
+    # Now Integrate output from treecorr with COSEBIS filter functions
+    # -i = input file
+    # -t = treecorr output theta_col - the first column is zero
+    # -p = treecorr output xip_col
+    # -m = treecorr output xim_col
+    # --cfoldername = output directory
+    # -o = filename (outputs En_filename.ascii and Bn_filename.ascii)
+    # -b = binning "log" or "lin"
+    # -n = number of COSEBIS modes
+    # -s = COSEBIS minimum theta
+    # -l = COSEBIS maximum theta
+    # location of the required pre-compution tables
+    # --tfoldername = Tplus_minus    # computes/saves the first time it is run
+    # --norm = TLogsRootsAndNorms/Normalization_${tmin}-${tmax}.table
+    # --root = TLogsRootsAndNorms/Root_${tmin}-${tmax}.table
+
+    $P_PYTHON ../src/cosebis/run_measure_cosebis_cats2stats.py -i $xifile -t 1 -p 3 -m 4 \
+            --cfoldername $outcosebis -o $filetail -b "log" -n 5 -s COSEBIS_BININFOARR[1] \
+            -l COSEBIS_BININFOARR[2] --tfoldername $SRCLOC/Tplus_minus \
+            --norm $normfile --root $rootfile
+
+    # I am expecting this to have produced two files called
+    Enfile=$putcosebis/En_${filetail}.ascii
+    Bnfile=$putcosebis/Bn_${filetail}.ascii
 
     # Did it work?
-    test -f $outcosebis || \
-    { echo "Error: COSEBIS measurement $outcosebis was not created! !"; exit 1; }
+    test -f $Enfile || \
+    { echo "Error: COSEBIS measurement $Enfile was not created! !"; exit 1; }
+    test -f $Bnfile || \
+    { echo "Error: COSEBIS measurement $Bnfile was not created! !"; exit 1; }
+
     echo "Success: Leaving mode COESBIS"
 
     fi
