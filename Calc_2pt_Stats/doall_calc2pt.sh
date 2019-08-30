@@ -491,10 +491,45 @@ do
   fi
 done
 
+
+##==========================================================================
+#
+#    \"COSEBIS\": calculate COSEBIs"
+#    The angular ranges that we can probe are limited by the pre-computed tables
+#    in src/cosebis/TLogsRootsAndNorms/
+
+for mode in ${MODE}
+do
+    if [ "$mode" = "COSEBIS" ]; then
+
+    echo "Starting mode COSEBIS: to calculate COSEBIS for bin combination \
+    Lens bin $IZBIN, source bin $JZBIN with a total number of tomo bins $BININFO"
+
+    # check does the correct lens/source/random files exist?
+    test -f ${lenscat} || \
+    { echo "Error: Lens catalogue $lenscat does not exist."; exit 1; }
+    test -f ${rancat} || \
+    { echo "Error: Random catalogue $rancat does not exist."; exit 1; }
+    test -f ${TOMOCAT}_$JZBIN.fits || \
+    { echo "Error: Tomographic catalogue ${TOMOCAT}_$JZBIN.fits does not exist! Run MODE CREATETOMO!"; exit 1; }
+
+    # where do we want to write the output to?
+    tail=nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}.asc
+    outcosebis=$STATDIR/COSEBIS/COSEBIS_K1000_${PATCH}_$tail
+
+    # Run treecorr - using the Mandelbaum estimator that subtracts off the random signal
+    $P_PYTHON ../src/cosebis/run_measure_cosebis_cats2stats.py $BININFO $LINNOTLOG $lenscat $rancat \
+            ${TOMOCAT}_$JZBIN.fits$outcosebis
+
+    # Did it work?
+    test -f $outcosebis || \
+    { echo "Error: COSEBIS measurement $outcosebis was not created! !"; exit 1; }
+    echo "Success: Leaving mode COESBIS"
+
+    fi
+done
+
 ##=================================================================
 # To be written
-#  echo ""           
-#  echo "      \"COSEBIS\": calculate En/Bn for tomo bin combination i j "
-#  echo ""  
-#  echo ""           
+#  echo ""
 #  echo "      \"Pgk\": calculate GGL Band powers to cross bin combination i j"
