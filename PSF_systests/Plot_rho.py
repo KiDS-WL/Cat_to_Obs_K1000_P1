@@ -11,6 +11,23 @@ rc('font',size=24)
 rc('legend',**{'fontsize':24})
 rc('font',**{'family':'serif','serif':['Computer Modern']})
 
+# Set the plotted requirement on the rho stats:
+Requirement = "M18"			# "M18" for Mandelbaum+18: [p_1,2,4<xi_+/SNR, p_2,5<xi_+/(SNR*alpha)
+							# "Z18" for Zuntz+18: xi_+ / 10 
+
+Which_Data = "Data"		# "Data" for K1000 or "Theory" for HaloFit
+							# goes into calculation of the requirement bands.
+
+# Define quantities needed for delta_xip
+alpha=0.03 		# worse case scenario PSF leakage is 0.03;
+			   	# but you still need to calculate this term from data
+T_ratio = 1. 	# Will ultimately get this column from Lance's updated Lensfit cats [I think?]
+
+# If using the lowest ZB bin, you might want to smooth the data vector 
+# so the Requirement band is less jaggardy. If so, use this smoothign scale:
+Smooth_Scale = 0.8
+
+
 LFver = ["321"] #["309b",  "319b", "319c", "319d", "321"] # "319",
 ThBins = 9
 Res = 7
@@ -87,20 +104,53 @@ for lfv in range(len(LFver)):
 		rhom_err[lfv,i,:] = np.sqrt( np.diag( np.cov(rhom_split[:,i,:], rowvar = False) ) / (numN[lfv]+numS[lfv]) ) 
 
 # To get a rough idea of size of rho stats, read in the xi+- of some data to overplot 
-data_dir = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/Catalogues/'
+data_dir = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/xi_pm/'
 data_ZBlabel = '0.1-0.3'		# '0.1-0.3' 'None'
-# North
-theta_data, xip_data_N_tmp, npairs_data_N = np.loadtxt('%s/KN.BlindA.xi_pm.ZBcut%s.dat'%(data_dir,data_ZBlabel), usecols=(0,1,3), unpack=True)
-xip_data_N = np.interp(theta, theta_data, xip_data_N_tmp)
-# South
-theta_data, xip_data_S_tmp, npairs_data_S = np.loadtxt('%s/KS.BlindA.xi_pm.ZBcut%s.dat'%(data_dir,data_ZBlabel), usecols=(0,1,3), unpack=True)
-xip_data_S = np.interp(theta, theta_data, xip_data_S_tmp)
-xip_data = (xip_data_N*npairs_data_N + xip_data_S*npairs_data_S) / (npairs_data_N + npairs_data_S)
-if data_ZBlabel == '0.1-0.3':
-	# Lowest Zb bin has a wee bit of noise in it. 
-	# Smoothing it a wee bit for plotting purposes.
-	sigma = 0.8
-	xip_data = gaussian_filter( xip_data, sigma )
+theta_data, xip_data = np.loadtxt('%s/KAll.BlindA.xi_pm.ZBcut%s.dat' %(data_dir, data_ZBlabel), usecols=(0,1), unpack=True)
+ 
+theta_theory, xip_theory_tmp = np.loadtxt('%s/xi_p_smith03revised_zKV450_ZBcut%s' %(data_dir, data_ZBlabel), usecols=(0,1), unpack=True)
+xip_theory = np.interp( theta_data, theta_theory, xip_theory_tmp )
+
+
+def Set_Mandelbaum_Constraints():
+	NLOS_Cov = 1250
+	cosmol_Cov = 'fid'
+	SurveySize = 1000.
+
+	# NOTE BIG DIFFERENCES IN SNR WITH REDSHIFT CUT
+	# Linc Cov: 21 (0.1-0.3), 76 (0.7-0.9)
+	Cov_inDIR = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/Lincs_CovMat/'
+	Cov_Mat_uc_Survey = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[0:9, 0:9]			# [0:9, 0:9] This extracts xi+ Cov in lowest bin
+
+	scale = np.where(theta_data < 72)[0]
+	SNR = np.dot( np.transpose(xip_data[scale]), 
+			np.dot( np.linalg.inv(Cov_Mat_uc_Survey[scale[0]:scale[-1]+1,scale[0]:scale[-1]+1]), xip_data[scale] ))		
+
+	# ! EITHER USE A THEORY VECTOR FOR REQUIREMENTS, OR USE SMOOTHED DATA VECTOR !
+	if Which_Data == 'Data':
+		# Lowest Z_B bin has a wee bit of noise in it. 
+		# Smoothing it a wee bit for plotting purposes.
+		Sm_xip = gaussian_filter( xip_data, Smooth_Scale )
+	elif Which_Data == 'Theory':
+		Sm_xip = np.copy( xip_theory )
+
+	# IF YOU USE 0.1-0.3 DATA/COV THE REQ IS LARGER ON SMALL SCALES AND SMALLER ON LARGE SCALES RELATIVE TO IF WE USED (0.7-0.9)
+	# HERE'S THE RATIO: array([ 3.74749516,  2.30591263,  3.22123142,  2.4665902 ,  0.55896293, -0.41969508,  0.39032223,  0.07134366,  0.79189828])
+	# SO IN SHORT. NOT OBVIOUS WHICH ONE ZB TO USE. SO GO WITH EITHER. 
+	Requirement_134 = T_ratio**(-2) * Sm_xip / (2*SNR)
+	Requirement_25  = T_ratio**(-1) * Sm_xip / (2*SNR*alpha)
+	return Requirement_134, Requirement_25, Cov_Mat_uc_Survey
+
+
+# Set the requirements on rho_1,2,4 and rho_2,5
+if Requirement == "M18":
+	Req_134, Req_25, Cov_Mat_uc_Survey = Set_Mandelbaum_Constraints()
+elif Requirement == "Z18":
+	Req_134 = gaussian_filter( xip_data, Smooth_Scale ) / 10.
+	Req_25  = gaussian_filter( xip_data, Smooth_Scale ) / 10.
+else:
+	print "Requirement must be set to M18 or Z18"
+	sys.exit()
 
 
 def Set_Scales(ax):
@@ -109,10 +159,10 @@ def Set_Scales(ax):
 	#ax.set_yscale('log')
 	return
 
-# LIMITS = [ [-13.9,2], [0.1,40], [-0.04,0.25], [-0.29,0.1], [-25,-0.0], [-15, 0.9] ]
-LIMITS = [ [-13.9,40], [-13.9,40], [-0.29,0.25], [-0.29,0.25], [-25, 1.9], [-25, 1.9] ]
 
-def Plot_5(rho, rho_err, pm):
+def Plot_5_Symlog(rho, rho_err, pm):
+
+	dummy, dummy, Cov_Mat_uc_Survey = Set_Mandelbaum_Constraints()
 
 	Deltaxip = True
 	if Deltaxip:
@@ -120,63 +170,72 @@ def Plot_5(rho, rho_err, pm):
 	else:
 		scrollthrough=5
 
-	# Define quantities needed for delta_xip
-	alpha=0.03 		# worse case scenario PSF leakage is 0.03;
-			   		# but you still need to calculate this term from data
-	T_ratio = 1. 	# Will ultimately get this column from Lance's updated Lensfit cats [I think?]
-
 	fig = plt.figure(figsize = (24,10))
 	gs1 = gridspec.GridSpec(3, 2)
 	colors = [ 'magenta', 'darkblue', 'dimgrey', 'orange', 'lawngreen', 'cyan' ] 	
 	for i in range(scrollthrough):
 			ax = plt.subplot(gs1[i], adjustable='box')
 			Set_Scales(ax)
-			ax.set_ylim( LIMITS[i] )
-		
-			ax.fill_between(theta_data[:], y1=-0.1*xip_data*1e7, y2=0.1*xip_data*1e7, facecolor='yellow') 
+
+			# Set the requirement bands - rho_2,5 have different requirements than rho_1,3,4
+			if i==1 or i==4:
+				# rho 2 and 5 have one requirement
+				symlogscale = 1e-6
+				ax.fill_between(theta_data[:], y1=abs(Req_25)*-1, y2=abs(Req_25)*1, facecolor='yellow') 
+				ax.set_ylim([ abs(Req_25[0])*-1, abs(Req_25[0])*1 ])
+			elif i==0 or i==2 or i==3:
+				symlogscale = 1e-8
+				# rho 1,3 and 4 have another requirement
+				ax.fill_between(theta_data[:], y1=abs(Req_134)*-1, y2=abs(Req_134)*1, facecolor='yellow') 
+				ax.set_ylim([ abs(Req_134[0])*-1, abs(Req_134[0])*1 ])
+			else:
+				symlogscale = 1e-7
+				Req = np.sqrt( np.diagonal(Cov_Mat_uc_Survey) ) / 2.
+				ax.fill_between(theta_data[:], y1=abs(Req)*-1, y2=abs(Req)*1, facecolor='yellow') 
+				
+				
+			ax.set_yscale('symlog', linthreshy=symlogscale )
+			ax.plot( [0.5,300.], [symlogscale, symlogscale],  'k--' )
+			ax.plot( [0.5,300.], [-1*symlogscale, -1*symlogscale], 'k--' )
+
+			# Set the theta bands
 			if i ==5:
-				ax.set_ylabel(r'$\delta\xi_%s(\theta) \times 10^{-7}$'%pm)
+				ax.set_ylabel(r'$\delta\xi_%s(\theta)$'%pm)
 				ax.set_xlabel(r'$\theta$ [arcmin]')
 				for lfv in range(len(LFver)):
 					delta_xip = T_ratio**2*(rho[lfv,0,:]+rho[lfv,2,:]+rho[lfv,3,:]) - T_ratio*alpha*(rho[lfv,1,:]+rho[lfv,4,:])
-					ax.errorbar(theta, delta_xip*1e7, yerr=rho_err[lfv,1,:]*1e7, color=colors[lfv], linewidth=3, label=r'%s'%Plot_Labels[lfv])
+					ax.errorbar(theta, delta_xip, yerr=rho_err[lfv,1,:], color=colors[lfv], linewidth=3, label=r'%s'%Plot_Labels[lfv])
 			else:
-				ax.set_ylabel(r'$\rho_{%s}(\theta) \times 10^{-7}$'%(i+1))
+				ax.set_ylabel(r'$\rho_{%s}(\theta)$'%(i+1))
 				if i!=3 and i!=4:
 					ax.set_xticks([])
 				else:
 					ax.set_xlabel(r'$\theta$ [arcmin]')
+					# 1, 3, 4 have another requirement
 				for lfv in range(len(LFver)):
-					ax.errorbar(theta, rho[lfv,i,:]*1e7, yerr=rho_err[lfv,i,:]*1e7, color=colors[lfv], linewidth=3, label=r'%s'%Plot_Labels[lfv])
+					ax.errorbar(theta, rho[lfv,i,:], yerr=rho_err[lfv,i,:], color=colors[lfv], linewidth=3, label=r'%s'%Plot_Labels[lfv])
 
-
-	ax.legend(loc='lower right', frameon=False)
 	#fig.suptitle('Lensfit v'+LFver[0])
 	if Deltaxip == False:
 		plt.subplot(gs1[-1], adjustable='box').set_visible(False)
 	plt.subplots_adjust(hspace=0)
-	plt.savefig('LFver%s/rho1/Plot_rho%s_CovPatches%sx%s.png'%(LFver[0],pm,Res,Res))
-	#plt.show()
+	plt.savefig('LFver%s/rho1/Plot_rho%s_CovPatches%sx%s_Require%s_%sxip_Symlog.png'%(LFver[0],pm,Res,Res,Requirement,Which_Data))
+	plt.show()
 	return
-
-#Plot_5(rhop_mean, rhop_err, '+')
-#Plot_5(rhom_mean, rhom_err, '-')
-
+Plot_5_Symlog(rhop_mean, rhop_err, '+')
 
 def Plot_4Paper(rho, rho_err, pm, lfv):
-	# Define quantities needed for delta_xip
-	alpha=0.03 		# worse case scenario PSF leakage is 0.03;
-			   		# but you still need to calculate this term from data
-	T_ratio = 1. 	# Will ultimately get this column from Lance's updated Lensfit cats.
 
 	fig = plt.figure(figsize = (10,10))
 	gs1 = gridspec.GridSpec(2, 1)
-	colors = [ 'magenta', 'darkblue', 'dimgrey', 'orange', 'lawngreen', 'cyan' ] 	
+	colors = [ 'magenta', 'darkblue', 'red', 'orange', 'lawngreen', 'cyan' ] 	
 	for i in range(2):
 		ax = plt.subplot(gs1[i], adjustable='box')
 		Set_Scales(ax)
 		ax.set_yscale('log')
-		ax.fill_between(theta_data[:], y1=-0.1*xip_data, y2=0.1*xip_data, facecolor='yellow') 
+
+		ax.fill_between(theta_data[:], y1=-1*abs(Req_25), y2=abs(Req_25), facecolor='pink') 
+		ax.fill_between(theta_data[:], y1=-1*abs(Req_134), y2=abs(Req_134), facecolor='yellow') 
 		if i == 0:
 			ax.set_ylim( [1.1e-10,1e-4] )
 			ax.set_ylabel(r'$|\rho(\theta)|$')
@@ -193,7 +252,7 @@ def Plot_4Paper(rho, rho_err, pm, lfv):
 			ax.set_xlabel(r'$\theta$ [arcmin]')
 
 	plt.subplots_adjust(hspace=0, wspace=0)
-	plt.savefig('LFver%s/rho1/Plot_Overall-rho%s_CovPatches%sx%s.png'%(LFver[lfv],pm,Res,Res))
+	plt.savefig('LFver%s/rho1/Plot_Overall-rho%s_CovPatches%sx%s_Require%s_%sxip.png'%(LFver[lfv],pm,Res,Res, Requirement, Which_Data))
 	plt.show()
 	return
 Plot_4Paper(rhop_mean, rhop_err, '+', -1)
@@ -215,9 +274,6 @@ def Plot_xip_Plus_rho(rho, rho_err, pm):
 	ax.set_ylabel(r'$(\xi_+ + \delta_{\xi_+})/\xi_+)$')
 
 	ax.set_xlabel(r'$\theta$ [arcmin]')
-	alpha=0.03 	# worse case scenario PSF leakage is 0.03;
-			   	# but you still need to calculate this term from data
-	T_ratio = 1. # Will ultimately get this column from Lance's updated Lensfit cats.
 	
 	for lfv in range(len(LFver)):
 		# This delta_xip is eqn 3.9 in Zuntz.
