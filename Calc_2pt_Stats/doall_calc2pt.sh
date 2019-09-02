@@ -411,13 +411,13 @@ do
     # We'll hardwire this as we don't need to use this module for anything other that calculating Pkk
     # so we can directly edit this if we change the parameters
     # number of ell bins for the output bandpower in log space
-    nEllBins=12
+    nEllBins=8
 
     # minimum ell used
     minEll=100.0
 
     # maximum ell used
-    maxEll=2000.0
+    maxEll=1500.0
 
     # This mode is for Pkk, so we use CorrType 1
     # type of correlation calculated
@@ -439,9 +439,9 @@ do
 
     #${BININFOARR[1]} ${BININFOARR[2]} are the edges of the bin
     # this code wants the min/max bin centres though....
-    # need to improve this part of the code so it's not hardwired
-    mintheta=0.07
-    maxtheta=280.0
+    # really need to improve this part of the code so it's not hardwired
+    mintheta=0.25
+    maxtheta=397
     
     # now run the program (location is stored in progs.ini)
     $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
@@ -507,6 +507,7 @@ done
 #    \"COSEBIS\": calculate COSEBIs"
 #    The angular ranges that we can probe are limited by the pre-computed tables
 #    in src/cosebis/TLogsRootsAndNorms/
+#
 
 for mode in ${MODE}
 do
@@ -524,8 +525,8 @@ do
 
     # check that the pre-computed COSEBIS tables exist
     SRCLOC=../src/cosebis
-    normfile=$SRCLOC/TLogsRootsAndNorms/Normalization_${COSEBIS_BININFOARR[1]}-${COSEBIS_BININFOARR[2]}.table
-    rootfile=$SRCLOC/TLogsRootsAndNorms/Root_${COSEBIS_BININFOARR[1]}-${COSEBIS_BININFOARR[2]}.table
+    normfile=$SRCLOC/TLogsRootsAndNorms/Normalization_${COSEBIS_BININFOARR[0]}-${COSEBIS_BININFOARR[1]}.table
+    rootfile=$SRCLOC/TLogsRootsAndNorms/Root_${COSEBIS_BININFOARR[0]}-${COSEBIS_BININFOARR[1]}.table
 
     test -f ${normfile} || \
     { echo "Error: COSEBIS pre-computed table $normfile is missing. Download from gitrepo!"; exit 1; }
@@ -535,7 +536,7 @@ do
 
 
     # where do we want to write the output to?
-    filetail=COSEBIS_K1000_${PATCH}_nbins_${BININFOARR[0]}_theta_${COSEBIS_BININFOARR[1]}_${COSEBIS_BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}.asc
+    filetail=COSEBIS_K1000_${PATCH}_nbins_${BININFOARR[0]}_theta_${COSEBIS_BININFOARR[0]}_${COSEBIS_BININFOARR[1]}_zbins_${IZBIN}_${JZBIN}
     outcosebis=$STATDIR/COSEBIS/
 
     # Now Integrate output from treecorr with COSEBIS filter functions
@@ -550,18 +551,21 @@ do
     # -s = COSEBIS minimum theta
     # -l = COSEBIS maximum theta
     # location of the required pre-compution tables
-    # --tfoldername = Tplus_minus    # computes/saves the first time it is run
+    # --tfoldername = Tplus_minus    # computes/saves the first time it is run for a fixed theta min/max
+    # --tplusfile = Tplus_$filetail  # name of Tplus/minus file retain info about the binning that it was created for
+    # --tminusfile = Tminus_$filetail  # name of Tplus/minus file retain info about the binning that it was created for
     # --norm = TLogsRootsAndNorms/Normalization_${tmin}-${tmax}.table
     # --root = TLogsRootsAndNorms/Root_${tmin}-${tmax}.table
 
     $P_PYTHON ../src/cosebis/run_measure_cosebis_cats2stats.py -i $xifile -t 1 -p 3 -m 4 \
-            --cfoldername $outcosebis -o $filetail -b "log" -n 5 -s COSEBIS_BININFOARR[1] \
-            -l COSEBIS_BININFOARR[2] --tfoldername $SRCLOC/Tplus_minus \
+            --cfoldername $outcosebis -o $filetail -b "log" -n 5 -s ${COSEBIS_BININFOARR[0]} \
+            -l ${COSEBIS_BININFOARR[1]} --tfoldername $SRCLOC/Tplus_minus \
+            --tplusfile Tplus_$filetail --tminusfile Tminus_$filetail\
             --norm $normfile --root $rootfile
 
     # I am expecting this to have produced two files called
-    Enfile=$putcosebis/En_${filetail}.ascii
-    Bnfile=$putcosebis/Bn_${filetail}.ascii
+    Enfile=$outcosebis/En_${filetail}.asc
+    Bnfile=$outcosebis/Bn_${filetail}.asc
 
     # Did it work?
     test -f $Enfile || \
