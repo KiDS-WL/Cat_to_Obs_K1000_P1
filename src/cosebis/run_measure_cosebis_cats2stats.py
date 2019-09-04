@@ -107,11 +107,9 @@ if(binning=='log'):
     theta_high=theta_edges[1::]
     delta_theta=theta_high-theta_low
 # 
-    #check if the mid points are close enough
+    #If asked to check, check if the mid points are close enough
     if(DontCheckBinEdges==False):
-        if((abs(theta_mid/theta[good_args]-1)<(delta_theta/10.)).all()):
-            # all's is good
-        else:
+        if((abs(theta_mid/theta[good_args]-1)>(delta_theta/10.)).all()):
             print("The input thetas of the 2pt correlation function data must exactly span the user defined theta_min/max.   This data is incompatible, exiting now ...")
             exit()
 #
@@ -128,9 +126,14 @@ else:
     exit()
 
 #Lets check that the user has provided enough bins
-if(nbins_within_range<100):
-    print("The low number of bins in the input 2pt correlation function data will result in low accuracy.  Provide finer binned data with bins>100, exiting now ...")
-    exit()
+if(binning=='log'):
+    if(nbins_within_range<100):
+        print("The low number of bins in the input 2pt correlation function data will result in low accuracy.  Provide finer log binned data with bins>100, exiting now ...")
+        exit()
+elif(binning=='lin'):
+    if(nbins_within_range<1000):
+        print("The low number of bins in the input 2pt correlation function data will result in low accuracy.  Provide finer linear binned data with bins>100, exiting now ...")
+        exit()
 
 #OK now we can perform the COSEBI integrals
 arcmin=180*60/np.pi
@@ -144,15 +147,16 @@ if not os.path.exists(cfoldername):
 En=np.zeros(nModes)
 Bn=np.zeros(nModes)
 
+#Define theta-strings for Tplus/minus filename
+tmin='%.2f' % thetamin
+tmax='%.2f' % thetamax
+thetaRange=tmin+'-'+tmax
+
 for n in range(1,nModes+1):
     #define Tplus and Tminus file names for this mode
 
-    #Note that if you change the binning between runs, these files need to be remade.
-    #Beware using the default setting which does not record what
-    #binning was used to create these files
-
-    TplusFileName= tfoldername+'/'+tplusfile+'_n'+str(n)
-    TminusFileName= tfoldername+'/'+tminusfile+'_n'+str(n)
+    TplusFileName= tfoldername+'/'+tplusfile+'_n'+str(n)+'_'+thetaRange
+    TminusFileName= tfoldername+'/'+tminusfile+'_n'+str(n)+'_'+thetaRange
 
     if(os.path.isfile(TplusFileName)):
         file = open(TplusFileName)
