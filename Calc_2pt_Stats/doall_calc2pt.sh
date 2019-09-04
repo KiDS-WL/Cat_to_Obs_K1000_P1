@@ -534,6 +534,12 @@ do
     test -f ${rootfile} || \
     { echo "Error: COSEBIS pre-computed table $rootfile is missing. Download from gitrepo!"; exit 1; }
 
+    # have we run linear or log binning for the 2pt correlation function?
+    if [ "$LINNOTLOG" = "false" ]; then 
+      binning='log'
+    else
+      binning='lin'
+    fi
 
     # where do we want to write the output to?
     filetail=COSEBIS_K1000_${PATCH}_nbins_${BININFOARR[0]}_theta_${COSEBIS_BININFOARR[0]}_${COSEBIS_BININFOARR[1]}_zbins_${IZBIN}_${JZBIN}
@@ -552,15 +558,12 @@ do
     # -l = COSEBIS maximum theta
     # location of the required pre-compution tables
     # --tfoldername = Tplus_minus    # computes/saves the first time it is run for a fixed theta min/max
-    # --tplusfile = Tplus_$filetail  # name of Tplus/minus file retain info about the binning that it was created for
-    # --tminusfile = Tminus_$filetail  # name of Tplus/minus file retain info about the binning that it was created for
     # --norm = TLogsRootsAndNorms/Normalization_${tmin}-${tmax}.table
     # --root = TLogsRootsAndNorms/Root_${tmin}-${tmax}.table
 
     $P_PYTHON ../src/cosebis/run_measure_cosebis_cats2stats.py -i $xifile -t 1 -p 3 -m 4 \
-            --cfoldername $outcosebis -o $filetail -b "log" -n 5 -s ${COSEBIS_BININFOARR[0]} \
+            --cfoldername $outcosebis -o $filetail -b $binning -n 5 -s ${COSEBIS_BININFOARR[0]} \
             -l ${COSEBIS_BININFOARR[1]} --tfoldername $SRCLOC/Tplus_minus \
-            --tplusfile Tplus_$filetail --tminusfile Tminus_$filetail\
             --norm $normfile --root $rootfile
 
     # I am expecting this to have produced two files called
