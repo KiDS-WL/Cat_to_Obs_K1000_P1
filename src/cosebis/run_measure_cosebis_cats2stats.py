@@ -9,12 +9,18 @@ from scipy import pi,sqrt,exp
 from measure_cosebis import tminus_quad, tplus,tminus, str2bool
 from argparse import ArgumentParser
 
+# Written by Marika Asgari (ma@roe.ac.uk)
+# Python script to return COSEBIS E and B modes given a measured 2pt correlation function
+# Note that the input correlation function needs to contain data that 
+# exactly spans the required ${tmin}-${tmax} range
 
 # example run:
 # tmin=0.50
 # tmax=100.00
-# python run_measure_cosebis_cats2stats.py -i xi_nBins_1_Bin1_Bin1 -o nBins_1_Bin1_Bin1 --norm ./TLogsRootsAndNorms/Normalization_${tmin}-${tmax}.table -r ./TLogsRootsAndNorms/Root_${tmin}-${tmax}.table -b lin --thetamin ${tmin} --thetamax ${tmax} -n 20
+# python run_measure_cosebis_cats2stats.py -i xi_nBins_1_Bin1_Bin1 -o nBins_1_Bin1_Bin1 --norm ./TLogsRootsAndNorms/Normalization_${tmin}-${tmax}.table -r 
+# ./TLogsRootsAndNorms/Root_${tmin}-${tmax}.table -b lin --thetamin ${tmin} --thetamax ${tmax} -n 20
 
+# Specify the input arguments
 parser = ArgumentParser(description='Take input 2pcfs files and calculate COSEBIs')
 parser.add_argument("-i", "--inputfile", dest="inputfile",
     help="Full Input file name", metavar="inputFile",required=True)
@@ -80,13 +86,15 @@ print('input file is '+inputfile+', making COSEBIs for '+str(nModes)+' modes and
     +'%.2f' %thetamax+"'], outputfiles are: "+cfoldername+"/En_"+outputfile+'.ascii and '+cfoldername+'/Bn_'+outputfile+'.ascii')
 
 
+# Load the input 2pt correlation function data
 file=open(inputfile)
 xipm_in=np.loadtxt(file,comments='#')
 theta=xipm_in[:,theta_col]
 xip=xipm_in[:,xip_col]
 xim=xipm_in[:,xim_col]
 
-
+# Conversion from xi_pm to COSEBIS depends on linear or log binning in the 2pt output
+# Check that the data exactly spans the theta_min -theta_max range that has been defined
 if(binning=='log'):
     good_args=np.squeeze(np.argwhere((theta>thetamin) & (theta<thetamax)))
     nbins_within_range=len(theta[good_args])
@@ -99,13 +107,12 @@ if(binning=='log'):
     theta_high=theta_edges[1::]
     delta_theta=theta_high-theta_low
 # 
-    #check if the mid points are close enough
+    #If asked to check, check if the mid points are close enough
     if(DontCheckBinEdges==False):
-        if((abs(theta_mid/theta[good_args]-1)<(delta_theta/10.)).all()):
-            print("I'm happy")
-        else:
-            print("Not happy with input thetas, exiting now ...")
+        if((abs(theta_mid/theta[good_args]-1)>(delta_theta/10.)).all()):
+            print("The input thetas of the 2pt correlation function data must exactly span the user defined theta_min/max.   This data is incompatible, exiting now ...")
             exit()
+#
 elif(binning=='lin'):
     good_args=np.squeeze(np.argwhere((theta>thetamin) & (theta<thetamax)))
     nbins_within_range=len(theta[good_args])
@@ -115,15 +122,21 @@ elif(binning=='lin'):
     delta_theta[-1]=(theta[1]-theta[0])/2.
     theta_mid=np.linspace(thetamin+delta_theta[0],thetamax-delta_theta[-1],nbins_within_range)
 else:
-    print('not a recognised binning scheme, exiting now')
+    print('Please choose either lin or log with the --binning option, exiting now ...')
     exit()
 
+#Lets check that the user has provided enough bins
+if(binning=='log'):
+    if(nbins_within_range<100):
+        print("The low number of bins in the input 2pt correlation function data will result in low accuracy.  Provide finer log binned data with bins>100, exiting now ...")
+        exit()
+elif(binning=='lin'):
+    if(nbins_within_range<1000):
+        print("The low number of bins in the input 2pt correlation function data will result in low accuracy.  Provide finer linear binned data with bins>100, exiting now ...")
+        exit()
+
+#OK now we can perform the COSEBI integrals
 arcmin=180*60/np.pi
-
-tmin='%.2f' % thetamin
-tmax='%.2f' % thetamax
-thetaRange=tmin+'-'+tmax  
-
 
 if not os.path.exists(tfoldername):
     os.makedirs(tfoldername)
@@ -134,7 +147,17 @@ if not os.path.exists(cfoldername):
 En=np.zeros(nModes)
 Bn=np.zeros(nModes)
 
+#Define theta-strings for Tplus/minus filename
+tmin='%.2f' % thetamin
+tmax='%.2f' % thetamax
+thetaRange=tmin+'-'+tmax
+
 for n in range(1,nModes+1):
+    #define Tplus and Tminus file names for this mode
+
+    TplusFileName= tfoldername+'/'+tplusfile+'_n'+str(n)+'_'+thetaRange
+    TminusFileName= tfoldername+'/'+tminusfile+'_n'+str(n)+'_'+thetaRange
+
     if(os.path.isfile(TplusFileName)):
         file = open(TplusFileName)
         tp=np.loadtxt(file,comments='#')
@@ -178,8 +201,8 @@ for n in range(1,nModes+1):
     En[n-1]=0.5*(Integral_plus+Integral_minus)/arcmin/arcmin
     Bn[n-1]=0.5*(Integral_plus-Integral_minus)/arcmin/arcmin
 
-EnfileName=cfoldername+"/En_"+outputfile+".ascii"
-BnfileName=cfoldername+"/Bn_"+outputfile+".ascii"
+EnfileName=cfoldername+"/En_"+outputfile+".asc"
+BnfileName=cfoldername+"/Bn_"+outputfile+".asc"
 np.savetxt(EnfileName,En)
 np.savetxt(BnfileName,Bn)
 
