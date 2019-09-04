@@ -404,9 +404,11 @@ do
 
     # Lets use awk to convert the Treecorr output into the expected format.
     # and remove the header
+    # We will use the meanR as the nominal R to pass through to the bandpower code
+    # This choise is not too important though the bins are finely binned
     # Treecorr: #   R_nom       meanR       meanlogR       xip          xim         xip_im      xim_im      sigma_xi      weight       npairs
 
-    awk '(NR>1){print $1, $4, $5}' < $xifile > $InputFolderName/xi2bandpow_input_${InputFileIdentifier}.dat
+    awk '(NR>1){print $2, $4, $5}' < $xifile > $InputFolderName/xi2bandpow_input_${InputFileIdentifier}.dat
 
     # We'll hardwire this as we don't need to use this module for anything other that calculating Pkk
     # so we can directly edit this if we change the parameters
@@ -547,7 +549,7 @@ do
 
     # Now Integrate output from treecorr with COSEBIS filter functions
     # -i = input file
-    # -t = treecorr output theta_col - the first column is zero
+    # -t = treecorr output theta_col - the first column is zero so -t 1 uses the meanR from Treecorr
     # -p = treecorr output xip_col
     # -m = treecorr output xim_col
     # --cfoldername = output directory
