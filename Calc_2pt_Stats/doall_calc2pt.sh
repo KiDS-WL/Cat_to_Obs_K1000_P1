@@ -544,7 +544,7 @@ do
     fi
 
     # where do we want to write the output to?
-    filetail=COSEBIS_K1000_${PATCH}_nbins_${BININFOARR[0]}_theta_${COSEBIS_BININFOARR[0]}_${COSEBIS_BININFOARR[1]}_zbins_${IZBIN}_${JZBIN}
+    filetail=COSEBIS_${FILEHEAD}_nbins_${BININFOARR[0]}_theta_${COSEBIS_BININFOARR[0]}_${COSEBIS_BININFOARR[1]}_zbins_${IZBIN}_${JZBIN}
     outcosebis=$STATDIR/COSEBIS/
 
     # Now Integrate output from treecorr with COSEBIS filter functions
