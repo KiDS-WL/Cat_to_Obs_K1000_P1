@@ -408,7 +408,7 @@ do
     # This choise is not too important though the bins are finely binned
     # Treecorr: #   R_nom       meanR       meanlogR       xip          xim         xip_im      xim_im      sigma_xi      weight       npairs
 
-    awk '(NR>1){print $2, $4, $5}' < $xifile > $InputFolderName/xi2bandpow_input_${InputFileIdentifier}.dat
+    awk '(NR>2){print $2, $4, $5}' < $xifile > $InputFolderName/xi2bandpow_input_${InputFileIdentifier}.dat
 
     # We'll hardwire this as we don't need to use this module for anything other that calculating Pkk
     # so we can directly edit this if we change the parameters
