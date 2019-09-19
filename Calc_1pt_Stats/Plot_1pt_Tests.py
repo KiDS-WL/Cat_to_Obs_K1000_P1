@@ -214,7 +214,7 @@ if Read_Cat_Or_Pickle == "Cat":
 	Pickle_Data(ra,dec,mce1,mce2,mcw,mcm1,mcm2,ace1,ace2,acw,ZB, Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR)
 	
 	# set the autocal m-calibration correction to 1 - not included in the pickle files for speed
-	ngals=len(ra)
+	ngals=len(ra)				
 	acm1=np.ones(ngals)
 	acm2=np.ones(ngals)	
 
@@ -390,7 +390,7 @@ def Plot_BinQx_VS_BinQy(Qx, Qy, weights, mcorr, num_bins, labels, xlabel, ylabel
 #print "Exiting as the next 1pt plots are expensive (~100s) to produce due to bootstrapping errors."
 #sys.exit()
 
-Bootstrap = True	# Bootstrap errors? Takes ~nboot times longer! (nboot defined on command line)
+Bootstrap = False	# Bootstrap errors? Takes ~nboot times longer! (nboot defined on command line)
 
 for mc_or_ac in ('metacal','autocal',):
 	if mc_or_ac == 'metacal':
@@ -477,42 +477,9 @@ for mc_or_ac in ('metacal','autocal',):
 
 
 
-
-
-"""
-########################@@@Ben - suggest to remove this as this is now done in the ../PSF_systests/PSF_plots/average_delta_estar_x_y.py
-
-# I also want to plot the PSF ellipticity and PSF residual on the chip, but the latter depends on the model fit
-# so you have to read this in separately, from the file, made over on cuillin, used to make rho stats.
-# The file you are reading in here contains the PSF measured from the stars, whereas the pickled file read in
-# above is the PSF interpolated to the galaxy positions. This is why this data set is only 7% of the size of the former.
-# So new variables needed I suppose. Add '_d2' to indicate it's from datafile2
-PSFe1_d2_N, PSFe2_d2_N, delta_PSFe1_d2_N, delta_PSFe2_d2_N, Xpos_d2_N, Ypos_d2_N = np.load('PSF_rho_stats/LFver321/Catalogues/PSF_Data_N.npy').transpose()[[2,3,4,5,8,9],:]
-PSFe1_d2_S, PSFe2_d2_S, delta_PSFe1_d2_S, delta_PSFe2_d2_S, Xpos_d2_S, Ypos_d2_S = np.load('PSF_rho_stats/LFver321/Catalogues/PSF_Data_S.npy').transpose()[[2,3,4,5,8,9],:]
-# Append N and S.
-PSFe1_d2 = np.append(PSFe1_d2_N, PSFe1_d2_S) 
-PSFe2_d2 = np.append(PSFe2_d2_N, PSFe2_d2_S) 
-delta_PSFe1_d2 = np.append(delta_PSFe1_d2_N, delta_PSFe1_d2_S)
-delta_PSFe2_d2 = np.append(delta_PSFe2_d2_N, delta_PSFe2_d2_S)
-Xpos_d2 = np.append(Xpos_d2_N, Xpos_d2_S)
-Ypos_d2 = np.append(Ypos_d2_N, Ypos_d2_S)
-
-PSFe1_grid = MeanQ_VS_XY(PSFe1_d2, Xpos_d2,Ypos_d2)
-PSFe2_grid = MeanQ_VS_XY(PSFe2_d2, Xpos_d2,Ypos_d2)
-delta_PSFe1_grid = MeanQ_VS_XY(delta_PSFe1_d2, Xpos_d2,Ypos_d2)
-delta_PSFe2_grid = MeanQ_VS_XY(delta_PSFe2_d2, Xpos_d2,Ypos_d2)
-Plot_XY_Grids(1e2*PSFe1_grid, -1, 1, r'$\langle e_{{\rm PSF},1} \rangle \times 10^{-2}$', 
-				'%s/GeneralPlots/K%s.Blind%s.MeanPSFe1_VS_XY.png' %(DIRECT,NorS,Blind) )
-Plot_XY_Grids(1e2*PSFe2_grid, -1, 1, r'$\langle e_{{\rm PSF},2} \rangle \times 10^{-2}$', 
-				'%s/GeneralPlots/K%s.Blind%s.MeanPSFe2_VS_XY.png' %(DIRECT,NorS,Blind) )
-
-Plot_XY_Grids(1e3*delta_PSFe1_grid, -1, 1, r'$\langle \delta e_{{\rm PSF},1} \rangle \times 10^{-3}$', 
-				'%s/GeneralPlots/K%s.Blind%s.MeandeltaPSFe1_VS_XY.png' %(DIRECT,NorS,Blind) )
-Plot_XY_Grids(1e3*delta_PSFe2_grid, -1, 1, r'$\langle \delta e_{{\rm PSF},2} \rangle \times 10^{-3}$', 
-				'%s/GeneralPlots/K%s.Blind%s.MeandeltaPSFe2_VS_XY.png' %(DIRECT,NorS,Blind) )
-
-"""
 '''
+# May want to keep this general function for making a histogram of the data.
+
 def Histogram(Q, num_bins, labels, xlabel, title, savename):
 
     colors = ['magenta', 'dimgrey', 'darkblue', 'orange', 'lawngreen', 'red']
