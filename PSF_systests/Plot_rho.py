@@ -3,6 +3,13 @@ import pylab as plt
 from matplotlib import rc
 import matplotlib.gridspec as gridspec
 from scipy.ndimage.filters import gaussian_filter
+from scipy.stats import chi2
+from scipy.stats import multivariate_normal as multi_norm
+from scipy.optimize import curve_fit
+from scipy.integrate import simps
+from scipy.stats import ks_2samp	# For KS tests
+import time
+
 import sys
 import os 
 import glob
@@ -58,19 +65,16 @@ for lfv in range(len(LFver)):
 
 # Read in avg rho's and those used to calc cov
 rhop_mean = np.zeros([len(LFver),5,ThBins])
-rhom_mean = np.zeros_like(rhop_mean)
-# Get error (on mean) bars
 rhop_err = np.zeros_like(rhop_mean)
-rhom_err = np.zeros_like(rhom_mean)
+
 
 for lfv in range(len(LFver)):
 
 	rhop_split = np.zeros([ numN[lfv]+numS[lfv], 5, ThBins ]) 
-	rhom_split = np.zeros_like(rhop_split)
 	#meanfactor = 2. # Divide by this, unless no N or S Field, in which case set to 1.
 	for i in range(5):
 		try:
-			theta, rhopN, rhomN = np.loadtxt('LFver%s/rho%s/rho%s_KiDS_N.dat'%(LFver[lfv],i+1,i+1), usecols=(0,1,2), unpack=True)
+			theta, rhopN = np.loadtxt('LFver%s/rho%s/rho%s_KiDS_N.dat'%(LFver[lfv],i+1,i+1), usecols=(0,1), unpack=True)
 			# If the above exists, try to read in the weight (only saved this for LFver321)
 			try:
 				weightN = np.loadtxt('LFver%s/rho%s/rho%s_KiDS_N.dat'%(LFver[lfv],i+1,i+1), usecols=(3,), unpack=True)
@@ -79,9 +83,8 @@ for lfv in range(len(LFver)):
 		except IOError:
 			weightN = 1.
 			rhopN = 0.
-			rhomN = 0.
 		try:
-			theta, rhopS, rhomS = np.loadtxt('LFver%s/rho%s/rho%s_KiDS_S.dat'%(LFver[lfv],i+1,i+1), usecols=(0,1,2), unpack=True)
+			theta, rhopS = np.loadtxt('LFver%s/rho%s/rho%s_KiDS_S.dat'%(LFver[lfv],i+1,i+1), usecols=(0,1), unpack=True)
 			# If the above exists, try to read in the weight (only saved this for LFver321)
 			try:
 				weightS = np.loadtxt('LFver%s/rho%s/rho%s_KiDS_S.dat'%(LFver[lfv],i+1,i+1), usecols=(3,), unpack=True)
@@ -90,37 +93,32 @@ for lfv in range(len(LFver)):
 		except IOError:
 			weightS = 1.
 			rhopS = 0.
-			rhomS = 0.
 	
 		# Weighted average of rho-North & rho-South
 		rhop_mean[lfv,i,:] = (weightN*rhopN + weightS*rhopS) / (weightN+weightS)
-		rhom_mean[lfv,i,:] = (weightN*rhomN + weightS*rhomS) / (weightN+weightS)
 		for j in range(numN[lfv]):
-			rhop_split[j,i,:], rhom_split[j,i,:] = np.loadtxt(NFiles[lfv][j], usecols=(1,2), unpack=True)
+			rhop_split[j,i,:] = np.loadtxt(NFiles[lfv][j], usecols=(1,), unpack=True)
 		for j in range(numS[lfv]):
-			rhop_split[numN[lfv]+j,i,:], rhom_split[numN[lfv]+j,i,:] = np.loadtxt(SFiles[lfv][j], usecols=(1,2), unpack=True)
+			rhop_split[numN[lfv]+j,i,:] = np.loadtxt(SFiles[lfv][j], usecols=(1,), unpack=True)
 
 		rhop_err[lfv,i,:] = np.sqrt( np.diag( np.cov(rhop_split[:,i,:], rowvar = False) ) / (numN[lfv]+numS[lfv]) ) 
-		rhom_err[lfv,i,:] = np.sqrt( np.diag( np.cov(rhom_split[:,i,:], rowvar = False) ) / (numN[lfv]+numS[lfv]) ) 
+
 
 # To get a rough idea of size of rho stats, read in the xi+- of some data to overplot 
 data_dir = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/xi_pm/'
-data_ZBlabel = '0.1-0.3'		# '0.1-0.3' 'None'
+data_ZBlabel = '0.7-0.9'		# '0.1-0.3' 'None'
 theta_data, xip_data = np.loadtxt('%s/KAll.BlindA.xi_pm.ZBcut%s.dat' %(data_dir, data_ZBlabel), usecols=(0,1), unpack=True)
- 
-theta_theory, xip_theory_tmp = np.loadtxt('%s/xi_p_smith03revised_zKV450_ZBcut%s' %(data_dir, data_ZBlabel), usecols=(0,1), unpack=True)
-xip_theory = np.interp( theta_data, theta_theory, xip_theory_tmp )
 
+# Read in a covariance 
+Linc_Rescale = 600. / 878.83	# Linc says I should rescale his cov by approx. this factor
+								# to get the effective area right. This probs isn't 100% accurate.
+Cov_inDIR = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/Lincs_CovMat/'
+Cov_Mat_uc_Survey = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[126:135, 126:135] * Linc_Rescale		# [0:9, 0:9] This extracts xi+ Cov in lowest bin
+																											# [126:135, 126:135] for xi+ in highest bin
 
 def Set_Mandelbaum_Constraints():
 	NLOS_Cov = 1250
 	cosmol_Cov = 'fid'
-	SurveySize = 1000.
-
-	# NOTE BIG DIFFERENCES IN SNR WITH REDSHIFT CUT
-	# Linc Cov: 21 (0.1-0.3), 76 (0.7-0.9)
-	Cov_inDIR = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/Lincs_CovMat/'
-	Cov_Mat_uc_Survey = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[0:9, 0:9]			# [0:9, 0:9] This extracts xi+ Cov in lowest bin
 
 	scale = np.where(theta_data < 72)[0]
 	SNR = np.dot( np.transpose(xip_data[scale]), 
@@ -132,6 +130,8 @@ def Set_Mandelbaum_Constraints():
 		# Smoothing it a wee bit for plotting purposes.
 		Sm_xip = gaussian_filter( xip_data, Smooth_Scale )
 	elif Which_Data == 'Theory':
+		theta_theory, xip_theory_tmp = np.loadtxt('%s/xi_p_smith03revised_zKV450_ZBcut%s' %(data_dir, data_ZBlabel), usecols=(0,1), unpack=True)
+		xip_theory = np.interp( theta_data, theta_theory, xip_theory_tmp )
 		Sm_xip = np.copy( xip_theory )
 
 	# IF YOU USE 0.1-0.3 DATA/COV THE REQ IS LARGER ON SMALL SCALES AND SMALLER ON LARGE SCALES RELATIVE TO IF WE USED (0.7-0.9)
@@ -139,12 +139,23 @@ def Set_Mandelbaum_Constraints():
 	# SO IN SHORT. NOT OBVIOUS WHICH ONE ZB TO USE. SO GO WITH EITHER. 
 	Requirement_134 = T_ratio**(-2) * Sm_xip / (2*SNR)
 	Requirement_25  = T_ratio**(-1) * Sm_xip / (2*SNR*alpha)
-	return Requirement_134, Requirement_25, Cov_Mat_uc_Survey
+	return Requirement_134, Requirement_25
+
+
+def Set_Heymans_Constraints(rho):
+	Cov_Mat_uc_Survey_All = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[0:135, 0:135] * Linc_Rescale
+	lfv = 0
+	delta_xip = T_ratio**2*(rho[lfv,0,:]+rho[lfv,2,:]+rho[lfv,3,:]) - T_ratio*alpha*(rho[lfv,1,:]+rho[lfv,4,:])
+	# append to itself 15 times for the 15 bins (delta_xip same for every bin).
+	delta_xip_stack = np.tile(delta_xip, 15)	
+	delta_chi2 = np.dot( np.transpose(delta_xip_stack), 
+			np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), delta_xip_stack ))		
+	return delta_chi2
 
 
 # Set the requirements on rho_1,2,4 and rho_2,5
 if Requirement == "M18":
-	Req_134, Req_25, Cov_Mat_uc_Survey = Set_Mandelbaum_Constraints()
+	Req_134, Req_25 = Set_Mandelbaum_Constraints()
 elif Requirement == "Z18":
 	Req_134 = gaussian_filter( xip_data, Smooth_Scale ) / 10.
 	Req_25  = gaussian_filter( xip_data, Smooth_Scale ) / 10.
@@ -161,8 +172,6 @@ def Set_Scales(ax):
 
 
 def Plot_5_Symlog(rho, rho_err, pm):
-
-	dummy, dummy, Cov_Mat_uc_Survey = Set_Mandelbaum_Constraints()
 
 	Deltaxip = True
 	if Deltaxip:
@@ -222,7 +231,7 @@ def Plot_5_Symlog(rho, rho_err, pm):
 	plt.savefig('LFver%s/rho1/Plot_rho%s_CovPatches%sx%s_Require%s_%sxip_Symlog.png'%(LFver[0],pm,Res,Res,Requirement,Which_Data))
 	plt.show()
 	return
-Plot_5_Symlog(rhop_mean, rhop_err, '+')
+#Plot_5_Symlog(rhop_mean, rhop_err, '+')
 
 def Plot_4Paper(rho, rho_err, pm, lfv):
 
@@ -253,7 +262,7 @@ def Plot_4Paper(rho, rho_err, pm, lfv):
 
 	plt.subplots_adjust(hspace=0, wspace=0)
 	plt.savefig('LFver%s/rho1/Plot_Overall-rho%s_CovPatches%sx%s_Require%s_%sxip.png'%(LFver[lfv],pm,Res,Res, Requirement, Which_Data))
-	plt.show()
+	#plt.show()
 	return
 Plot_4Paper(rhop_mean, rhop_err, '+', -1)
 
@@ -285,11 +294,156 @@ def Plot_xip_Plus_rho(rho, rho_err, pm):
 	plt.subplots_adjust(hspace=0)
 	plt.title(r'%s PSF leakage'%alpha)
 	plt.savefig('LFver%s/rho1/Plot_deltarho%s_CovPatches%sx%s.png'%(LFver[0],pm,Res,Res))
-	plt.show()
+	#plt.show()
 
 	return
 #Plot_xip_Plus_rho(rhop_mean, rhop_err, '+')
 
+
+
+
+
+t1 = time.time()
+# This function will calculate chi^2 of null hypothesis (xi+ is just noise)...
+# ...the chi^2 of alternative - that xi+ is infected by delta-xi+, and do ...
+# ... P- value analysis to see if those hypotheses are statistically distinguishable.
+def Investigate_chi2(rho):
+	Cov_Mat_uc_Survey_All = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[0:135,0:135] * Linc_Rescale
+	lfv = 0
+	delta_xip = T_ratio**2*(rho[lfv,0,:]+rho[lfv,2,:]+rho[lfv,3,:]) - T_ratio*alpha*(rho[lfv,1,:]+rho[lfv,4,:])
+	# append to itself 15 times for the 15 bins (delta_xip same for every bin).
+	delta_xip_stack = np.tile(delta_xip, 15)
+
+	# Assemble the theory vector - used to guage signif. of measuring genuine signal.
+	# And deviations in this signal from those with high/low values of S_8
+	def Read_In_Theory_Vector(hi_lo_fid):
+		# hi_lo_fid must be one of 'high', 'low' or 'fid'
+		indir_theory = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/outputs/test_output_S8_%s_test/shear_xi_plus/' %hi_lo_fid
+		theta_theory = np.loadtxt('%s/theta.txt' %indir_theory) * (180./np.pi) * 60.	# Convert long theta array in radians to arcmin
+		xip_theory_stack = np.zeros( [15,len(theta)] )									# Will store all auto & cross xi_p for the 5 tomo bins
+		idx = 0
+		for i in range(1,6):
+			for j in range(1,6):
+				if i >= j:		# Only read in bins 1-1, 2-1, 2-2, 3-1, 3-2,...
+					tmp_xip_theory = np.loadtxt('%s/bin_%s_%s.txt' %(indir_theory,i,j))
+					xip_theory_stack[idx,:] = np.interp( theta, theta_theory, tmp_xip_theory )		# sample at the theta values used for PSF modelling.
+					idx+=1
+		xip_theory_stack = xip_theory_stack.flatten()
+		return xip_theory_stack
+	xip_theory_stack_hi = Read_In_Theory_Vector('high')		# High S_8
+	xip_theory_stack_lo = Read_In_Theory_Vector('low')		# Low S_8
+	xip_theory_stack_fid = Read_In_Theory_Vector('fid')		# Fiducial S_8
+
+
+	n_noise = 5000
+	chi2_null = np.empty( n_noise )		# chi^2 of the null hypothesis (measurement is all noise) for each noise realisation
+	chi2_sys = np.empty( n_noise )		# same for the hypothesis that measurement is contaminated by systematic
+	chi2_hi = np.empty( n_noise )		# same for the hypothesis that measurement is high S_8
+	chi2_lo = np.empty( n_noise )		# same for the hypothesis that measurement is low S_8
+	for i in range(n_noise):
+		noise = multi_norm.rvs(mean=np.zeros(135), cov=Cov_Mat_uc_Survey_All)
+		# chi2 for null hypothesis 
+		chi2_null[i] = np.dot( np.transpose(noise), np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise ))
+		# chi2 for systematic hypothesis
+		chi2_sys[i] = np.dot( np.transpose(noise+delta_xip_stack), 
+								np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise+delta_xip_stack ))
+		# chi2 for high S_8 cosmology
+		chi2_hi[i] = np.dot( np.transpose(noise+xip_theory_stack_hi-xip_theory_stack_fid), 
+								np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise+xip_theory_stack_hi-xip_theory_stack_fid ))
+		# chi2 for low S_8 cosmology
+		chi2_lo[i] = np.dot( np.transpose(noise+xip_theory_stack_lo-xip_theory_stack_fid), 
+								np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise+xip_theory_stack_lo-xip_theory_stack_fid ))
+
+	# Histogram the chi^2
+	histo_chi2, tmp_bins = np.histogram(chi2_null, 100)
+	bins_chi2 = tmp_bins[:-1] + (tmp_bins[1] - tmp_bins[0])/2.			# get bin centres
+	histo_chi2 = histo_chi2 / simps( histo_chi2, bins_chi2)				# Normalise to a PDF
+
+	# Fit for the effective DoF of the chi^2 distribution
+	def chi2pdf_model(chi2_array, *dof):
+		chi2_pdf = chi2.pdf( chi2_array, dof ) / simps( chi2.pdf( chi2_array, dof ), chi2_array)
+		# Interpolate the chi^2 to bins of histogram.
+		return np.interp( bins_chi2, chi2_array, chi2_pdf )	
+
+	chi2_array = np.linspace( 0., 400., 1000 )		# Arbitrary array spanning a suitable range of chi2 values
+	p0 = [100]										# Arbitrary first guess at the DoF
+	dof_bf, dof_err = curve_fit(chi2pdf_model, 
+					chi2_array, histo_chi2, p0=p0)	# Best fit dof.
+	pdf_bf = chi2.pdf( chi2_array, dof_bf ) / simps( chi2.pdf( chi2_array, dof_bf ), chi2_array)
+
+
+	# Get the P-values for the chi2_null, chi2_sys, chi2_hi/lo hypotheses, for each noise realisation
+	P_null = chi2.cdf( chi2_null, dof_bf )
+	P_sys = chi2.cdf( chi2_sys, dof_bf )	
+	P_hi = chi2.cdf( chi2_hi, dof_bf )	
+	P_lo = chi2.cdf( chi2_lo, dof_bf )	
+
+
+	# Plot the chi^2 distribution
+	f, ((ax1)) = plt.subplots(1, 1, figsize=(10,9))
+	ax1.bar(bins_chi2, histo_chi2, width=(bins_chi2[1]-bins_chi2[0]), color='red', edgecolor='red', alpha=1.)
+	ax1.plot( chi2_array, pdf_bf, color='blue', linestyle=':', linewidth=3, label=r'$\rm{DOF}=%.1f \pm %.1f$'%(dof_bf,np.sqrt(dof_err)) )
+
+	noise_idx = 0
+	# Mark the chi^2 of the 3 hypothese for a given noise realisation - 
+	# further apart these lines, the more distinguishable they are. 
+	ax1.plot( [chi2_null[noise_idx],chi2_null[noise_idx]], [0., histo_chi2.max()], 
+				color='black', linestyle='-', linewidth=3, label=r'$\chi^2_{{\rm null},%s}$'%noise_idx )
+	ax1.plot( [chi2_sys[noise_idx],chi2_sys[noise_idx]], [0., histo_chi2.max()], 
+				color='black', linestyle='--', linewidth=3, label=r'$\chi^2_{{\rm sys},%s}$'%noise_idx )
+
+	ax1.set_xlim([ chi2_null.min(), chi2_null.max() ])
+	ax1.set_xlabel(r'$\chi^2$')
+	ax1.set_ylabel(r'PDF$(\chi^2)$')
+	ax1.legend(loc='best', frameon=True)
+	plt.savefig('LFver%s/rho1/Plot_PDF-chi2.png'%(LFver[0]))
+	#plt.show()
+
+	def Plot_Pvalue_Histo(P, label):
+		# Plot the distribution of P-values for the noise-realisations
+		if len(P.shape) == 1:
+			P = np.reshape(P, (1,len(P)))
+
+		colours = ['magenta', 'dimgrey', 'orange', 'cyan', 'darkblue']		
+		f, ((ax1)) = plt.subplots(1, 1, figsize=(10,9))
+		dummy, bin_edges = np.histogram(P[0,:], 100)		# Use this just to get bin edges used for all distributions
+		bins_P = bin_edges[:-1] + (bin_edges[1]-bin_edges[0])/2.
+		histo_P = np.zeros([ P.shape[0], len(bins_P) ])
+		cumul_P = np.zeros([ P.shape[0], len(bins_P) ])
+		for i in range(P.shape[0]):
+			histo_P[i,:] = np.histogram(P[i,:], bin_edges)[0]
+			cumul_P[i,:] = np.cumsum(histo_P[i,:])
+			ax1.bar(bins_P, histo_P[i,:], width=(bins_P[1]-bins_P[0]), color=colours[i], 
+					edgecolor=colours[i], alpha=0.5, label=label[i])
+			#ax1.step(bins_P, cumul_P[i,:], color=colours[i], label=label[i])
+
+		ax1.set_xlabel(r'$P$') # -P_{\rm null}
+		ax1.set_ylabel(r'PDF$(P)$')
+		#ax1.set_ylabel(r'CDF$(P)$')		
+		ax1.legend(loc='best', frameon=False)
+		#plt.savefig('LFver%s/rho1/Plot_PDF-Pvalues_%s.png'%(LFver[0], label))
+		#plt.show()
+		return histo_P, cumul_P
+	P_stack = np.vstack(( P_hi, P_lo, P_sys, P_null ))
+	#histo_P_stack = P_stack = np.vstack(( P_hi-P_null, P_lo-P_null, P_sys-P_null ))
+	histo_P_stack, cumul_P_stack = Plot_Pvalue_Histo(P_stack, [r'high $S_8$', r'low $S_8$', 'sys', 'null'] )
+
+	# Do KS tests between PDFs of hi/lo/null and systematic hypotheses
+	# "-------------------PDF KS Values---------------------" 
+	KS_sys_null = ks_2samp(histo_P_stack[2,:], histo_P_stack[3,:])
+	KS_hi_null = ks_2samp(histo_P_stack[0,:], histo_P_stack[3,:])
+	KS_lo_null = ks_2samp(histo_P_stack[1,:], histo_P_stack[3,:])
+	# "-------------------CDF KS Values---------------------" 
+	#KS_sys_null = ks_2samp(cumul_P_stack[2,:], cumul_P_stack[3,:])
+	#KS_hi_null = ks_2samp(cumul_P_stack[0,:], cumul_P_stack[3,:])
+	#KS_lo_null = ks_2samp(cumul_P_stack[1,:], cumul_P_stack[3,:])
+	# "------------------------------------------------------"
+
+
+	return histo_P_stack, KS_sys_null, KS_hi_null, KS_lo_null
+histo_P_stack, KS_sys_null, KS_hi_null, KS_lo_null = Investigate_chi2(rhop_mean)
+t2 = time.time()
+print " It took %.0f seconds." %(t2-t1)
 
 
 
