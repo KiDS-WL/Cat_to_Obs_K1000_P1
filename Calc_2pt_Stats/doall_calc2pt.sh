@@ -188,6 +188,7 @@ mkdir -p $OD/TOMOCATS
 STATDIR=${OD}/OUTSTATS
 mkdir -p $STATDIR/XI
 mkdir -p $STATDIR/Pkk
+mkdir -p $STATDIR/Pgk
 mkdir -p $STATDIR/GT
 mkdir -p $STATDIR/COSEBIS
 
@@ -274,10 +275,12 @@ do
     echo "Success: Leaving mode CREATETOMO"
   fi
 done
+
 ##=================================================================
 #
 ## \"XI\": calculate xi+/- for tomo bin combination i j"
 #
+
 for mode in ${MODE}
 do
   if [ "$mode" = "XI" ]; then
@@ -444,7 +447,7 @@ do
     # really need to improve this part of the code so it's not hardwired
     mintheta=0.25
     maxtheta=397
-    
+
     # now run the program (location is stored in progs.ini)
     $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
                   ${BININFOARR[0]} $mintheta $maxtheta $mintheta $maxtheta \
@@ -464,6 +467,7 @@ do
 
   fi
 done
+
 ##==========================================================================
 #
 #    \"GAMMAT\": calculate gamma_t and gamma_x for cross bin combination i j"
@@ -502,7 +506,6 @@ do
 
   fi
 done
-
 
 ##==========================================================================
 #
@@ -587,3 +590,107 @@ done
 # To be written
 #  echo ""
 #  echo "      \"Pgk\": calculate GGL Band powers to cross bin combination i j"
+
+for mode in ${MODE}
+do
+  if [ "$mode" = "Pgk" ]; then
+
+    echo "Starting mode Pgk: to calculate cosmic shear Band powers for tomo bin combination \
+          combination $IZBIN $JZBIN with bins $BININFO"
+
+    # check does the correct xi files exist?
+    InputFileIdentifier=nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}
+    gtfile=$STATDIR/GT/GT_${FILEHEAD}_$InputFileIdentifier.asc
+
+    test -f ${gtfile} || \
+    { echo "Error: KiDS-$PATCH GT results $xifile do not exist. Either Run MODE GT (N/S) or COMBINE (ALL)!"; exit 1; } 
+
+    # These are the options for inputs for the c program xi2bandpow.c:
+    # 1: <working directory>
+    # 2: <input file identifier>
+    # 3: <output file identifier>
+    # 4: <number of input angular bins>
+    # 5: <min input separation to use in conversion [arcmin] (xi_+ in case of ee)>
+    # 6: <max input separation to use in conversion [arcmin] (xi_+ in case of ee)>
+    # 7: <min input separation to use in conversion [arcmin] (xi_- in case of ee; otherwise unused)>
+    # 8: <max input separation to use in conversion [arcmin] (xi_- in case of ee; otherwise unused)>
+    # 9: <number of output ell bins>
+    # 10: <min output ell>
+    # 11: <max output ell>
+    # 12: <correlation type (1: ee; 2: ne; 3: gg)>
+    # 13: <log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin; <0 for no apodisation]>
+
+    #This is where the input 2pt correlations are kept in the format that the xi2bandpow expects them
+    InputFolderName=$STATDIR/Pgk
+
+    # The files need to have this naming convention:  xi2bandpow_input_${InputFileIdentifier}.dat
+    # They also need to have only 3 columns with no other lines or comments:
+    # theta[arcmin]    [gamma_t or xi_+]         [gamma_x or xi_-]
+
+    # Lets use awk to convert the Treecorr output into the expected format.
+    # and remove the header
+    # We will use the meanR as the nominal R to pass through to the bandpower code
+    # This choise is not too important though the bins are finely binned
+    # Treecorr: #   R_nom       meanR       meanlogR       xip          xim         xip_im      xim_im      sigma_xi      weight       npairs
+
+    if [ $USERCAT = "false" ]; then  # user catalogue has not been defined - use KIDS
+      { echo "Error: this is not yet implemented"; exit 1; }
+      #TODO TBD
+    else  # set the filename of the output files to be the same as the name of the input fits catalogue
+      awk '(NR>1){print $2, $4-$5, $10-$11}' < $gtfile > $InputFolderName/xi2bandpow_input_${InputFileIdentifier}.dat
+    fi
+
+    # We'll hardwire this as we don't need to use this module for anything other that calculating Pkk
+    # so we can directly edit this if we change the parameters
+    # number of ell bins for the output bandpower in log space
+    nEllBins=8
+
+    # minimum ell used
+    minEll=100.0
+
+    # maximum ell used
+    maxEll=1500.0
+
+    # This mode is for Pkk, so we use CorrType 1
+    # type of correlation calculated
+    # correlation type (1: ee; 2: ne; 3: gg)
+    CorrType=2
+
+    # log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin
+    # 0 for no apodisation]
+    AppodisationWidth=0
+
+    # The output file is called xi2bandpow_output_${OutputFileIdentifier}.dat 
+    # It has 3 columns for non-cosmic shear cases:
+    # ell bandpow err
+    # And 4 columns for cosmic shear:
+    # ell l*2(E-bandPower/2pi) err  l*2(B-bandPower/2pi) err
+    # ell is the log-central value
+    # The output is saved in the same folder as the input
+    OutputFileIdentifier=${FILEHEAD}_nbins_${nEllBins}_Ell_${minEll}_${maxEll}_zbins_${IZBIN}_${JZBIN}
+
+    #${BININFOARR[1]} ${BININFOARR[2]} are the edges of the bin
+    # this code wants the min/max bin centres though....
+    # really need to improve this part of the code so it's not hardwired
+    mintheta=0.25
+    maxtheta=397
+
+    # now run the program (location is stored in progs.ini)
+    $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
+                  ${BININFOARR[0]} $mintheta $maxtheta $mintheta $maxtheta \
+                  ${nEllBins} ${minEll} ${maxEll} ${CorrType} ${AppodisationWidth}
+
+#    $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
+#                  ${BININFOARR[0]} ${BININFOARR[1]} ${BININFOARR[2]} ${BININFOARR[1]} ${BININFOARR[2]} \
+#                  ${nEllBins} ${minEll} ${maxEll} ${CorrType} ${AppodisationWidth}
+
+
+    outPgk=${InputFolderName}/xi2bandpow_output_${OutputFileIdentifier}.dat
+
+    # Did it work?
+    test -f $outPgk || \
+      { echo "Error: bandpower output $outPgk was not created! !"; exit 1; }
+    echo "Success: Leaving mode Pgk"
+
+  fi
+done
