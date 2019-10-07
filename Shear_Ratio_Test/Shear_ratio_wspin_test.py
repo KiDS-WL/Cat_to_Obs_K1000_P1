@@ -1,10 +1,10 @@
 # ----------------------------------------------------------------
-# File Name:           metacal_mock_calc_xi_w_treecorr.py
+# File Name:           Shear_ratio_wspin_test.py
 # Author:              Catherine Heymans (heymans@roe.ac.uk)
-# Description:         short python script to run treecorr to calculate xi_+/- 
-#                      given a KiDS mock fits catalogue
-#                      values of m are added and the intrinsic ellipticity is randomisd
-#                      so we can test neff with metacal weights
+# Description:         short python script to run treecorr to calculate GGL 
+#                      for the shear ratio test
+#                      for the covariance we use the spin test
+#                      where the observed ellipticity is randomised
 # ----------------------------------------------------------------
 
 import treecorr
@@ -25,92 +25,139 @@ else:
     theta_min = float(sys.argv[2]) 
     theta_max = float(sys.argv[3]) 
 
-fitscat="/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH/G9_N_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_glab_321.cat"
+# To do - command line blind, tomo bin, ntrials
 
-# Because we're adding m's and rotating the intrinsic ellipticities we won't use the built
+Blind='A'
+IZBIN=3
+JZBIN=5
+# Source Catalogues
+CATDIR='/disk09/KIDS/K1000_TWO_PT_STATS/'
+fitscat=CATDIR+'/TOMOCATS/K1000_N_BLIND_'+Blind+'A_v3_6Z_'+str(JZBIN)''.fits'
+
+# Location of the output files
+OUTDIR=CATDIR+'/OUTSTATS/SHEAR_RATIO/GT/'
+
+# Because we're rotating the observed ellipticities of the sources
+# for the spin test we won't use the built
 # in treecorr read from the fits catalogue, but read it first and then modify
+
 #open the fits catalogue
 fitsfile = fits.open(fitscat)
-area=54*60*60.0  # rough G9 field size
 
 # read in position and shear
 ra = (fitsfile[2].data['ALPHA_J2000'])
 dec = (fitsfile[2].data['DELTA_J2000'])
-eobs1 = (fitsfile[2].data['raw_e1'])
-eobs2 = (fitsfile[2].data['raw_e2'])
-Rm = 1+(fitsfile[2].data['metacal_m1'])
+eobs1 = (fitsfile[2].data['e1_A'])
+eobs2 = (fitsfile[2].data['e2_A'])
+weight = (fitsfile[2].data['weight_A'])
 
-#fix the metacal m and weight - currently random between 0 and 1/10
 ngals=len(ra)
 print "ngals", ngals
-w = np.ones(ngals)
-weight_w_m = w*Rm
 
-# m-calibration corrections for two alternative weights
-Kcor=(np.sum(w*Rm)/np.sum(w))**2
-Kcor_wm=(np.sum(weight_w_m*Rm)/np.sum(weight_w_m))**2
+# the unspun source catalogue
+sourcecat = treecorr.Catalog(ra=ra,dec=dec,g1=eobs1,g2=eobs2,ra_units='deg', dec_units='deg',w=weight)
 
-print "Kcor w=1: %4.2f Kcor w=(1+m): %4.2f" %(Kcor, Kcor_wm)
+# To minimise I/O source catalogue read across the cluster, we'll loop over all lens bins
+# If the WL-72 nodes workers are not available this will be sub-optimal and it would be better
+# to queue each source-lens bin pair individually on the cluster
 
-# calculate neffective
-neff_orig =((np.sum(w))**2/np.sum(w*w))/area
-neff_new = ((np.sum(w*Rm))**2/np.sum(w*Rm*w*Rm))/area
-neff_new_wm = ((np.sum(weight_w_m*Rm))**2/np.sum(weight_w_m*Rm*weight_w_m*Rm))/area
+for IZBIN in range (1,6):   #1,2,3,4,5
 
-print "neff orig: %4.2f neff new: %4.2f neff new_wm: %4.2f" %(neff_orig, neff_new, neff_new_wm)
+    lenscatname=CATDIR+'/GGLCATS/BOSS_data_5Z_'+str(IZBIN)+'.fits'
+    rancatname=CATDIR+'/GGLCATS/BOSS_random_5Z_'+str(IZBIN)+'.fits'
+    outfile_main=OUTDIR+'/K1000_GT_6Z_source_'+str(JZBIN)+'_5Z_lens+'+str(IZBIN)'.asc'
 
-# and sigma_e
-sige_orig = np.sum(w*w*(eobs1*eobs1 + eobs2*eobs2))/np.sum(w*w)
-sige_new = np.sum(w*w*(eobs1*eobs1 + eobs2*eobs2))/np.sum(w*Rm*w*Rm)
-sige_new_wm = np.sum(weight_w_m*weight_w_m*(eobs1*eobs1 + eobs2*eobs2))/np.sum(weight_w_m*Rm*weight_w_m*Rm)
+    # the lens catalogue we will not modify so we can use the built in treecorr option to read 
+    # in directly from the catalogue
+    lenscat = treecorr.Catalog(lenscatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
+                                  w_col='WEICOMP')
+    rancat = treecorr.Catalog(rancatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
+                                  w_col='WEICOMP')
 
-print "sigma_e: orig: %4.2f new: %4.2f new_wm: %4.2f" % (np.sqrt(sige_orig), np.sqrt(sige_new),np.sqrt(sige_new_wm))
 
-# Now lets do the spin test 
-ntrials = 30
-xipspin=np.zeros(ntrials)
-xipspin_wm=np.zeros(ntrials)
-inbinslop=0.1
+    # Set-up the different correlations that we want to measure
+    bin_slop=0.08 # optimised in Flinc sims
 
-for i in range (ntrials):
-    # spin the last galaxy sample
-    theta = np.random.uniform(0,np.pi,ngals)
-    ct= np.cos(2.0*theta)
-    st= np.sin(2.0*theta)
-    eobs1_spin=eobs1*ct + eobs2*st
-    eobs2_spin=-1.0*eobs1*st + eobs2*ct
+    # Number of source lens pairs
+    nlns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
+        bin_slop=bin_slop)
+    # Number of source random pairs     
+    nrns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
+        bin_slop=bin_slop)
+    # Average shear around lenses     
+    ls = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
+        bin_slop=bin_slop)
+    # Average shear around randoms     
+    rs = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
+        bin_slop=bin_slop)
 
-    catspin = treecorr.Catalog(ra=ra,dec=dec,g1=eobs1_spin,g2=eobs2_spin,ra_units='deg', dec_units='deg',w=w)
-    catspin_wm = treecorr.Catalog(ra=ra,dec=dec,g1=eobs1_spin,g2=eobs2_spin,ra_units='deg', dec_units='deg',w=weight_w_m)
+    # Now calculate the different 2pt correlation functions
+    nlns.process(lenscat,sourcecat)
+    nrns.process(rancat,sourcecat)
+    ls.process(lenscat,sourcecat)    # only this one needs to be recalculated for each spin test
+    rs.process(rancat,sourcecat)
 
-    ggspin = treecorr.GGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-         bin_slop=inbinslop)
-    ggspin_wm = treecorr.GGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-         bin_slop=inbinslop)
+    # We will use the Mandelbaum 2006 estimator which includes both the random and boost correction.
+    # It is given by
+    # gt = (SD-SR)/NsNr
+    # SD = sum of shear around source-lens pairs
+    # SR = sum of shear around source-random pairs
+    # NrNs = number of source random pairs
+    # Note that we have a different number of randoms from lenses so we also need to make
+    # sure that we rescale NrNs accordingly
 
-    ggspin.process(catspin)
-    ggspin_wm.process(catspin_wm)
-    xipspin[i]=ggspin.xip[0]/Kcor
-    xipspin_wm[i]=ggspin_wm.xip[0]/Kcor_wm
+    # The easiest way to do this in Treecorr is
+    # gt = (SD/NlNs)*NlNs/NrNs - SR/NrNs
+    # where NsNl = number of source lens pairs  
+    # 
+    # SD/NsNl = ls.xi
+    # NlNs = nlns.weight/nlns.tot
+    # NrNs = nrns.weight/nrns.tot
+    # SR/NrNs = rs.xi
 
-print "mean spin:%.3e spin_wm:%.3e" % (np.average(xipspin),np.average(xipspin_wm))
-print "std  spin: %.3e spin_wm: %.3e" % (np.std(xipspin),np.std(xipspin_wm))
+    gamma_t = ls.xi*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi
+    gamma_x = ls.xi_im*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi_im
 
-#Npairs=ggmw.npairs  # does not include weights - this is a factor of 2 smaller than the Npair_theory definition
-theta=ggspin.meanr
-#Area = ngals*ngals*2*np.pi*theta*(theta_max-theta_min)/(Npairs*2)
-#print Area/(60*60)  # yup recovers expected area
+    #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
+    treecorr.util.gen_write(outfile,
+            ['r_nom','meanr','meanlogr','gamT','gamX','sigma','weight','npairs', 'nocor_gamT', 'nocor_gamX', 
+            'rangamT','rangamX','ransigma' ],
+            [ ls.rnom,ls.meanr, ls.meanlogr,gamma_t, gamma_x, np.sqrt(ls.varxi), ls.weight, ls.npairs,
+            ls.xi, ls.xi_im, rs.xi, rs.xi_im, np.sqrt(rs.varxi) ])
 
-# predicted noise covariance
-Cov_orig = sige_orig**2 / (area*neff_orig**2*2*np.pi*theta[0]*(theta_max-theta_min))
-Cov_new = sige_new**2 / (area*neff_new**2*2*np.pi*theta[0]*(theta_max-theta_min))
-Cov_new_wm = sige_new_wm**2 / (area*neff_new_wm**2*2*np.pi*theta[0]*(theta_max-theta_min))
-Cov_mix = sige_new**2 / (area*neff_orig**2*2*np.pi*theta[0]*(theta_max-theta_min))
 
-print "Cov: new: %.3e new_wm: %.3e orig: %.3e mix: %.3e " % (np.sqrt(Cov_new),np.sqrt(Cov_new_wm),np.sqrt(Cov_orig),np.sqrt(Cov_mix))
+    # Now carry out the spin test with a faster binslop
+    ntrials = 30
+    bin_slop=0.1
 
-#    print ggex.xip, ggobs.xip/Kcor,ggmw.xip/Kcor_wm
-#    print ggobs.weight, ggmw.weight, ggobs.npairs,ggmw.npairs
+    # As we loop over lens bins and we want to make sure that we have the same spin
+    # for each of the source trials we have to fix the seed
+    numpy.random.seed(42)
 
-    # Write it out to a file and praise-be for Jarvis and his well documented code
-    #gg.write(outfile)
+    for i in range (ntrials):
+        # spin the last galaxy sample
+        theta = np.random.uniform(0,np.pi,ngals)
+        ct= np.cos(2.0*theta)
+        st= np.sin(2.0*theta)
+        eobs1_spin=eobs1*ct + eobs2*st
+        eobs2_spin=-1.0*eobs1*st + eobs2*ct
+
+        sourcespin = treecorr.Catalog(ra=ra,dec=dec,g1=eobs1_spin,g2=eobs2_spin,ra_units='deg', dec_units='deg',w=weight)
+        ls.process(lenscat,sourcecat)    # only this needs to be recalculated for each spin test
+
+        # lets write these all out and post-process because we don't know how many we will need in the end
+        # note it another set of trials is run - change the fixed seed number
+
+        gamma_t = ls.xi*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi
+        gamma_x = ls.xi_im*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi_im
+
+
+        outfile_spin=OUTDIR+'/SPIN/K1000_GT_6Z_sourcespin_'+str(JZBIN)+'_5Z_lens+'+str(IZBIN)'.asc'
+
+        #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
+        treecorr.util.gen_write(outfile_spin,
+            ['r_nom','meanr','meanlogr','gamT','gamX','sigma','weight','npairs', 'nocor_gamT', 'nocor_gamX', 
+            'rangamT','rangamX','ransigma' ],
+            [ ls.rnom,ls.meanr, ls.meanlogr,gamma_t, gamma_x, np.sqrt(ls.varxi), ls.weight, ls.npairs,
+            ls.xi, ls.xi_im, rs.xi, rs.xi_im, np.sqrt(rs.varxi) ])
+
