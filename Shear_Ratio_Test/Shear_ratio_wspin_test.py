@@ -32,7 +32,7 @@ IZBIN=3
 JZBIN=5
 # Source Catalogues
 CATDIR='/disk09/KIDS/K1000_TWO_PT_STATS/'
-fitscat=CATDIR+'/TOMOCATS/K1000_N_BLIND_'+Blind+'A_v3_6Z_'+str(JZBIN)''.fits'
+fitscat=CATDIR+'/TOMOCATS/K1000_N_BLIND_'+Blind+'_v3_6Z_'+str(JZBIN)+'.fits'
 
 # Location of the output files
 OUTDIR=CATDIR+'/OUTSTATS/SHEAR_RATIO/GT/'
@@ -45,11 +45,11 @@ OUTDIR=CATDIR+'/OUTSTATS/SHEAR_RATIO/GT/'
 fitsfile = fits.open(fitscat)
 
 # read in position and shear
-ra = (fitsfile[2].data['ALPHA_J2000'])
-dec = (fitsfile[2].data['DELTA_J2000'])
-eobs1 = (fitsfile[2].data['e1_A'])
-eobs2 = (fitsfile[2].data['e2_A'])
-weight = (fitsfile[2].data['weight_A'])
+ra = (fitsfile[1].data['ALPHA_J2000'])
+dec = (fitsfile[1].data['DELTA_J2000'])
+eobs1 = (fitsfile[1].data['e1'])
+eobs2 = (fitsfile[1].data['e2'])
+weight = (fitsfile[1].data['weight'])
 
 ngals=len(ra)
 print "ngals", ngals
@@ -65,7 +65,7 @@ for IZBIN in range (1,6):   #1,2,3,4,5
 
     lenscatname=CATDIR+'/GGLCATS/BOSS_data_5Z_'+str(IZBIN)+'.fits'
     rancatname=CATDIR+'/GGLCATS/BOSS_random_5Z_'+str(IZBIN)+'.fits'
-    outfile_main=OUTDIR+'/K1000_GT_6Z_source_'+str(JZBIN)+'_5Z_lens+'+str(IZBIN)'.asc'
+    outfile_main=OUTDIR+'/K1000_GT_6Z_source_'+str(JZBIN)+'_5Z_lens'+str(IZBIN)+'.asc'
 
     # the lens catalogue we will not modify so we can use the built in treecorr option to read 
     # in directly from the catalogue
@@ -92,9 +92,13 @@ for IZBIN in range (1,6):   #1,2,3,4,5
         bin_slop=bin_slop)
 
     # Now calculate the different 2pt correlation functions
+    print "Calculating the number of source-lens pairs"
     nlns.process(lenscat,sourcecat)
+    print "Calculating the number of source-random pairs"
     nrns.process(rancat,sourcecat)
+    print "Calculating the average shear around the lenses"
     ls.process(lenscat,sourcecat)    # only this one needs to be recalculated for each spin test
+    print "Calculating the average shear around the randoms"
     rs.process(rancat,sourcecat)
 
     # We will use the Mandelbaum 2006 estimator which includes both the random and boost correction.
@@ -118,8 +122,10 @@ for IZBIN in range (1,6):   #1,2,3,4,5
     gamma_t = ls.xi*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi
     gamma_x = ls.xi_im*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi_im
 
+    print "Writing out", outfile_main
+    
     #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
-    treecorr.util.gen_write(outfile,
+    treecorr.util.gen_write(outfile_main,
             ['r_nom','meanr','meanlogr','gamT','gamX','sigma','weight','npairs', 'nocor_gamT', 'nocor_gamX', 
             'rangamT','rangamX','ransigma' ],
             [ ls.rnom,ls.meanr, ls.meanlogr,gamma_t, gamma_x, np.sqrt(ls.varxi), ls.weight, ls.npairs,
@@ -132,8 +138,9 @@ for IZBIN in range (1,6):   #1,2,3,4,5
 
     # As we loop over lens bins and we want to make sure that we have the same spin
     # for each of the source trials we have to fix the seed
-    numpy.random.seed(42)
+    np.random.seed(42)
 
+    print "Running spin test using ntrials =", ntrials
     for i in range (ntrials):
         # spin the last galaxy sample
         theta = np.random.uniform(0,np.pi,ngals)
@@ -148,11 +155,15 @@ for IZBIN in range (1,6):   #1,2,3,4,5
         # lets write these all out and post-process because we don't know how many we will need in the end
         # note it another set of trials is run - change the fixed seed number
 
+        #in this case however we do not subtract the random signal as the shears are randomised
+        #and therefore the random signal should be zero within the noise
+        #in principle rs should also be calculated but we do not include this extra noise term
+        #to speed up the spin test calculation
         gamma_t = ls.xi*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi
         gamma_x = ls.xi_im*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi_im
 
 
-        outfile_spin=OUTDIR+'/SPIN/K1000_GT_6Z_sourcespin_'+str(JZBIN)+'_5Z_lens+'+str(IZBIN)'.asc'
+        outfile_spin=OUTDIR+'/SPIN/K1000_GT_SPIN_'+str(i)+'_6Z_source_'+str(JZBIN)+'_5Z_lens'+str(IZBIN)+'.asc'
 
         #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
         treecorr.util.gen_write(outfile_spin,
