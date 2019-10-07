@@ -30,9 +30,9 @@ if len(sys.argv) <5:
 else:
 	NorS=sys.argv[1]  # N for North, S for South, or 'All' for both.
 	Blind=sys.argv[2] # Just put 'A' 	
-	ZBlo=sys.argv[3]  # If numbers are inputted, this Z_B cut is applied to data
-	ZBhi=sys.argv[4]  # For no ZBcut, put 'None' for both of these
-	nboot=sys.argv[5] # this is the number of bootstrap realisations to run
+	ZBlo=np.float(sys.argv[3])  # If numbers are inputted, this Z_B cut is applied to data
+	ZBhi=np.float(sys.argv[4])  # For no ZBcut, put 'None' for both of these
+	nboot=np.int(sys.argv[5]) # this is the number of bootstrap realisations to run
 
 
 Read_Cat_Or_Pickle = "Cat" 
@@ -58,9 +58,9 @@ def Read_Basic_Data(Read_NorS):
 
 	# This is currently v messy - sorry Ben - we will clean this up when we have a stable catalogue and format
 	# KV450 cats
-	#f = fits.open('/disk10/cech/KIDSCOLLAB/KIDSCOLLAB_V0.5.9/KV450_CATALOGUES_PATCH_V0.5.9/KV450_%s_reweight_3x4x4_v2_good.cat'%(Read_NorS))
+	f = fits.open('/disk10/cech/KIDSCOLLAB/KIDSCOLLAB_V0.5.9/KV450_CATALOGUES_PATCH_V0.5.9/KV450_%s_reweight_3x4x4_v2_good.cat'%(Read_NorS))
 	# fits extension for KV450 G9, G12, G15 etc iext=1, for GAll
-	#iext=2
+	iext=1
 
 	# K1000 mc cats
 	#f = fits.open('/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH/K1000_%s_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_glab_321.cat'%(Read_NorS))
@@ -80,22 +80,24 @@ def Read_Basic_Data(Read_NorS):
 	# K1000- G9 Frankenstein cats
 	#f = fits.open('/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH/%s_9band_mask_LF_svn_309b_FRANKENSTEIN.cat'%(Read_NorS))
 	#f = fits.open('/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH/%s_9band_mask_LF_svn_309b.cat'%(Read_NorS))
-	f = fits.open('/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH/%s_9band_mask_LF_glab_321.cat'%(Read_NorS))
+	#f = fits.open('/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH/%s_9band_mask_LF_glab_321.cat'%(Read_NorS))
+	#f = fits.open('/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH/%s_9band_mask_LF_glab_321_FRANKENSTEIN.cat'%(Read_NorS))
+	#f = fits.open('/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH/%s_9band_mask_LF_glab_322.cat'%(Read_NorS))
 	#fits extension for K1000
-	iext=2
+	#iext=2
 
 	ra = f[iext].data['ALPHA_J2000']
 	dec = f[iext].data['DELTA_J2000']
 	ZB = f[iext].data['Z_B']
 
-	'''
+	
 	#KV450 columns - paste autocal into metacal to use K1000 script
 	mce1 = f[iext].data['bias_corrected_e1']
 	mce2 = f[iext].data['bias_corrected_e2']
 	#mcw = f[iext].data['recal_weight']
 	mcw = f[iext].data['weight']
-	ace1 = f[iext].data['bias_corrected_e1']
-	ace2 = f[iext].data['bias_corrected_e2']
+	ace1 = f[iext].data['bias_corrected_e1'] - f[iext].data['e1_correction']
+	ace2 = f[iext].data['bias_corrected_e2'] - f[iext].data['e2_correction']
 	#acw = f[iext].data['recal_weight']
 	acw = f[iext].data['weight']
 	ngals = len(acw)
@@ -103,9 +105,9 @@ def Read_Basic_Data(Read_NorS):
 	acm2 = np.ones(ngals)
 	mcm1 = np.ones(ngals)
 	mcm2 = np.ones(ngals)
-	#Xpos = f[iext].data['Xpos_THELI']
-	#Ypos = f[iext].data['Ypos_THELI']
-	'''
+	Xpos = f[iext].data['Xpos_THELI']
+	Ypos = f[iext].data['Ypos_THELI']
+    
 	'''
 	#K1000 columns Phase 0
 	#metacal columns
@@ -138,7 +140,7 @@ def Read_Basic_Data(Read_NorS):
 	acm1 = np.ones(ngals)
 	acm2 = np.ones(ngals)
 	'''
-
+	'''
 	#K1000 columns - preblind, pre mc weight calc
 	#metacal columns
 	mce1 = f[iext].data['raw_e1']
@@ -155,16 +157,17 @@ def Read_Basic_Data(Read_NorS):
 	acm1 = np.ones(ngals)
 	acm2 = np.ones(ngals)
 	acw=np.ones(ngals)
+	'''
 
 	print "Reading in Xpos,Ypos,MAG,PSFe's...."
-	Xpos = f[iext].data['Xpos']
-	Ypos = f[iext].data['Ypos']
+	#Xpos = f[iext].data['Xpos']
+	#Ypos = f[iext].data['Ypos']
 	MAG = f[iext].data['MAG_AUTO']
 	PSFe1 = f[iext].data['PSF_e1']
 	PSFe2 = f[iext].data['PSF_e2']
 	Ixx = f[iext].data['PSF_Q11']
 	Iyy = f[iext].data['PSF_Q22']
-	TPSF = Ixx + Iyy
+	TPSF = f[iext].data['PSF_Q11']*f[iext].data['PSF_Q22'] - f[iext].data['PSF_Q12']*f[iext].data['PSF_Q12']
 	SNR = f[iext].data['pixel_SNratio']
 	f.close()
 	return ra,dec,mce1,mce2,mcw,mcm1,mcm2,ace1,ace2,acw,ZB, Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR
@@ -260,14 +263,15 @@ elif Read_Cat_Or_Pickle == "Pickle":
 	acm1=np.ones(ngals)
 	acm2=np.ones(ngals)	
 
-
+	print np.min(TPSF), np.max(TPSF)
 
 if str(ZBlo) == "None":
     ZBlabel = 'ZBcutNone'
 elif float(ZBlo)<float(ZBhi):
 	print "Making the ZBcut in the range %s to %s" %(ZBlo, ZBhi)
 	ZBlabel = 'ZBcut%s-%s' %(ZBlo,ZBhi)
-	idx = np.where( np.logical_and(ZB>float(ZBlo), ZB<float(ZBhi)) )[0]
+	#idx = np.where( np.logical_and(ZB>float(ZBlo), ZB<float(ZBhi)) )[0]
+	idx=( (ZB>ZBlo) & (ZB<ZBhi) & (TPSF>4))
 	ra=ra[idx]
 	dec=dec[idx]
 	#metacal columns
@@ -392,7 +396,7 @@ def Plot_BinQx_VS_BinQy(Qx, Qy, weights, mcorr, num_bins, labels, xlabel, ylabel
 
 Bootstrap = True	# Bootstrap errors? Takes ~nboot times longer! (nboot defined on command line)
 
-for mc_or_ac in ('metacal','autocal',):
+for mc_or_ac in ('autocal','metacal'):
 	if mc_or_ac == 'metacal':
 		e1=mce1
 		e2=mce2
