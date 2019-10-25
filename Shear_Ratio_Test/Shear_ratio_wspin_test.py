@@ -14,22 +14,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Read in user input to set the nbins, theta_min, theta_max, lin_not_log, fitscat1, fitscat2, outfilename
-if len(sys.argv) <3: 
-    #print("Usage: %s nbins theta_min(arcmin) theta_max(arcmin) lin_not_log? catalogue1.fits \
-    #        catalogue2.fits outfilename" % sys.argv[0]) 
-    #print "Usage: %s nbins theta_min(arcmin) theta_max(arcmin) lin_not_log(true or false)? \
-    #       catalogue1.fits catalogue2.fits outfilename" % sys.argv[0] 
+if len(sys.argv) <6: 
+    #print("Usage: %s nbins theta_min(arcmin) theta_max(arcmin) source_tomobin number_of_spins" % sys.argv[0]) 
+    print"Usage: %s nbins theta_min(arcmin) theta_max(arcmin) source_tomobin" % sys.argv[0] 
     sys.exit(1)
 else:
     nbins = int(sys.argv[1]) 
     theta_min = float(sys.argv[2]) 
     theta_max = float(sys.argv[3]) 
-
-# To do - command line blind, tomo bin, ntrials
+    JZBIN = int(sys.argv[4]) 
+    ntrials = int(sys.argv[5]) 
+    izin = int(sys.argv[6]) 
+    ntprevrun = int(sys.argv[7]) 
 
 Blind='A'
-IZBIN=3
-JZBIN=5
 # Source Catalogues
 CATDIR='/disk09/KIDS/K1000_TWO_PT_STATS/'
 fitscat=CATDIR+'/TOMOCATS/K1000_N_BLIND_'+Blind+'_v3_6Z_'+str(JZBIN)+'.fits'
@@ -61,11 +59,11 @@ sourcecat = treecorr.Catalog(ra=ra,dec=dec,g1=eobs1,g2=eobs2,ra_units='deg', dec
 # If the WL-72 nodes workers are not available this will be sub-optimal and it would be better
 # to queue each source-lens bin pair individually on the cluster
 
-for IZBIN in range (1,6):   #1,2,3,4,5
+for IZBIN in range (izin,izin+1):   #1,2,3,4,5
 
     lenscatname=CATDIR+'/GGLCATS/BOSS_data_5Z_'+str(IZBIN)+'.fits'
     rancatname=CATDIR+'/GGLCATS/BOSS_random_5Z_'+str(IZBIN)+'.fits'
-    outfile_main=OUTDIR+'/K1000_GT_6Z_source_'+str(JZBIN)+'_5Z_lens'+str(IZBIN)+'.asc'
+    outfile_main=OUTDIR+'/K1000_GT_6Z_source_'+str(JZBIN)+'_5Z_lens_'+str(IZBIN)+'.asc'
 
     # the lens catalogue we will not modify so we can use the built in treecorr option to read 
     # in directly from the catalogue
@@ -77,6 +75,7 @@ for IZBIN in range (1,6):   #1,2,3,4,5
 
     # Set-up the different correlations that we want to measure
     bin_slop=0.08 # optimised in Flinc sims
+    #bin_slop=0.12 # faster option
 
     # Number of source lens pairs
     nlns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
@@ -132,16 +131,22 @@ for IZBIN in range (1,6):   #1,2,3,4,5
             ls.xi, ls.xi_im, rs.xi, rs.xi_im, np.sqrt(rs.varxi) ])
 
 
-    # Now carry out the spin test with a faster binslop
-    ntrials = 30
-    bin_slop=0.1
+    # Now carry out the spin test with default binslop
+    # Average shear around lenses with default fast binslop    
+    lssp = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin')
 
     # As we loop over lens bins and we want to make sure that we have the same spin
-    # for each of the source trials we have to fix the seed
+    # for each of the source trials analysis of each lens bin we have to fix the seed
     np.random.seed(42)
 
     print "Running spin test using ntrials =", ntrials
-    for i in range (ntrials):
+
+    if ntprevrun > 0 :
+        for i in range (ntprevrun):
+            # spin the last galaxy sample
+            theta = np.random.uniform(0,np.pi,ngals)
+
+    for i in range (ntprevrun,ntrials):
         # spin the last galaxy sample
         theta = np.random.uniform(0,np.pi,ngals)
         ct= np.cos(2.0*theta)
@@ -150,7 +155,7 @@ for IZBIN in range (1,6):   #1,2,3,4,5
         eobs2_spin=-1.0*eobs1*st + eobs2*ct
 
         sourcespin = treecorr.Catalog(ra=ra,dec=dec,g1=eobs1_spin,g2=eobs2_spin,ra_units='deg', dec_units='deg',w=weight)
-        ls.process(lenscat,sourcecat)    # only this needs to be recalculated for each spin test
+        lssp.process(lenscat,sourcespin)    # only this needs to be recalculated for each spin test
 
         # lets write these all out and post-process because we don't know how many we will need in the end
         # note it another set of trials is run - change the fixed seed number
@@ -159,16 +164,16 @@ for IZBIN in range (1,6):   #1,2,3,4,5
         #and therefore the random signal should be zero within the noise
         #in principle rs should also be calculated but we do not include this extra noise term
         #to speed up the spin test calculation
-        gamma_t = ls.xi*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi
-        gamma_x = ls.xi_im*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi_im
+        gamma_t = lssp.xi*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi
+        gamma_x = lssp.xi_im*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi_im
 
 
-        outfile_spin=OUTDIR+'/SPIN/K1000_GT_SPIN_'+str(i)+'_6Z_source_'+str(JZBIN)+'_5Z_lens'+str(IZBIN)+'.asc'
+        outfile_spin=OUTDIR+'/SPIN/K1000_GT_SPIN_'+str(i)+'_6Z_source_'+str(JZBIN)+'_5Z_lens_'+str(IZBIN)+'.asc'
 
         #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
         treecorr.util.gen_write(outfile_spin,
             ['r_nom','meanr','meanlogr','gamT','gamX','sigma','weight','npairs', 'nocor_gamT', 'nocor_gamX', 
             'rangamT','rangamX','ransigma' ],
-            [ ls.rnom,ls.meanr, ls.meanlogr,gamma_t, gamma_x, np.sqrt(ls.varxi), ls.weight, ls.npairs,
-            ls.xi, ls.xi_im, rs.xi, rs.xi_im, np.sqrt(rs.varxi) ])
+            [ lssp.rnom,lssp.meanr, lssp.meanlogr,gamma_t, gamma_x, np.sqrt(lssp.varxi), lssp.weight, lssp.npairs,
+            lssp.xi, lssp.xi_im, rs.xi, rs.xi_im, np.sqrt(rs.varxi) ])
 
