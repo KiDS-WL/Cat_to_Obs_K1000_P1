@@ -5,16 +5,16 @@ from astropy.io import ascii
 SPINDIR='/disk09/KIDS/K1000_TWO_PT_STATS//OUTSTATS/SHEAR_RATIO/'
 #number of spin trials, angular bins (ntbins) and lens bins (nlbins)
 
-JZBIN=5  # redshift bin of the sources
-ntrials=100
+JZBIN=1  # redshift bin of the sources
+ntrials=400
 ntbins=4
-nlbins=5
+nlbins=2
 
 gtlens=np.zeros([ntbins,ntrials])
 
 for ilens in range(nlbins):
     for ispin in range(ntrials):
-        gtfile=SPINDIR+'/GT/SPIN/K1000_GT_SPIN_'+str(ispin)+'_6Z_source_'+str(JZBIN)+'_5Z_lens'+str(ilens+1)+'.asc'
+        gtfile=SPINDIR+'/GT/SPIN/K1000_GT_SPIN_'+str(ispin)+'_6Z_source_'+str(JZBIN)+'_5Z_lens_'+str(ilens+1)+'.asc'
         gtspindat=ascii.read(gtfile)
         gtlens[:,ispin]=gtspindat['gamT'] 
     if ilens==0:      
