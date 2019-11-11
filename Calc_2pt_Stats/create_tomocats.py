@@ -32,9 +32,10 @@ ldac_table = ldac_cat['OBJECTS']
 
 # read in the blinded ellipticity columns that we'll want 
 # and the photometric redshift, ra and dec
-e1colname='e1_'+blind
-e2colname='e2_'+blind
-wtcolname='weight_'+blind    
+# using phase 1 autocal column names
+e1colname='autocal_e1_'+blind
+e2colname='autocal_e2_'+blind
+wtcolname='recal_weight_'+blind    
 e1=ldac_table[e1colname]
 e2=ldac_table[e2colname]
 weight=ldac_table[wtcolname]
@@ -51,7 +52,7 @@ w_inbin=weight[ztomo]
 ra_inbin=ALPHA_J2000[ztomo]
 dec_inbin=DELTA_J2000[ztomo]
 
-# THIS WILL NEED TO BE UBDATED FOR METACAL TO ALSO INCLUDE THE M_CORRECTION
+# THIS WOULD NEED TO BE UPDATED FOR METACAL TO ALSO INCLUDE THE M_CORRECTION
 if (ccorr=='true'):  
     # weighted mean   
     c1=np.average(e1_inbin,weights=w_inbin)
