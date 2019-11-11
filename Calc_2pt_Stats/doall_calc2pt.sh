@@ -88,7 +88,7 @@ PATCH=N
 GGL_ID=BOSS
 # Information about the tomographic bins
 # Format:  ntomo, zb_edges (ntomo+ 1)
-TOMOINFO="6 0.1 0.3 0.5 0.7 0.9 1.2 2.0"
+TOMOINFO="5 0.1 0.3 0.5 0.7 0.9 1.2"
 # Information about the COSEBIS theta bins
 # Format:  theta_min, theta_max
 COSEBIS_BININFO="0.5 300"
@@ -201,8 +201,12 @@ mkdir -p $TMPDIR # defined in progs.ini to be either in /home or /data depending
 # fix the name of the mock catalogue with the -u option which sets MASTERCAT
 
 if [ $USERCAT = "false" ]; then  # user catalogue has not been defined - use KIDS
-  MASTERCAT=${MD}/K1000_${PATCH}_9band_mask_BLINDED_${LENSFIT_VER}.cat
-  FILEHEAD=K1000_${PATCH}_BLIND_${BLIND}_${LENSFIT_VER}
+  #Phase 0 catalogues
+  #MASTERCAT=${MD}/K1000_${PATCH}_9band_mask_BLINDED_${LENSFIT_VER}.cat
+  #FILEHEAD=K1000_${PATCH}_BLIND_${BLIND}_${LENSFIT_VER}
+  #Phase 1 catalogue
+  FILEHEAD=K1000_${PATCH}_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}
+  MASTERCAT=${MD}/$FILEHEAD.cat
 else  # set the filename of the output files to be the same as the name of the input fits catalogue
   MASTERCAT=${MD}/$USERCAT
   FILEHEAD=$USERCAT
@@ -587,9 +591,6 @@ do
 done
 
 ##=================================================================
-# To be written
-#  echo ""
-#  echo "      \"Pgk\": calculate GGL Band powers to cross bin combination i j"
 
 for mode in ${MODE}
 do
