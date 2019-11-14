@@ -30,19 +30,22 @@ function printUsage
   echo "    must be passed with the following switches. Only the mode switch"
   echo "    is necessary. If other arguments are not supplied, the script"
   echo "    will work from default settings. Possible arguments are:"
-  echo "       -d /path/to/catalogues"
+  echo "       -d /path/to/source_catalogues"
+  echo "       -g /path/to/lens_catalogues"
   echo "       -o /path/to/results"
   echo "       -p patch name N or S"
   echo "       -m list of modes"
   echo "       -v lensfit version"
-  echo "       -n ntomo number of tomographic source bins, followed by bin edges z_B(ntomo+1)"
-  echo "       -t nbins number of theta bins, theta_min, theta_max"
-  echo "       -e COSEBIS theta_min, theta_max"
+  echo "       -n number of tomographic source bins, followed by bin edges z_B(ntomo+1)"
+  echo "       -t number of theta bins, theta_min, theta_max"
+  echo "       -a number of BP ell bins, ell_min, ell_max, apodisation"
+  echo "       -e BP & COSEBIS theta_min, theta_max"
   echo "       -i cross correlate bins i with j - for GGL i is the lens bin"
   echo "       -j cross correlate bins i with j - for GGL j is the source bin"
   echo "       -c c-corr on? true/false"
   echo "       -l linear not log bins? true/false"
   echo "       -b which blind?"
+  echo "       -u user catalogues"
   echo ""
   echo "DESCRIPTION: "
   echo "    The given mode corresponds to the 2pt stats or catalogue manipulation"
@@ -98,15 +101,19 @@ PATCH=N
 #TOMOINFO_STR="6 0.1 0.3 0.5 0.7 0.9 1.2 2.0"
 TOMOINFO_STR="5 0.1 0.3 0.5 0.7 0.9 1.2"
 
-## Information about the XI theta bins
+## Information about the GT & XI theta bins
 ## Format:  nbins, theta_min, theta_max
-BININFO_STR="300 0.24428841736054135 403.49549216938652"
+THETAINFO_STR="300 0.24428841736054135 403.49549216938652"
 ## This gives exact edges at 0.5 and 300 arcmin with 259 bins across that space.
 ## There are 29 bins below 0.5 & 12 bins beyond 300.
 
+## Information about the BP ell bins
+## Format:  nbins, ell_min, ell_max
+ELLINFO_STR="8 100.0 1500.0 false"
+
 ## Information about the COSEBIS theta bins
 ## Format:  theta_min, theta_max
-COSEBIS_BININFO_STR="0.5 300"
+BP_COSEBIS_THETAINFO_STR="0.5 300"
 
 ## Use a wrapper script to run over different bin 
 ## combinations - making it easier to run in parrallel
@@ -132,12 +139,12 @@ USERCAT=false
 ## Parse command line arguments
 MODE=""
 
-while getopts ":d:b:o:p:m:v:n:t:i:j:c:u:" opt; do
+while getopts ":d:g:o:p:m:v:n:t:a:e:i:j:c:l:b:u:" opt; do
   case $opt in
     d)
       MD=$OPTARG
       ;;
-    b)
+    g)
       MD2=$OPTARG
       ;;
     o) 
@@ -156,10 +163,13 @@ while getopts ":d:b:o:p:m:v:n:t:i:j:c:u:" opt; do
       TOMOINFO_STR=$OPTARG
       ;;
     t)
-      BININFO_STR=$OPTARG
+      THETAINFO_STR=$OPTARG
+      ;;
+    a)
+      ELLINFO_STR=$OPTARG
       ;;
     e)
-      COSEBIS_BININFO_STR=$OPTARG
+      BP_COSEBIS_THETAINFO_STR=$OPTARG
       ;;
     i)
       IZBIN=$OPTARG
@@ -179,7 +189,6 @@ while getopts ":d:b:o:p:m:v:n:t:i:j:c:u:" opt; do
     u)
       USERCAT=$OPTARG
       ;;
-    
   esac
 done
 
@@ -244,12 +253,18 @@ else
 fi
 ## TOMOCAT is the root name for the catalogues created by mode CREATETOMO
 
-## Angular bins
-BININFO=($BININFO_STR)
-N_theta=${BININFO[0]}
-COSEBIS_BININFO=($COSEBIS_BININFO_STR)
-angTag="nbins_${BININFO[0]}_theta_${BININFO[1]}_${BININFO[2]}"
+## theta bins
+THETAINFO=($THETAINFO_STR)
+N_theta=${THETAINFO[0]}
+angTag="nbins_${THETAINFO[0]}_theta_${THETAINFO[1]}_${THETAINFO[2]}"
 
+## ell bins
+ELLINFO=($ELLINFO_STR)
+doApo=${ELLINFO[3]}
+ellTag="nbins_${ELLINFO[0]}_Ell_${ELLINFO[1]}_${ELLINFO[2]}"
+
+## theta range for BP & COSEBIs
+BP_COSEBIS_THETAINFO=($BP_COSEBIS_THETAINFO_STR)
 
 ##=================================================================
 ##
@@ -306,7 +321,7 @@ do
   if [ "${mode}" = "GAMMAT" ]; then
 
     echo "Starting mode ${mode} to calculate GAMMAT for bin combination \
-          Lens bin $IZBIN, source bin $JZBIN with a total number of tomo bins $BININFO_STR"
+          Lens bin $IZBIN, source bin $JZBIN with a total number of tomo bins $THETAINFO_STR"
 
     if [ "${PATCH}" = "N" ]; then
        GGL_ID="BOSS"
@@ -332,7 +347,7 @@ do
     outPath=${STATDIR}/GT/GT_${catTag}_${angTag}_${tomoPairTag}.asc
 
     # Run treecorr - using the Mandelbaum estimator that subtracts off the random signal
-    $P_PYTHON calc_gt_w_treecorr.py $BININFO_STR $LINNOTLOG ${lensCat} ${randCat} ${srcCat} ${outPath}
+    $P_PYTHON calc_gt_w_treecorr.py $THETAINFO_STR $LINNOTLOG ${lensCat} ${randCat} ${srcCat} ${outPath}
 
     # Did it work?
     test -f ${outPath} || \
@@ -350,7 +365,7 @@ for mode in ${MODE}
 do
   if [ "${mode}" = "XI" ]; then
 
-    echo "Starting mode ${mode}: calculate xi+/- for tomo bin combination $IZBIN $JZBIN with bins $BININFO_STR"
+    echo "Starting mode ${mode}: calculate xi+/- for tomo bin combination $IZBIN $JZBIN with bins $THETAINFO_STR"
 
     srcCat1="${TOMOCAT}_$JZBIN.fits"
     srcCat2="${TOMOCAT}_$JZBIN.fits"
@@ -365,7 +380,7 @@ do
     outPath=${STATDIR}/XI/XI_${catTag}_${angTag}_${tomoPairTag}.asc
 
     # Run treecorr
-    $P_PYTHON calc_xi_w_treecorr.py $BININFO_STR $LINNOTLOG ${srcCat1} ${srcCat2} ${outPath}
+    $P_PYTHON calc_xi_w_treecorr.py $THETAINFO_STR $LINNOTLOG ${srcCat1} ${srcCat2} ${outPath}
 
     # Did it work?
     test -f ${outPath} || \
@@ -383,103 +398,79 @@ for mode in ${MODE}
 do
   if [ "${mode}" = "Pgk" ]; then
 
-    echo "Starting mode Pgk: to calculate cosmic shear Band powers for tomo bin combination \
-          combination $IZBIN $JZBIN with bins $BININFO_STR"
+    echo "Starting mode ${mode}: to calculate cosmic shear Band powers for tomo bin combination \
+          ${IZBIN} ${JZBIN} with bins ${ELLINFO_STR} & theta range ${BP_COSEBIS_THETAINFO_STR}"
 
-    # check does the correct xi files exist?
-    InputFileIdentifier=nbins_${BININFO[0]}_theta_${BININFO[1]}_${BININFO[2]}_zbins_${IZBIN}_${JZBIN}
-    gtfile=${STATDIR}/GT/GT_${catTag}_$InputFileIdentifier.asc
+    # Check whether the correct xi files exist?
+    InputFileIdentifier=${catTag}_${angTag}_${tomoPairTag}
+    treePath=${STATDIR}/XI/XI_${InputFileIdentifier}.asc
 
-    test -f ${gtfile} || \
-    { echo "Error: KiDS-${PATCH} GT results $xifile do not exist. Either Run MODE GT (N/S) or COMBINE (ALL)!"; exit 1; } 
+    test -f ${treePath} || \
+    { echo "Error: KiDS-${PATCH} GT results ${treePath} do not exist. Either Run MODE GT (N/S) or COMBINE (ALL)!"; exit 1; } 
+
+    ## Define correlation type (1: ee; 2: ne; 3: nn)
+    corrType=2
+
+    # Define the workplace where crazy file handling happens
+    FolderName=${STATDIR}/Pgk
+
+    # The files need to have this naming convention:  xi2bandpow_input_${InputFileIdentifier}.dat
+    # They also need to have only 3 columns with no other lines or comments:
+    # theta [arcmin]    [gamma_t or xi_+]    [gamma_x or xi_-]
+
+    # Let's use awk to convert the Treecorr output into the expected format and remove the header.
+    # We will use the meanR as the radius to pass through to the bandpower code
+    # This choise is not too important though the bins are finely binned
+    # Treecorr: #   R_nom       meanR       meanlogR       xip          xim         xip_im      xim_im      sigma_xi      weight       npairs
+
+    if [ "${doApo}" = "true" ]; then
+        ## apoWidth = log width of apodisation window
+        ## If nominal theta range (BP_COSEBIS_THETAINFO_STR) is theta_min to theta_max,
+        ## the real theta range that input file should provide is real_min to real_max, 
+        ## where real_min = theta_min / exp(apoWidth/2),
+        ##       real_max = theta_max * exp(apoWidth/2).
+        awk '(NR>1){print $2, $4-$5, $10-$11}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
+        apoWidth=0.5
+        N_theta_BP=300 # WARNING Temporary
+    else
+        awk '(NR>30 && NR<=289){print $2, $4-$5, $10-$11}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
+        apoWidth=-1
+        N_theta_BP=259 # WARNING Temporary
+    fi
+
+    # The output file is called xi2bandpow_output_${OutputFileIdentifier}.dat 
+    # It has 3 columns for GGL: ell, bandpow, err
+    # And 5 columns for cosmic shear: ell, l*2(P_E/2pi), err, l*2(P_B/2pi), err
+    # ell is the log-central value
+    OutputFileIdentifier=${catTag}_${ellTag}_${tomoPairTag}
 
     # These are the options for inputs for the c program xi2bandpow.c:
     # 1: <working directory>
     # 2: <input file identifier>
     # 3: <output file identifier>
     # 4: <number of input angular bins>
-    # 5: <min input separation to use in conversion [arcmin] (xi_+ in case of ee)>
-    # 6: <max input separation to use in conversion [arcmin] (xi_+ in case of ee)>
-    # 7: <min input separation to use in conversion [arcmin] (xi_- in case of ee; otherwise unused)>
-    # 8: <max input separation to use in conversion [arcmin] (xi_- in case of ee; otherwise unused)>
+    # 5: <min input separation to use in conversion [arcmin] (xi_+ or gamma_+)>
+    # 6: <max input separation to use in conversion [arcmin] (xi_+ or gamma_+)>
+    # 7: <min input separation to use in conversion [arcmin] (xi_- or gamma_x)>
+    # 8: <max input separation to use in conversion [arcmin] (xi_- or gamma_x)>
     # 9: <number of output ell bins>
     # 10: <min output ell>
     # 11: <max output ell>
-    # 12: <correlation type (1: ee; 2: ne; 3: gg)>
+    # 12: <correlation type (1: ee; 2: ne; 3: nn)>
     # 13: <log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin; <0 for no apodisation]>
-
-    #This is where the input 2pt correlations are kept in the format that the xi2bandpow expects them
-    InputFolderName=${STATDIR}/Pgk
-
-    # The files need to have this naming convention:  xi2bandpow_input_${InputFileIdentifier}.dat
-    # They also need to have only 3 columns with no other lines or comments:
-    # theta[arcmin]    [gamma_t or xi_+]         [gamma_x or xi_-]
-
-    # Lets use awk to convert the Treecorr output into the expected format.
-    # and remove the header
-    # We will use the meanR as the nominal R to pass through to the bandpower code
-    # This choise is not too important though the bins are finely binned
-    # Treecorr: #   R_nom       meanR       meanlogR       xip          xim         xip_im      xim_im      sigma_xi      weight       npairs
-
-    # log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin
-    # 0 for no apodisation]
-
-    #${BININFO[1]} ${BININFO[2]} are the edges of the bin
-    # this code wants the min/max bin centres though....
-    # really need to improve this part of the code so it's not hardwired
-
-    if [ $USERCAT = "false" ]; then  # user catalogue has not been defined - use KIDS
-      { echo "Error: this is not yet implemented"; exit 1; }
-      #TODO TBD
-    else  # set the filename of the output files to be the same as the name of the input fits catalogue
-      awk '(NR>1){print $2, $4-$5, $10-$11}' < $gtfile > $InputFolderName/xi2bandpow_input_${InputFileIdentifier}.dat
-      #awk '(NR>30 && NR<=289){print $2, $4-$5, $10-$11}' < $gtfile > $InputFolderName/xi2bandpow_input_${InputFileIdentifier}.dat
-    fi
-    AppodisationWidth=0.5
-    N_theta=${BININFO[0]}
-    #AppodisationWidth=-1
-    #N_theta=259
-
-    mintheta=0.5
-    maxtheta=300
-
-    # We'll hardwire this as we don't need to use this module for anything other that calculating Pkk
-    # so we can directly edit this if we change the parameters
-    # number of ell bins for the output bandpower in log space
-    nEllBins=8
-
-    # minimum ell used
-    minEll=100.0
-
-    # maximum ell used
-    maxEll=1500.0
-
-    # This mode is for Pkk, so we use CorrType 1
-    # type of correlation calculated
-    # correlation type (1: ee; 2: ne; 3: gg)
-    CorrType=2
-
-    # The output file is called xi2bandpow_output_${OutputFileIdentifier}.dat 
-    # It has 3 columns for non-cosmic shear cases:
-    # ell bandpow err
-    # And 4 columns for cosmic shear:
-    # ell l*2(E-bandPower/2pi) err  l*2(B-bandPower/2pi) err
-    # ell is the log-central value
-    # The output is saved in the same folder as the input
-    OutputFileIdentifier=${catTag}_nbins_${nEllBins}_Ell_${minEll}_${maxEll}_zbins_${IZBIN}_${JZBIN}
-
     # now run the program (location is stored in progs.ini)
-    $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
-                  $N_theta $mintheta $maxtheta $mintheta $maxtheta \
-                  ${nEllBins} ${minEll} ${maxEll} ${CorrType} ${AppodisationWidth}
+    $P_XI2BANDPOW ${FolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
+                  ${N_theta_BP} ${BP_COSEBIS_THETAINFO[0]} ${BP_COSEBIS_THETAINFO[1]} ${BP_COSEBIS_THETAINFO[0]} ${BP_COSEBIS_THETAINFO[1]} \
+                  ${ELLINFO[0]} ${ELLINFO[1]} ${ELLINFO[2]} ${corrType} ${apoWidth}
 
-
-    outPgk=${InputFolderName}/xi2bandpow_output_${OutputFileIdentifier}.dat
+    rm -f "${FolderName}/xi2bandpow_input_*"
+    rm -f "${FolderName}/xi2bandpow_kernels_*"
+    outPath=${FolderName}/xi2bandpow_output_${OutputFileIdentifier}.dat
 
     # Did it work?
-    test -f $outPgk || \
-      { echo "Error: bandpower output $outPgk was not created! !"; exit 1; }
-    echo "Success: Leaving mode Pgk"
+    test -f ${outPath} || \
+      { echo "Error: bandpower output ${outPath} was not created! !"; exit 1; }
+    echo "Success: Leaving mode ${mode}"
 
   fi
 done
@@ -492,97 +483,79 @@ for mode in ${MODE}
 do
   if [ "${mode}" = "Pkk" ]; then
 
-    echo "Starting mode Pkk: to calculate cosmic shear Band powers for tomo bin combination \
-          combination $IZBIN $JZBIN with bins $BININFO_STR"
+    echo "Starting mode ${mode}: to calculate cosmic shear Band powers for tomo bin combination \
+          ${IZBIN} ${JZBIN} with bins ${ELLINFO_STR} & theta range ${BP_COSEBIS_THETAINFO_STR}"
 
-    # check does the correct xi files exist?
-    InputFileIdentifier=nbins_${BININFO[0]}_theta_${BININFO[1]}_${BININFO[2]}_zbins_${IZBIN}_${JZBIN}
-    xifile=${STATDIR}/XI/XI_${catTag}_$InputFileIdentifier.asc
+    ## Check whether the correct xi files exist?
+    InputFileIdentifier=${catTag}_${angTag}_${tomoPairTag}
+    treePath=${STATDIR}/XI/XI_${InputFileIdentifier}.asc
 
-    test -f ${xifile} || \
-    { echo "Error: KiDS-${PATCH} XI results $xifile do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; } 
+    test -f ${treePath} || \
+    { echo "Error: KiDS-${PATCH} XI results ${treePath} do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; } 
+
+    ## Define correlation type (1: ee; 2: ne; 3: nn)
+    corrType=1
+
+    # Define the workplace where crazy file handling happens
+    FolderName=${STATDIR}/Pkk
+
+    # The files need to have this naming convention:  xi2bandpow_input_${InputFileIdentifier}.dat
+    # They also need to have only 3 columns with no other lines or comments:
+    # theta [arcmin]    [gamma_t or xi_+]    [gamma_x or xi_-]
+
+    # Let's use awk to convert the Treecorr output into the expected format and remove the header.
+    # We will use the meanR as the radius to pass through to the bandpower code
+    # This choise is not too important though the bins are finely binned
+    # Treecorr: #   R_nom       meanR       meanlogR       xip          xim         xip_im      xim_im      sigma_xi      weight       npairs
+
+    if [ "${doApo}" = "true" ]; then
+        ## apoWidth = log width of apodisation window
+        ## If nominal theta range (BP_COSEBIS_THETAINFO_STR) is theta_min to theta_max,
+        ## the real theta range that input file should provide is real_min to real_max, 
+        ## where real_min = theta_min / exp(apoWidth/2),
+        ##       real_max = theta_max * exp(apoWidth/2).
+        awk '(NR>2){print $2, $4, $5}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
+        apoWidth=0.5
+        N_theta_BP=300 # WARNING Temporary
+    else
+        awk '(NR>31 && NR<=290){print $2, $4, $5}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
+        apoWidth=-1
+        N_theta_BP=259 # WARNING Temporary
+    fi
+
+    # The output file is called xi2bandpow_output_${OutputFileIdentifier}.dat 
+    # It has 3 columns for GGL: ell, bandpow, err
+    # And 5 columns for cosmic shear: ell, l*2(P_E/2pi), err, l*2(P_B/2pi), err
+    # ell is the log-central value
+    OutputFileIdentifier=${catTag}_${ellTag}_${tomoPairTag}
 
     # These are the options for inputs for the c program xi2bandpow.c:
     # 1: <working directory>
     # 2: <input file identifier>
     # 3: <output file identifier>
     # 4: <number of input angular bins>
-    # 5: <min input separation to use in conversion [arcmin] (xi_+ in case of ee)>
-    # 6: <max input separation to use in conversion [arcmin] (xi_+ in case of ee)>
-    # 7: <min input separation to use in conversion [arcmin] (xi_- in case of ee; otherwise unused)>
-    # 8: <max input separation to use in conversion [arcmin] (xi_- in case of ee; otherwise unused)>
+    # 5: <min input separation to use in conversion [arcmin] (xi_+ or gamma_+)>
+    # 6: <max input separation to use in conversion [arcmin] (xi_+ or gamma_+)>
+    # 7: <min input separation to use in conversion [arcmin] (xi_- or gamma_x)>
+    # 8: <max input separation to use in conversion [arcmin] (xi_- or gamma_x)>
     # 9: <number of output ell bins>
     # 10: <min output ell>
     # 11: <max output ell>
-    # 12: <correlation type (1: ee; 2: ne; 3: gg)>
+    # 12: <correlation type (1: ee; 2: ne; 3: nn)>
     # 13: <log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin; <0 for no apodisation]>
-
-    #This is where the input 2pt correlations are kept in the format that the xi2bandpow expects them
-    InputFolderName=${STATDIR}/Pkk
-
-    # The files need to have this naming convention:  xi2bandpow_input_${InputFileIdentifier}.dat
-    # They also need to have only 2 (3 if cosmic shear) columns with no other lines or comments:
-    # theta[arcmin]    correlation_function[xi_+ if cosmic shear]         [xi_- if cosmic shear]
-
-    # Lets use awk to convert the Treecorr output into the expected format.
-    # and remove the header
-    # We will use the meanR as the nominal R to pass through to the bandpower code
-    # This choise is not too important though the bins are finely binned
-    # Treecorr: #   R_nom       meanR       meanlogR       xip          xim         xip_im      xim_im      sigma_xi      weight       npairs
-
-    # log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin
-    # 0 for no apodisation]
-
-    #${BININFO[1]} ${BININFO[2]} are the edges of the bin
-    # this code wants the min/max bin centres though....
-    # really need to improve this part of the code so it's not hardwired
-
-    awk '(NR>2){print $2, $4, $5}' < $xifile > $InputFolderName/xi2bandpow_input_${InputFileIdentifier}.dat
-    #awk '(NR>31 && NR<=290){print $2, $4, $5}' < $xifile > $InputFolderName/xi2bandpow_input_${InputFileIdentifier}.dat
-    AppodisationWidth=0.5
-    N_theta=${BININFO[0]}
-    #AppodisationWidth=-1
-    #N_theta=259
-
-    mintheta=0.5
-    maxtheta=300
-
-    # We'll hardwire this as we don't need to use this module for anything other that calculating Pkk
-    # so we can directly edit this if we change the parameters
-    # number of ell bins for the output bandpower in log space
-    nEllBins=8
-
-    # minimum ell used
-    minEll=100.0
-
-    # maximum ell used
-    maxEll=1500.0
-
-    # This mode is for Pkk, so we use CorrType 1
-    # type of correlation calculated
-    # correlation type (1: ee; 2: ne; 3: gg)
-    CorrType=1
-
-    # The output file is called xi2bandpow_output_${OutputFileIdentifier}.dat 
-    # It has 3 columns for non-cosmic shear cases:
-    # ell bandpow err
-    # And 4 columns for cosmic shear:
-    # ell l*2(E-bandPower/2pi) err  l*2(B-bandPower/2pi) err
-    # ell is the log-central value
-    # The output is saved in the same folder as the input
-    OutputFileIdentifier=${catTag}_nbins_${nEllBins}_Ell_${minEll}_${maxEll}_zbins_${IZBIN}_${JZBIN}
-
     # now run the program (location is stored in progs.ini)
-    $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
-                  $N_theta $mintheta $maxtheta $mintheta $maxtheta \
-                  ${nEllBins} ${minEll} ${maxEll} ${CorrType} ${AppodisationWidth}
+    $P_XI2BANDPOW ${FolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
+                  ${N_theta_BP} ${BP_COSEBIS_THETAINFO[0]} ${BP_COSEBIS_THETAINFO[1]} ${BP_COSEBIS_THETAINFO[0]} ${BP_COSEBIS_THETAINFO[1]} \
+                  ${ELLINFO[0]} ${ELLINFO[1]} ${ELLINFO[2]} ${corrType} ${apoWidth}
 
-    outPath=${InputFolderName}/xi2bandpow_output_${OutputFileIdentifier}.dat
+    rm -f "${FolderName}/xi2bandpow_input_*"
+    rm -f "${FolderName}/xi2bandpow_kernels_*"
+    outPath=${FolderName}/xi2bandpow_output_${OutputFileIdentifier}.dat
 
     # Did it work?
-    test -f $outPath || \
-      { echo "Error: bandpower output $outPath was not created! !"; exit 1; }
-    echo "Success: Leaving mode Pkk"
+    test -f ${outPath} || \
+      { echo "Error: bandpower output ${outPath} was not created! !"; exit 1; }
+    echo "Success: Leaving mode ${mode}"
 
   fi
 done
@@ -599,10 +572,10 @@ do
     if [ "${mode}" = "COSEBIS" ]; then
 
     echo "Starting mode COSEBIS: to calculate COSEBIS for bin combination \
-    Lens bin $IZBIN, source bin $JZBIN with a total number of tomo bins $BININFO_STR"
+    Lens bin $IZBIN, source bin $JZBIN with a total number of tomo bins $THETAINFO_STR"
 
     # check does the correct input xi file exist?
-    InputFileIdentifier=nbins_${BININFO[0]}_theta_${BININFO[1]}_${BININFO[2]}_zbins_${IZBIN}_${JZBIN}
+    InputFileIdentifier=nbins_${THETAINFO[0]}_theta_${THETAINFO[1]}_${THETAINFO[2]}_zbins_${IZBIN}_${JZBIN}
     xifile=${STATDIR}/XI/XI_${catTag}_$InputFileIdentifier.asc
 
     test -f ${xifile} || \
@@ -610,8 +583,8 @@ do
 
     # check that the pre-computed COSEBIS tables exist
     SRCLOC=../src/cosebis
-    normfile=$SRCLOC/TLogsRootsAndNorms/Normalization_${COSEBIS_BININFO[0]}-${COSEBIS_BININFO[1]}.table
-    rootfile=$SRCLOC/TLogsRootsAndNorms/Root_${COSEBIS_BININFO[0]}-${COSEBIS_BININFO[1]}.table
+    normfile=$SRCLOC/TLogsRootsAndNorms/Normalization_${BP_COSEBIS_THETAINFO[0]}-${BP_COSEBIS_THETAINFO[1]}.table
+    rootfile=$SRCLOC/TLogsRootsAndNorms/Root_${BP_COSEBIS_THETAINFO[0]}-${BP_COSEBIS_THETAINFO[1]}.table
 
     test -f ${normfile} || \
     { echo "Error: COSEBIS pre-computed table $normfile is missing. Download from gitrepo!"; exit 1; }
@@ -627,7 +600,7 @@ do
     fi
 
     # where do we want to write the output to?
-    filetail=COSEBIS_${catTag}_nbins_${BININFO[0]}_theta_${COSEBIS_BININFO[0]}_${COSEBIS_BININFO[1]}_zbins_${IZBIN}_${JZBIN}
+    filetail=COSEBIS_${catTag}_nbins_${THETAINFO[0]}_theta_${BP_COSEBIS_THETAINFO[0]}_${BP_COSEBIS_THETAINFO[1]}_zbins_${IZBIN}_${JZBIN}
     outcosebis=${STATDIR}/COSEBIS/
 
     # Now Integrate output from treecorr with COSEBIS filter functions
@@ -647,8 +620,8 @@ do
     # --root = TLogsRootsAndNorms/Root_${tmin}-${tmax}.table
 
     $P_PYTHON ../src/cosebis/run_measure_cosebis_cats2stats.py -i $xifile -t 1 -p 3 -m 4 \
-            --cfoldername $outcosebis -o $filetail -b $binning -n 5 -s ${COSEBIS_BININFO[0]} \
-            -l ${COSEBIS_BININFO[1]} --tfoldername $SRCLOC/Tplus_minus \
+            --cfoldername $outcosebis -o $filetail -b $binning -n 5 -s ${BP_COSEBIS_THETAINFO[0]} \
+            -l ${BP_COSEBIS_THETAINFO[1]} --tfoldername $SRCLOC/Tplus_minus \
             --norm $normfile --root $rootfile
 
     # I am expecting this to have produced two files called
@@ -676,10 +649,10 @@ do
   if [ "${mode}" = "COMBINE" ]; then
 
     echo "Starting mode COMBINE: to combine the N/S results for tomo bin \
-          combination $IZBIN $JZBIN with bins $BININFO_STR"
+          combination $IZBIN $JZBIN with bins $THETAINFO_STR"
 
     # check do the files exist?
-    tail=nbins_${BININFO[0]}_theta_${BININFO[1]}_${BININFO[2]}_zbins_${IZBIN}_${JZBIN}.asc
+    tail=nbins_${THETAINFO[0]}_theta_${THETAINFO[1]}_${THETAINFO[2]}_zbins_${IZBIN}_${JZBIN}.asc
     outxiN=${STATDIR}/XI/XI_K1000_N_$tail
     outxiS=${STATDIR}/XI/XI_K1000_S_$tail
 
