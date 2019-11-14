@@ -110,7 +110,7 @@ THETAINFO_STR="300 0.24428841736054135 403.49549216938652"
 ## There are 29 bins below 0.5 & 12 bins beyond 300.
 
 ## Information about the BP ell bins
-## Format:  nbins, ell_min, ell_max
+## Format:  nbins, ell_min, ell_max, do apodisation
 ELLINFO_STR="8 100.0 1500.0 false"
 
 ## Information about the COSEBIS theta bins
