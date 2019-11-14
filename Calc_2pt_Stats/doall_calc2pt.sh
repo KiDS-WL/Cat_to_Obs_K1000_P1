@@ -52,7 +52,7 @@ function printUsage
   echo "    step that you would like to run. Available modes are currently:"
   echo "      \"CREATETOMO\": cut catalogues into tomographic bins and calculate and subtract c-term"
   echo ""
-  echo "      \"GAMMAT\": calculate gamma_t and gamma_x for cross bin combination i j"
+  echo "      \"GT\": calculate gamma_t and gamma_x for cross bin combination i j"
   echo ""
   echo "      \"XI\": calculate xi+/- for tomo bin combination i j"
   echo ""
@@ -62,7 +62,9 @@ function printUsage
   echo ""
   echo "      \"COSEBIS\": calculate En/Bn for tomo bin combination i j "
   echo ""
-  echo "      \"COMBINE\": combine the XI results from N and S for cross bin combination i j"
+  echo "      \"COMBINEGT\": combine the GT results from N and S for cross bin combination i j"
+  echo ""
+  echo "      \"COMBINEXI\": combine the XI results from N and S for cross bin combination i j"
   echo ""
   echo "IMPORTANT DEPENDENCIES:"
   echo "    This script uses TreeCorr version 4.0 to allow for linear or log binning"
@@ -297,7 +299,7 @@ do
 
         # script to select galaxies between zmin/zmax from ${MASTERCAT} and write out to ${TOMOCAT}_$i.cat
         # If CCORR is true, subtract off a c-term from the e1/e2 columns 
-        #Also returns the correction applied to stdout which we send to $C_RECORD
+        # Also returns the correction applied to stdout which we send to $C_RECORD
         $P_PYTHON create_tomocats.py $zmin $zmax ${MASTERCAT} ${TOMOCAT}_$i.fits $BLIND $CCORR
 
         # Check that the tomographic catalogues have been created and exit if they don't 
@@ -311,17 +313,17 @@ done
 
 ##==============================================================================
 ##
-##  \"GAMMAT\": calculate gamma_t and gamma_x for cross bin combination i j"
+##  \"GT\": calculate gamma_t and gamma_x for cross bin combination i j"
 ##  We want to use this mode for both the shear-ratio test and the main 3x2pt
 ##  Analysis so it needs to be flexible
 ##
 
 for mode in ${MODE}
 do
-  if [ "${mode}" = "GAMMAT" ]; then
+  if [ "${mode}" = "GT" ]; then
 
-    echo "Starting mode ${mode} to calculate GAMMAT for bin combination \
-          Lens bin $IZBIN, source bin $JZBIN with a total number of tomo bins $THETAINFO_STR"
+    echo "Starting mode ${mode} to calculate gamma_t for lens bin ${IZBIN} + source bin ${JZBIN} \
+          with a total number of tomo bins $THETAINFO_STR"
 
     if [ "${PATCH}" = "N" ]; then
        GGL_ID="BOSS"
@@ -367,7 +369,7 @@ do
 
     echo "Starting mode ${mode}: calculate xi+/- for tomo bin combination $IZBIN $JZBIN with bins $THETAINFO_STR"
 
-    srcCat1="${TOMOCAT}_$JZBIN.fits"
+    srcCat1="${TOMOCAT}_$IZBIN.fits"
     srcCat2="${TOMOCAT}_$JZBIN.fits"
 
     # Check that the tomographic catalogue exist and exit if they don't 
@@ -398,8 +400,8 @@ for mode in ${MODE}
 do
   if [ "${mode}" = "Pgk" ]; then
 
-    echo "Starting mode ${mode}: to calculate cosmic shear Band powers for tomo bin combination \
-          ${IZBIN} ${JZBIN} with bins ${ELLINFO_STR} & theta range ${BP_COSEBIS_THETAINFO_STR}"
+    echo "Starting mode ${mode}: to calculate GGL bandpower for lens bin ${IZBIN} + source bin ${JZBIN} \
+          with bins ${ELLINFO_STR} & theta range ${BP_COSEBIS_THETAINFO_STR}"
 
     # Check whether the correct xi files exist?
     InputFileIdentifier=${catTag}_${angTag}_${tomoPairTag}
@@ -571,15 +573,14 @@ for mode in ${MODE}
 do
     if [ "${mode}" = "COSEBIS" ]; then
 
-    echo "Starting mode COSEBIS: to calculate COSEBIS for bin combination \
-    Lens bin $IZBIN, source bin $JZBIN with a total number of tomo bins $THETAINFO_STR"
+    echo "Starting mode ${mode}: to calculate COSEBIS for bin combination \
+    ${IZBIN} ${JZBIN} on theta range ${BP_COSEBIS_THETAINFO_STR}"
 
     # check does the correct input xi file exist?
-    InputFileIdentifier=nbins_${THETAINFO[0]}_theta_${THETAINFO[1]}_${THETAINFO[2]}_zbins_${IZBIN}_${JZBIN}
-    xifile=${STATDIR}/XI/XI_${catTag}_$InputFileIdentifier.asc
+    treePath=${STATDIR}/XI/XI_${catTag}_${angTag}_${tomoPairTag}.asc
 
-    test -f ${xifile} || \
-    { echo "Error: KiDS-${PATCH} XI results $xifile do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; }
+    test -f ${treePath} || \
+    { echo "Error: KiDS-${PATCH} XI results ${treePath} do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; }
 
     # check that the pre-computed COSEBIS tables exist
     SRCLOC=../src/cosebis
@@ -600,7 +601,7 @@ do
     fi
 
     # where do we want to write the output to?
-    filetail=COSEBIS_${catTag}_nbins_${THETAINFO[0]}_theta_${BP_COSEBIS_THETAINFO[0]}_${BP_COSEBIS_THETAINFO[1]}_zbins_${IZBIN}_${JZBIN}
+    filetail=COSEBIS_${catTag}_theta_${BP_COSEBIS_THETAINFO[0]}_${BP_COSEBIS_THETAINFO[1]}_${tomoPairTag}
     outcosebis=${STATDIR}/COSEBIS/
 
     # Now Integrate output from treecorr with COSEBIS filter functions
@@ -634,42 +635,41 @@ do
     test -f $Bnfile || \
     { echo "Error: COSEBIS measurement $Bnfile was not created! !"; exit 1; }
 
-    echo "Success: Leaving mode COESBIS"
+    echo "Success: Leaving mode ${mode}"
 
     fi
 done
 
 ##==============================================================================
 ##
-##  \"COMBINE\": combine the results from N and S for cross bin combination i j"
+##  \"COMBINEGT\": combine the GT results from N and S for cross bin combination i j"
 ##
 
 for mode in ${MODE}
 do
-  if [ "${mode}" = "COMBINE" ]; then
+  if [ "${mode}" = "COMBINEGT" ]; then
 
     echo "Starting mode COMBINE: to combine the N/S results for tomo bin \
           combination $IZBIN $JZBIN with bins $THETAINFO_STR"
 
     # check do the files exist?
-    tail=nbins_${THETAINFO[0]}_theta_${THETAINFO[1]}_${THETAINFO[2]}_zbins_${IZBIN}_${JZBIN}.asc
-    outxiN=${STATDIR}/XI/XI_K1000_N_$tail
-    outxiS=${STATDIR}/XI/XI_K1000_S_$tail
+    inFileN=${STATDIR}/GT/GT_K1000_N_${angTag}_${tomoPairTag}.asc
+    inFileS=${STATDIR}/GT/GT_K1000_S_${angTag}_${tomoPairTag}.asc
 
-    test -f ${outxiN} || \
-    { echo "Error: KiDS-N XI results $outxiN do not exist. Run MODE XI -p N!"; exit 1; } 
-    test -f ${outxiS} || \
-    { echo "Error: KiDS-S XI results $outxiS do not exist. Run MODE XI -p S!"; exit 1; } 
+    test -f ${inFileN} || \
+    { echo "Error: KiDS-N GT results ${inFileN} do not exist. Run MODE GT -p N!"; exit 1; } 
+    test -f ${inFileS} || \
+    { echo "Error: KiDS-S GT results ${inFileS} do not exist. Run MODE GT -p S!"; exit 1; } 
 
     # and now lets combine them using the fabulous awk
     # which Tilman will be most scathing about, but I love it nevertheless
     # first lets grab the header which we want to replicate
 
-    head -1 < $outxiN > $TMPDIR/xi_header
+    head -1 < ${inFileN} > $TMPDIR/xi_header
 
     # paste the two catalogues together
     
-    paste $outxiN $outxiS > $TMPDIR/xi_paste
+    paste ${inFileN} ${inFileS} > $TMPDIR/xi_paste
 
     # time for awk where we use npairs to weight every other
     # column to get the average
@@ -690,12 +690,72 @@ do
     
     #finally put the header back
 
-    outPath=${STATDIR}/XI/XI_K1000_ALL_$tail
-    cat $TMPDIR/xi_header $TMPDIR/xi_comb > $outPath
+    outPath=${STATDIR}/XI/XI_K1000_ALL_${angTag}_${tomoPairTag}.asc
+    cat $TMPDIR/xi_header $TMPDIR/xi_comb > ${outPath}
 
     # Did it work?
-    test -f $outPath || \
-      { echo "Error: Combined Treecorr output $outPath was not created! !"; exit 1; }
+    test -f ${outPath} || \
+      { echo "Error: Combined Treecorr output ${outPath} was not created! !"; exit 1; }
+    echo "Success: Leaving mode COMBINE"
+
+  fi
+done
+
+##==============================================================================
+##
+##  \"COMBINEXI\": combine the XI results from N and S for cross bin combination i j"
+##
+
+for mode in ${MODE}
+do
+  if [ "${mode}" = "COMBINEXI" ]; then
+
+    echo "Starting mode COMBINE: to combine the N/S results for tomo bin \
+          combination $IZBIN $JZBIN with bins $THETAINFO_STR"
+
+    # check do the files exist?
+    inFileN=${STATDIR}/XI/XI_K1000_N_BLIND_${BLIND}_${LENSFIT_VER}_${angTag}_${tomoPairTag}.asc
+    inFileS=${STATDIR}/XI/XI_K1000_S_BLIND_${BLIND}_${LENSFIT_VER}_${angTag}_${tomoPairTag}.asc
+
+    test -f ${inFileN} || \
+    { echo "Error: KiDS-N XI results ${inFileN} do not exist. Run MODE XI -p N!"; exit 1; } 
+    test -f ${inFileS} || \
+    { echo "Error: KiDS-S XI results ${inFileS} do not exist. Run MODE XI -p S!"; exit 1; } 
+
+    # and now lets combine them using the fabulous awk
+    # which Tilman will be most scathing about, but I love it nevertheless
+    # first lets grab the header which we want to replicate
+
+    head -1 < ${inFileN} > $TMPDIR/xi_header
+
+    # paste the two catalogues together
+    paste ${inFileN} ${inFileS} > $TMPDIR/xi_paste
+
+    # time for awk where we use npairs to weight every other WARNING Should this be npairs or weight?
+    # column to get the average
+    # $10 = npairs in KiDS-N,  $20 = npairs in KiDS-S
+    # For the sigma_xi column I'm assuming ngals in N and S are similar and sum sigma_xi in quadrature
+    # This isn't correct but we don't really use the sigma_xi column ($8 and $18) 
+    # Finally give the sum of weights and the sum of npairs
+    
+    awk 'NR>1 {printf "%7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e\n", 
+                     ($1*$10 + $11*$20)/($10+$20), \
+                     ($2*$10 + $12*$20)/($10+$20), \
+                     ($3*$10 + $13*$20)/($10+$20), \
+                     ($4*$10 + $14*$20)/($10+$20), \
+                     ($5*$10 + $15*$20)/($10+$20), \
+                     ($6*$10 + $16*$20)/($10+$20), \
+                     ($7*$10 + $17*$20)/($10+$20), \
+                     sqrt($8*$8 + $18*$18), $9+$19, $10+$20}' < $TMPDIR/xi_paste > $TMPDIR/xi_comb
+    
+    #finally put the header back
+
+    outPath=${STATDIR}/XI/XI_K1000_ALL_${angTag}_${tomoPairTag}.asc
+    cat $TMPDIR/xi_header $TMPDIR/xi_comb > ${outPath}
+
+    # Did it work?
+    test -f ${outPath} || \
+      { echo "Error: Combined Treecorr output ${outPath} was not created! !"; exit 1; }
     echo "Success: Leaving mode COMBINE"
 
   fi
