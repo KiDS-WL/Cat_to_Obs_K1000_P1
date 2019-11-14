@@ -33,7 +33,6 @@ function printUsage
   echo "       -d /path/to/catalogues"
   echo "       -o /path/to/results"
   echo "       -p patch name N or S"
-  echo "       -g GGL sample ID (e.g 2dFLenS or BOSS)"
   echo "       -m list of modes"
   echo "       -v lensfit version"
   echo "       -n ntomo number of tomographic source bins, followed by bin edges z_B(ntomo+1)"
@@ -93,7 +92,6 @@ LENSFIT_VER=v3
 ## Analyse either North or South - and use the COMBINE mode
 ## to combine the results.  Can be N, S, ALL
 PATCH=N
-GGL_ID=BOSS
 
 ## Information about the tomographic bins
 ## Format:  ntomo, zb_edges (ntomo+ 1)
@@ -134,7 +132,7 @@ USERCAT=false
 ## Parse command line arguments
 MODE=""
 
-while getopts ":d:b:o:p:g:m:v:n:t:i:j:c:u:" opt; do
+while getopts ":d:b:o:p:m:v:n:t:i:j:c:u:" opt; do
   case $opt in
     d)
       MD=$OPTARG
@@ -147,9 +145,6 @@ while getopts ":d:b:o:p:g:m:v:n:t:i:j:c:u:" opt; do
       ;;
     p)
       PATCH=$OPTARG
-      ;;
-    g)
-      GGL_ID=$OPTARG
       ;;
     m)
       MODE="$OPTARG"
@@ -201,16 +196,16 @@ fi
 ## If the file structures/names change, these will need editing
 
 ## Ensure all the directories that we want exist
-mkdir -p $OD/TOMOCATS
-mkdir -p $OD/OUTSTATS
+mkdir -p ${OD}/TOMOCATS
+mkdir -p ${OD}/OUTSTATS
 
 ## STATDIR is the directory where all the results will go
-STATDIR=$OD/OUTSTATS
-mkdir -p $STATDIR/XI
-mkdir -p $STATDIR/Pkk
-mkdir -p $STATDIR/Pgk
-mkdir -p $STATDIR/GT
-mkdir -p $STATDIR/COSEBIS
+STATDIR=${OD}/OUTSTATS
+mkdir -p ${STATDIR}/XI
+mkdir -p ${STATDIR}/Pkk
+mkdir -p ${STATDIR}/Pgk
+mkdir -p ${STATDIR}/GT
+mkdir -p ${STATDIR}/COSEBIS
 
 ## And we're going to make some TMP files along the way that we'll want to easily delete
 ## Depending on where you're running this script, this can be either in /home or /data 
@@ -223,34 +218,38 @@ mkdir -p $TMPDIR
 if [ $USERCAT = "false" ]; then
   ## User catalogue has not been defined - use KIDS
   MASTERCAT=${MD}/K1000_${PATCH}_9band_mask_BLINDED_${LENSFIT_VER}.cat
-  FILEHEAD=K1000_${PATCH}_BLIND_${BLIND}_${LENSFIT_VER}
+  catTag=K1000_${PATCH}_BLIND_${BLIND}_${LENSFIT_VER}
 else
   ## Set the filename of the output files to be the same as the name of the input fits catalogue
   MASTERCAT=${MD}/$USERCAT
-  FILEHEAD=$USERCAT
+  catTag=$USERCAT ## TODO
 fi
 
+## Tomographic bins
 ## Convert bin info strings into arrays
 TOMOINFO=($TOMOINFO_STR)
 NTOMO=${TOMOINFO[0]}
-BININFO=($BININFO_STR)
-N_theta=${BININFO[0]}
-COSEBIS_BININFO=($COSEBIS_BININFO_STR)
+tomoPairTag="zbins_${IZBIN}_${JZBIN}"
 
-## Tomographic catalogues:
 ## To make life easier we will name our tomo bins with integer numbers 1,2,3,4,5,6
 ## Instead of the ZB boundaries
 ## We want to use these scripts for 2D as well though, so we will preface
 ## with the total number of tomobins in the analysis
-
-## TOMOCAT is the root name for the catalogues created by mode CREATETOMO
 if [ $CCORR = "true" ]; then
-  TOMOCAT=${OD}/TOMOCATS/${FILEHEAD}_${NTOMO}Z
-  C_RECORD=${OD}/TOMOCATS/c_terms_${FILEHEAD}_${NTOMO}Z.asc
+  TOMOCAT=${OD}/TOMOCATS/${catTag}_${NTOMO}Z
+  C_RECORD=${OD}/TOMOCATS/c_terms_${catTag}_${NTOMO}Z.asc
 else
-  TOMOCAT=${OD}/TOMOCATS/${FILEHEAD}_NOCCORR_${NTOMO}Z
+  TOMOCAT=${OD}/TOMOCATS/${catTag}_NOCCORR_${NTOMO}Z
   C_RECORD=$TMPDIR/emptyfile  # just an empty file sent to the TMPDIR
 fi
+## TOMOCAT is the root name for the catalogues created by mode CREATETOMO
+
+## Angular bins
+BININFO=($BININFO_STR)
+N_theta=${BININFO[0]}
+COSEBIS_BININFO=($COSEBIS_BININFO_STR)
+angTag="nbins_${BININFO[0]}_theta_${BININFO[1]}_${BININFO[2]}"
+
 
 ##=================================================================
 ##
@@ -263,11 +262,11 @@ fi
 
 for mode in ${MODE}
 do
-  if [ "$mode" = "CREATETOMO" ]; then
+  if [ "${mode}" = "CREATETOMO" ]; then
   
     echo "Starting mode CREATETOMO to cut catalogues into $NTOMO tomographic bins"
 
-    if [ $PATCH = "ALL" ]; then
+    if [ ${PATCH} = "ALL" ]; then
       { echo "MODE CREATETOMO only runs on PATCH N or S! Run MODE CREATETOMO -p N or -p S!"; exit 1; }
     fi
 
@@ -304,33 +303,41 @@ done
 
 for mode in ${MODE}
 do
-  if [ "$mode" = "GAMMAT" ]; then
+  if [ "${mode}" = "GAMMAT" ]; then
 
-    echo "Starting mode GAMMAT: to calculate GAMMAT for bin combination \
+    echo "Starting mode ${mode} to calculate GAMMAT for bin combination \
           Lens bin $IZBIN, source bin $JZBIN with a total number of tomo bins $BININFO_STR"
 
-    lenscat=$MD2/${GGL_ID}_data_z$IZBIN.fits
-    randcat=$MD2/${GGL_ID}_random_z$IZBIN.fits
+    if [ "${PATCH}" = "N" ]; then
+       GGL_ID="BOSS"
+    elif [ "${PATCH}" = "S" ];
+       GGL_ID="2dFLenS"
+    else
+      { echo "MODE ${mode} only runs on PATCH N or S! Run MODE CREATETOMO -p N or -p S!"; exit 1; }
+    fi
+    
+    lensCat="$MD2/${GGL_ID}_data_z$IZBIN.fits"
+    randCat="$MD2/${GGL_ID}_random_z$IZBIN.fits"
+    srcCat="${TOMOCAT}_$JZBIN.fits"
 
     # check does the correct lens/source/random files exist?
-    test -f ${lenscat} || \
-      { echo "Error: Lens catalogue $lenscat does not exist."; exit 1; } 
-    test -f ${randcat} || \
-      { echo "Error: Random catalogue $randcat does not exist."; exit 1; } 
-    test -f ${TOMOCAT}_$JZBIN.fits || \
-      { echo "Error: Tomographic catalogue ${TOMOCAT}_$JZBIN.fits does not exist! Run MODE CREATETOMO!"; exit 1; }
+    test -f ${lensCat} || \
+      { echo "Error: Lens catalogue ${lensCat} does not exist."; exit 1; } 
+    test -f ${randCat} || \
+      { echo "Error: Random catalogue ${randCat} does not exist."; exit 1; } 
+    test -f ${srcCat} || \
+      { echo "Error: Tomographic catalogue ${srcCat} does not exist! Run MODE CREATETOMO!"; exit 1; }
 
     # where do we want to write the output to?
-    outPath=$STATDIR/GT/GT_K1000_${PATCH}_nbins_${BININFO[0]}_theta_${BININFO[1]}_${BININFO[2]}_zbins_${IZBIN}_${JZBIN}.asc
+    outPath=${STATDIR}/GT/GT_${catTag}_${angTag}_${tomoPairTag}.asc
 
     # Run treecorr - using the Mandelbaum estimator that subtracts off the random signal
-    $P_PYTHON calc_gt_w_treecorr.py $BININFO_STR $LINNOTLOG $lenscat $randcat ${TOMOCAT}_$JZBIN.fits $outPath
+    $P_PYTHON calc_gt_w_treecorr.py $BININFO_STR $LINNOTLOG ${lensCat} ${randCat} ${srcCat} ${outPath}
 
     # Did it work?
-    test -f $outPath || \
-      { echo "Error: GGL measurement $outPath was not created! !"; exit 1; }
-    echo "Success: Leaving mode GAMMAT"
-
+    test -f ${outPath} || \
+      { echo "Error: Treecorr output ${outPath} was not created! !"; exit 1; }
+    echo "Success: Leaving mode ${mode}"
   fi
 done
 
@@ -341,27 +348,29 @@ done
 
 for mode in ${MODE}
 do
-  if [ "$mode" = "XI" ]; then
+  if [ "${mode}" = "XI" ]; then
 
-    echo "Starting mode XI: calculate xi+/- for tomo bin combination $IZBIN $JZBIN with bins $BININFO_STR"
+    echo "Starting mode ${mode}: calculate xi+/- for tomo bin combination $IZBIN $JZBIN with bins $BININFO_STR"
+
+    srcCat1="${TOMOCAT}_$JZBIN.fits"
+    srcCat2="${TOMOCAT}_$JZBIN.fits"
 
     # Check that the tomographic catalogue exist and exit if they don't 
-    test -f ${TOMOCAT}_$IZBIN.fits || \
-      { echo "Error: Tomographic catalogue ${TOMOCAT}_$IZBIN.fits does not exist! For KiDS run MODE CREATETOMO!"; exit 1; }
-    test -f ${TOMOCAT}_$JZBIN.fits || \
-      { echo "Error: Tomographic catalogue ${TOMOCAT}_$JZBIN.fits does not exist! For KiDS run MODE CREATETOMO!"; exit 1; }
+    test -f ${srcCat1} || \
+      { echo "Error: Tomographic catalogue ${srcCat1} does not exist! For KiDS run MODE CREATETOMO!"; exit 1; }
+    test -f ${srcCat2} || \
+      { echo "Error: Tomographic catalogue ${srcCat2} does not exist! For KiDS run MODE CREATETOMO!"; exit 1; }
 
     # Define the name for our output ascii files from Treecorr etc
-    outPath=$STATDIR/XI/XI_${FILEHEAD}_nbins_${BININFO[0]}_theta_${BININFO[1]}_${BININFO[2]}_zbins_${IZBIN}_${JZBIN}.asc
+    outPath=${STATDIR}/XI/XI_${catTag}_${angTag}_${tomoPairTag}.asc
 
     # Run treecorr
-    $P_PYTHON calc_xi_w_treecorr.py $BININFO_STR $LINNOTLOG ${TOMOCAT}_$IZBIN.fits ${TOMOCAT}_$JZBIN.fits $outPath
+    $P_PYTHON calc_xi_w_treecorr.py $BININFO_STR $LINNOTLOG ${srcCat1} ${srcCat2} ${outPath}
 
     # Did it work?
-    test -f $outPath || \
-      { echo "Error: Treecorr output $outPath was not created! !"; exit 1; }
-    echo "Success: Leaving mode XI"
-
+    test -f ${outPath} || \
+      { echo "Error: Treecorr output ${outPath} was not created! !"; exit 1; }
+    echo "Success: Leaving mode ${mode}"
   fi
 done
 
@@ -372,17 +381,17 @@ done
 
 for mode in ${MODE}
 do
-  if [ "$mode" = "Pgk" ]; then
+  if [ "${mode}" = "Pgk" ]; then
 
     echo "Starting mode Pgk: to calculate cosmic shear Band powers for tomo bin combination \
           combination $IZBIN $JZBIN with bins $BININFO_STR"
 
     # check does the correct xi files exist?
     InputFileIdentifier=nbins_${BININFO[0]}_theta_${BININFO[1]}_${BININFO[2]}_zbins_${IZBIN}_${JZBIN}
-    gtfile=$STATDIR/GT/GT_${FILEHEAD}_$InputFileIdentifier.asc
+    gtfile=${STATDIR}/GT/GT_${catTag}_$InputFileIdentifier.asc
 
     test -f ${gtfile} || \
-    { echo "Error: KiDS-$PATCH GT results $xifile do not exist. Either Run MODE GT (N/S) or COMBINE (ALL)!"; exit 1; } 
+    { echo "Error: KiDS-${PATCH} GT results $xifile do not exist. Either Run MODE GT (N/S) or COMBINE (ALL)!"; exit 1; } 
 
     # These are the options for inputs for the c program xi2bandpow.c:
     # 1: <working directory>
@@ -400,7 +409,7 @@ do
     # 13: <log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin; <0 for no apodisation]>
 
     #This is where the input 2pt correlations are kept in the format that the xi2bandpow expects them
-    InputFolderName=$STATDIR/Pgk
+    InputFolderName=${STATDIR}/Pgk
 
     # The files need to have this naming convention:  xi2bandpow_input_${InputFileIdentifier}.dat
     # They also need to have only 3 columns with no other lines or comments:
@@ -457,7 +466,7 @@ do
     # ell l*2(E-bandPower/2pi) err  l*2(B-bandPower/2pi) err
     # ell is the log-central value
     # The output is saved in the same folder as the input
-    OutputFileIdentifier=${FILEHEAD}_nbins_${nEllBins}_Ell_${minEll}_${maxEll}_zbins_${IZBIN}_${JZBIN}
+    OutputFileIdentifier=${catTag}_nbins_${nEllBins}_Ell_${minEll}_${maxEll}_zbins_${IZBIN}_${JZBIN}
 
     # now run the program (location is stored in progs.ini)
     $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
@@ -481,17 +490,17 @@ done
 
 for mode in ${MODE}
 do
-  if [ "$mode" = "Pkk" ]; then
+  if [ "${mode}" = "Pkk" ]; then
 
     echo "Starting mode Pkk: to calculate cosmic shear Band powers for tomo bin combination \
           combination $IZBIN $JZBIN with bins $BININFO_STR"
 
     # check does the correct xi files exist?
     InputFileIdentifier=nbins_${BININFO[0]}_theta_${BININFO[1]}_${BININFO[2]}_zbins_${IZBIN}_${JZBIN}
-    xifile=$STATDIR/XI/XI_${FILEHEAD}_$InputFileIdentifier.asc
+    xifile=${STATDIR}/XI/XI_${catTag}_$InputFileIdentifier.asc
 
     test -f ${xifile} || \
-    { echo "Error: KiDS-$PATCH XI results $xifile do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; } 
+    { echo "Error: KiDS-${PATCH} XI results $xifile do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; } 
 
     # These are the options for inputs for the c program xi2bandpow.c:
     # 1: <working directory>
@@ -509,7 +518,7 @@ do
     # 13: <log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin; <0 for no apodisation]>
 
     #This is where the input 2pt correlations are kept in the format that the xi2bandpow expects them
-    InputFolderName=$STATDIR/Pkk
+    InputFolderName=${STATDIR}/Pkk
 
     # The files need to have this naming convention:  xi2bandpow_input_${InputFileIdentifier}.dat
     # They also need to have only 2 (3 if cosmic shear) columns with no other lines or comments:
@@ -561,7 +570,7 @@ do
     # ell l*2(E-bandPower/2pi) err  l*2(B-bandPower/2pi) err
     # ell is the log-central value
     # The output is saved in the same folder as the input
-    OutputFileIdentifier=${FILEHEAD}_nbins_${nEllBins}_Ell_${minEll}_${maxEll}_zbins_${IZBIN}_${JZBIN}
+    OutputFileIdentifier=${catTag}_nbins_${nEllBins}_Ell_${minEll}_${maxEll}_zbins_${IZBIN}_${JZBIN}
 
     # now run the program (location is stored in progs.ini)
     $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
@@ -587,17 +596,17 @@ done
 
 for mode in ${MODE}
 do
-    if [ "$mode" = "COSEBIS" ]; then
+    if [ "${mode}" = "COSEBIS" ]; then
 
     echo "Starting mode COSEBIS: to calculate COSEBIS for bin combination \
     Lens bin $IZBIN, source bin $JZBIN with a total number of tomo bins $BININFO_STR"
 
     # check does the correct input xi file exist?
     InputFileIdentifier=nbins_${BININFO[0]}_theta_${BININFO[1]}_${BININFO[2]}_zbins_${IZBIN}_${JZBIN}
-    xifile=$STATDIR/XI/XI_${FILEHEAD}_$InputFileIdentifier.asc
+    xifile=${STATDIR}/XI/XI_${catTag}_$InputFileIdentifier.asc
 
     test -f ${xifile} || \
-    { echo "Error: KiDS-$PATCH XI results $xifile do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; }
+    { echo "Error: KiDS-${PATCH} XI results $xifile do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; }
 
     # check that the pre-computed COSEBIS tables exist
     SRCLOC=../src/cosebis
@@ -618,8 +627,8 @@ do
     fi
 
     # where do we want to write the output to?
-    filetail=COSEBIS_${FILEHEAD}_nbins_${BININFO[0]}_theta_${COSEBIS_BININFO[0]}_${COSEBIS_BININFO[1]}_zbins_${IZBIN}_${JZBIN}
-    outcosebis=$STATDIR/COSEBIS/
+    filetail=COSEBIS_${catTag}_nbins_${BININFO[0]}_theta_${COSEBIS_BININFO[0]}_${COSEBIS_BININFO[1]}_zbins_${IZBIN}_${JZBIN}
+    outcosebis=${STATDIR}/COSEBIS/
 
     # Now Integrate output from treecorr with COSEBIS filter functions
     # -i = input file
@@ -664,15 +673,15 @@ done
 
 for mode in ${MODE}
 do
-  if [ "$mode" = "COMBINE" ]; then
+  if [ "${mode}" = "COMBINE" ]; then
 
     echo "Starting mode COMBINE: to combine the N/S results for tomo bin \
           combination $IZBIN $JZBIN with bins $BININFO_STR"
 
     # check do the files exist?
     tail=nbins_${BININFO[0]}_theta_${BININFO[1]}_${BININFO[2]}_zbins_${IZBIN}_${JZBIN}.asc
-    outxiN=$STATDIR/XI/XI_K1000_N_$tail
-    outxiS=$STATDIR/XI/XI_K1000_S_$tail
+    outxiN=${STATDIR}/XI/XI_K1000_N_$tail
+    outxiS=${STATDIR}/XI/XI_K1000_S_$tail
 
     test -f ${outxiN} || \
     { echo "Error: KiDS-N XI results $outxiN do not exist. Run MODE XI -p N!"; exit 1; } 
@@ -708,7 +717,7 @@ do
     
     #finally put the header back
 
-    outPath=$STATDIR/XI/XI_K1000_ALL_$tail
+    outPath=${STATDIR}/XI/XI_K1000_ALL_$tail
     cat $TMPDIR/xi_header $TMPDIR/xi_comb > $outPath
 
     # Did it work?
