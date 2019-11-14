@@ -411,7 +411,22 @@ do
     # This choise is not too important though the bins are finely binned
     # Treecorr: #   R_nom       meanR       meanlogR       xip          xim         xip_im      xim_im      sigma_xi      weight       npairs
 
+    # log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin
+    # 0 for no apodisation]
+
+    #${BININFOARR[1]} ${BININFOARR[2]} are the edges of the bin
+    # this code wants the min/max bin centres though....
+    # really need to improve this part of the code so it's not hardwired
+
     awk '(NR>2){print $2, $4, $5}' < $xifile > $InputFolderName/xi2bandpow_input_${InputFileIdentifier}.dat
+    #awk '(NR>31 && NR<=290){print $2, $4, $5}' < $xifile > $InputFolderName/xi2bandpow_input_${InputFileIdentifier}.dat
+    AppodisationWidth=0.5
+    N_theta=${BININFOARR[0]}
+    #AppodisationWidth=-1
+    #N_theta=259
+
+    mintheta=0.5
+    maxtheta=300
 
     # We'll hardwire this as we don't need to use this module for anything other that calculating Pkk
     # so we can directly edit this if we change the parameters
@@ -429,10 +444,6 @@ do
     # correlation type (1: ee; 2: ne; 3: gg)
     CorrType=1
 
-    # log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin
-    # 0 for no apodisation]
-    AppodisationWidth=0
-
     # The output file is called xi2bandpow_output_${OutputFileIdentifier}.dat 
     # It has 3 columns for non-cosmic shear cases:
     # ell bandpow err
@@ -442,21 +453,10 @@ do
     # The output is saved in the same folder as the input
     OutputFileIdentifier=${FILEHEAD}_nbins_${nEllBins}_Ell_${minEll}_${maxEll}_zbins_${IZBIN}_${JZBIN}
 
-    #${BININFOARR[1]} ${BININFOARR[2]} are the edges of the bin
-    # this code wants the min/max bin centres though....
-    # really need to improve this part of the code so it's not hardwired
-    mintheta=0.25
-    maxtheta=397
-
     # now run the program (location is stored in progs.ini)
     $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
-                  ${BININFOARR[0]} $mintheta $maxtheta $mintheta $maxtheta \
+                  $N_theta $mintheta $maxtheta $mintheta $maxtheta \
                   ${nEllBins} ${minEll} ${maxEll} ${CorrType} ${AppodisationWidth}
-
-#    $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
-#                  ${BININFOARR[0]} ${BININFOARR[1]} ${BININFOARR[2]} ${BININFOARR[1]} ${BININFOARR[2]} \
-#                  ${nEllBins} ${minEll} ${maxEll} ${CorrType} ${AppodisationWidth}
-
 
     outPkk=${InputFolderName}/xi2bandpow_output_${OutputFileIdentifier}.dat
 
@@ -633,12 +633,27 @@ do
     # This choise is not too important though the bins are finely binned
     # Treecorr: #   R_nom       meanR       meanlogR       xip          xim         xip_im      xim_im      sigma_xi      weight       npairs
 
+    # log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin
+    # 0 for no apodisation]
+
+    #${BININFOARR[1]} ${BININFOARR[2]} are the edges of the bin
+    # this code wants the min/max bin centres though....
+    # really need to improve this part of the code so it's not hardwired
+
     if [ $USERCAT = "false" ]; then  # user catalogue has not been defined - use KIDS
       { echo "Error: this is not yet implemented"; exit 1; }
       #TODO TBD
     else  # set the filename of the output files to be the same as the name of the input fits catalogue
       awk '(NR>1){print $2, $4-$5, $10-$11}' < $gtfile > $InputFolderName/xi2bandpow_input_${InputFileIdentifier}.dat
+      #awk '(NR>30 && NR<=289){print $2, $4-$5, $10-$11}' < $gtfile > $InputFolderName/xi2bandpow_input_${InputFileIdentifier}.dat
     fi
+    AppodisationWidth=0.5
+    N_theta=${BININFOARR[0]}
+    #AppodisationWidth=-1
+    #N_theta=259
+
+    mintheta=0.5
+    maxtheta=300
 
     # We'll hardwire this as we don't need to use this module for anything other that calculating Pkk
     # so we can directly edit this if we change the parameters
@@ -656,10 +671,6 @@ do
     # correlation type (1: ee; 2: ne; 3: gg)
     CorrType=2
 
-    # log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin
-    # 0 for no apodisation]
-    AppodisationWidth=0
-
     # The output file is called xi2bandpow_output_${OutputFileIdentifier}.dat 
     # It has 3 columns for non-cosmic shear cases:
     # ell bandpow err
@@ -669,20 +680,10 @@ do
     # The output is saved in the same folder as the input
     OutputFileIdentifier=${FILEHEAD}_nbins_${nEllBins}_Ell_${minEll}_${maxEll}_zbins_${IZBIN}_${JZBIN}
 
-    #${BININFOARR[1]} ${BININFOARR[2]} are the edges of the bin
-    # this code wants the min/max bin centres though....
-    # really need to improve this part of the code so it's not hardwired
-    mintheta=0.25
-    maxtheta=397
-
     # now run the program (location is stored in progs.ini)
     $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
-                  ${BININFOARR[0]} $mintheta $maxtheta $mintheta $maxtheta \
+                  $N_theta $mintheta $maxtheta $mintheta $maxtheta \
                   ${nEllBins} ${minEll} ${maxEll} ${CorrType} ${AppodisationWidth}
-
-#    $P_XI2BANDPOW ${InputFolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
-#                  ${BININFOARR[0]} ${BININFOARR[1]} ${BININFOARR[2]} ${BININFOARR[1]} ${BININFOARR[2]} \
-#                  ${nEllBins} ${minEll} ${maxEll} ${CorrType} ${AppodisationWidth}
 
 
     outPgk=${InputFolderName}/xi2bandpow_output_${OutputFileIdentifier}.dat
