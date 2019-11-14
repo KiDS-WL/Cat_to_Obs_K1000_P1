@@ -15,7 +15,7 @@ from astropy.io import fits
 
 # Read in user input to set the zmin zmax incatfile outcatfile CCORR?
 if len(sys.argv) <7: 
-    print "Usage: %s zmin zmax catalogue.fits tomocat.fits blind_ID ccorr(true or false)" % sys.argv[0] 
+    print("Usage: %s zmin zmax catalogue.fits tomocat.fits blind_ID ccorr(true or false)" % sys.argv[0])
     sys.exit(1)
 else:
     zmin = float(sys.argv[1]) 
