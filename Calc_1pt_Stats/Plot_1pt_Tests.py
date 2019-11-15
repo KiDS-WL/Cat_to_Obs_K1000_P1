@@ -26,7 +26,7 @@ font = {'family' : 'serif',
 plt.rc('font', **font)
 
 # Read in user input to set the patch, blind, zmin,zmax, nbootstrap
-if len(sys.argv) <6: 
+if len(sys.argv) <7: 
     print "Usage: %s Patch Blind ZBmin ZBmax nbootstrap cattail" % sys.argv[0] 
     sys.exit(1)
 else:
