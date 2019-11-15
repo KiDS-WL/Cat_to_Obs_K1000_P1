@@ -40,20 +40,27 @@ mkdir -p $LOGDIR
 # Pgk: calculate GGL Band powers to cross bin combination i j
 # COMBINE: combine the results from N and S for cross bin combination i j"
 
-# Do you want to create the tomographic catalogues?  Safe to do this on the head node
-#./doall_calc2pt.sh -m CREATETOMO -c true -p S
+LENSFIT_VERSION=svn_309c_2Dbins_5x50
+
+for LENSFIT_VERSION in svn_309c_2Dbins_4x80 svn_309c_3x10x10 svn_309c_3x5x5  svn_309c_2Dbins_5x50 
+do
+
+## Do you want to create the tomographic catalogues?  Safe to do this on the head node
+#  ./doall_calc2pt.sh -m CREATETOMO -c true -p N -v $LENSFIT_VERSION
+#  ./doall_calc2pt.sh -m CREATETOMO -c true -p S -v $LENSFIT_VERSION
+
+#done
 
 #Lets submit the XI-calculation to different nodes	    
-#This is for the default 6 bins
-
+#This is for the default 5 bins
 : <<'=runmelater'
 for patch in N S
 do
     
-for ibin in {1..6}
+for ibin in {1..5}
 do
 	jbin=$ibin
-  while [[ $jbin -le 6 ]]
+  while [[ $jbin -le 5 ]]
   do
 		echo $ibin $jbin
     echo "I will submit tomographic bins" $ibin $jbin
@@ -71,36 +78,44 @@ do
 	        --constraint="datadisk" \
 	        --tasks-per-node=1 \
 	        --mem=0G \
-	        doall_calc2pt.sh -m XI -i $ibin -j $jbin -p $patch -t "600 0.06 300"
+	        doall_calc2pt.sh -m XI -i $ibin -j $jbin -p $patch -v $LENSFIT_VERSION
     ((jbin = jbin + 1))
   done
 done
 done
 
-# Do you want to combine the tomographic catalogues?  Safe to do this on the head node
-for ibin in {1..6}
-do
-	jbin=$ibin
-  while [[ $jbin -le 6 ]]
-  do
-  ./doall_calc2pt.sh -m COMBINE -i $ibin -j $jbin -p ALL -t "600 0.06 300"
-  ((jbin = jbin + 1))
-  done
-done   
+done
 
-# Do you want to calculate Pkk?  Safe to do this on the head node
-for ibin in {1..6}
+=runmelater
+: <<'=runmelater'
+
+
+# Do you want to combine the tomographic catalogues?  Safe to do this on the head node
+for ibin in {1..5}
 do
 	jbin=$ibin
-  while [[ $jbin -le 6 ]]
+  while [[ $jbin -le 5 ]]
   do
-  ./doall_calc2pt.sh -m Pkk -i $ibin -j $jbin -p ALL -t "600 0.06 300"
+  ./doall_calc2pt.sh -m COMBINE -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION
   ((jbin = jbin + 1))
   done
 done   
 
 =runmelater
+#: <<'=runmelater'
+# Do you want to calculate Pkk?  Safe to do this on the head node
+for ibin in {1..5}
+do
+	jbin=$ibin
+  while [[ $jbin -le 5 ]]
+  do
+  ./doall_calc2pt.sh -m Pkk -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION
+  ((jbin = jbin + 1))
+  done
+done   
 
+
+: <<'=runmelater'
 # Do you want to calculate GGL?  do not do this on the head node
 for ibin in {1..2}
 do
@@ -110,3 +125,18 @@ do
   #./doall_calc2pt.sh -m GAMMAT -i $ibin -j $jbin -p S -g 2dFLenS 
   done
 done   
+
+
+# Do you want to calculate COSEBIS?  Safe to do this on the head node
+for ibin in {1..5}
+do
+	jbin=$ibin
+  while [[ $jbin -le 5 ]]
+  do
+  ./doall_calc2pt.sh -m COSEBIS -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION
+  ((jbin = jbin + 1))
+  done
+done   
+
+=runmelater
+done
