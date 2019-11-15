@@ -87,7 +87,7 @@ done
 done
 
 =runmelater
-: <<'=runmelater'
+#: <<'=runmelater'
 
 
 # Do you want to combine the tomographic catalogues?  Safe to do this on the head node
@@ -96,13 +96,13 @@ do
 	jbin=$ibin
   while [[ $jbin -le 5 ]]
   do
-  ./doall_calc2pt.sh -m COMBINE -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION
+  ./doall_calc2pt.sh -m COMBINEXI -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION
   ((jbin = jbin + 1))
   done
 done   
 
-=runmelater
-#: <<'=runmelater'
+#=runmelater
+: <<'=runmelater'
 # Do you want to calculate Pkk?  Safe to do this on the head node
 for ibin in {1..5}
 do
