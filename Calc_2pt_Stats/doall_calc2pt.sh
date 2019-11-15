@@ -320,9 +320,17 @@ do
           combination $IZBIN $JZBIN with bins $BININFO"
 
     # check do the files exist?
-    tail=nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}.asc
-    outxiN=$STATDIR/XI/XI_K1000_N_$tail
-    outxiS=$STATDIR/XI/XI_K1000_S_$tail
+    # this mode does not need to be used with the mocks
+
+    tail=nbins_${BININFOARR[0]}_theta_${BININFOARR[1]}_${BININFOARR[2]}_zbins_${IZBIN}_${JZBIN}
+    PATCH=N
+    FILEHEAD=K1000_${PATCH}_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}
+    outxiN=$STATDIR/XI/XI_${FILEHEAD}_$tail.asc
+    PATCH=S
+    FILEHEAD=K1000_${PATCH}_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}
+    outxiS=$STATDIR/XI/XI_${FILEHEAD}_$tail.asc
+
+  #echo $outxiN, $outxiS
 
     test -f ${outxiN} || \
     { echo "Error: KiDS-N XI results $outxiN do not exist. Run MODE XI -p N!"; exit 1; } 
@@ -333,7 +341,7 @@ do
     # which Tilman will be most scathing about, but I love it nevertheless
     # first lets grab the header which we want to replicate
 
-    head -1 < $outxiN > $TMPDIR/xi_header
+    head -2 < $outxiN > $TMPDIR/xi_header
 
     # paste the two catalogues together
     
@@ -341,24 +349,26 @@ do
 
     # time for awk where we use npairs to weight every other
     # column to get the average
-    # $10 = npairs in KiDS-N,  $20 = npairs in KiDS-S
+    # $11 = npairs in KiDS-N,  $22 = npairs in KiDS-S
     # For the sigma_xi column I'm assuming ngals in N and S are similar and sum sigma_xi in quadrature
     # This isn't correct but we don't really use the sigma_xi column ($8 and $18) 
     # Finally give the sum of weights and the sum of npairs
     
-    awk 'NR>1 {printf "%7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e\n", 
-                     ($1*$10 + $11*$20)/($10+$20), \
-                     ($2*$10 + $12*$20)/($10+$20), \
-                     ($3*$10 + $13*$20)/($10+$20), \
-                     ($4*$10 + $14*$20)/($10+$20), \
-                     ($5*$10 + $15*$20)/($10+$20), \
-                     ($6*$10 + $16*$20)/($10+$20), \
-                     ($7*$10 + $17*$20)/($10+$20), \
-                     sqrt($8*$8 + $18*$18), $9+$19, $10+$20}' < $TMPDIR/xi_paste > $TMPDIR/xi_comb
+    awk 'NR>2 {printf "%7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e %7.4e\n", 
+                     ($1*$11 + $12*$22)/($11+$22), \
+                     ($2*$11 + $13*$22)/($11+$22), \
+                     ($3*$11 + $14*$22)/($11+$22), \
+                     ($4*$11 + $15*$22)/($11+$22), \
+                     ($5*$11 + $16*$22)/($11+$22), \
+                     ($6*$11 + $17*$22)/($11+$22), \
+                     ($7*$11 + $18*$22)/($11+$22), \
+                     sqrt($8*$8 + $19*$19), sqrt($9*$9 + $20*$20), $10+$21, $11+$22}' < $TMPDIR/xi_paste > $TMPDIR/xi_comb
     
     #finally put the header back
 
-    outxi=$STATDIR/XI/XI_K1000_ALL_$tail
+    PATCH=ALL
+    FILEHEAD=K1000_${PATCH}_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}
+    outxi=$STATDIR/XI/XI_${FILEHEAD}_$tail.asc
     cat $TMPDIR/xi_header $TMPDIR/xi_comb > $outxi
 
     # Did it work?
