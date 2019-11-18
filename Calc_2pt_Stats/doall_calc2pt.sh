@@ -234,7 +234,7 @@ if [ ${USERCAT} = "false" ]; then
   #Phase 1 catalogue
   masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}
   #Phase 0 catalogue
-  masterTag=9band_mask_BLINDED_${LENSFIT_VER}
+  #masterTag=9band_mask_BLINDED_${LENSFIT_VER}
 
   MASTERCAT=${SDIR}/K1000_${PATCH}_${masterTag}.cat
   catTag=K1000_${PATCH}_BLIND_${BLIND}_${masterTag}
