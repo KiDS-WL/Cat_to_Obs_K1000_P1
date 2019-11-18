@@ -232,11 +232,12 @@ mkdir -p ${TMPDIR}
 if [ ${USERCAT} = "false" ]; then
   ## User catalogue has not been defined - use KIDS
   #Phase 1 catalogue
-  MASTERCAT=${SDIR}/K1000_${PATCH}_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}.cat
+  masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}
   #Phase 0 catalogue
-  #MASTERCAT=${MD}/K1000_${PATCH}_9band_mask_BLINDED_${LENSFIT_VER}.cat
+  masterTag=9band_mask_BLINDED_${LENSFIT_VER}
 
-  catTag=K1000_${PATCH}_BLIND_${BLIND}_${LENSFIT_VER}
+  MASTERCAT=${SDIR}/K1000_${PATCH}_${masterTag}.cat
+  catTag=K1000_${PATCH}_BLIND_${BLIND}_${masterTag}
 else
   ## Set the filename of the output files to be the same as the name of the input fits catalogue
   MASTERCAT=${SDIR}/${USERCAT} ## Dummy
@@ -427,8 +428,8 @@ do
     with theta bins ${THETAINFO_STR}"
 
     # check do the files exist?
-    inFileN=${STATDIR}/GT/GT_K1000_N_${angTag}_${tomoPairTag}.asc
-    inFileS=${STATDIR}/GT/GT_K1000_S_${angTag}_${tomoPairTag}.asc
+    inFileN=${STATDIR}/GT/GT_K1000_N_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc
+    inFileS=${STATDIR}/GT/GT_K1000_S_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc
 
     test -f ${inFileN} || \
     { echo "Error: KiDS-N GT results ${inFileN} do not exist. Run MODE GT -p N!"; exit 1; } 
@@ -439,11 +440,11 @@ do
     # which Tilman will be most scathing about, but I love it nevertheless
     # first lets grab the header which we want to replicate
 
-    head -1 < ${inFileN} > ${TMPDIR}/xi_header
+    head -1 < ${inFileN} > ${TMPDIR}/gt_header
 
     # paste the two catalogues together
     
-    paste ${inFileN} ${inFileS} > ${TMPDIR}/xi_paste
+    paste ${inFileN} ${inFileS} > ${TMPDIR}/gt_paste
 
     # time for awk where we use npairs to weight every other
     # column to get the average
@@ -460,12 +461,12 @@ do
                      ($5*$10 + $15*$20)/($10+$20), \
                      ($6*$10 + $16*$20)/($10+$20), \
                      ($7*$10 + $17*$20)/($10+$20), \
-                     sqrt($8*$8 + $18*$18), $9+$19, $10+$20}' < ${TMPDIR}/xi_paste > ${TMPDIR}/xi_comb
+                     sqrt($8*$8 + $18*$18), $9+$19, $10+$20}' < ${TMPDIR}/gt_paste > ${TMPDIR}/gt_comb
     
     #finally put the header back
 
-    outPath=${STATDIR}/XI/XI_K1000_ALL_${angTag}_${tomoPairTag}.asc
-    cat ${TMPDIR}/xi_header ${TMPDIR}/xi_comb > ${outPath}
+    outPath=${STATDIR}/GT/GT_K1000_ALL_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc
+    cat ${TMPDIR}/gt_header ${TMPDIR}/gt_comb > ${outPath}
 
     # Did it work?
     test -f ${outPath} || \
@@ -488,8 +489,8 @@ do
     with theta bins ${THETAINFO_STR}"
 
     # check do the files exist?
-    inFileN=${STATDIR}/XI/XI_K1000_N_BLIND_${BLIND}_${LENSFIT_VER}_${angTag}_${tomoPairTag}.asc
-    inFileS=${STATDIR}/XI/XI_K1000_S_BLIND_${BLIND}_${LENSFIT_VER}_${angTag}_${tomoPairTag}.asc
+    inFileN=${STATDIR}/XI/XI_K1000_N_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc
+    inFileS=${STATDIR}/XI/XI_K1000_S_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc
 
     echo ${inFileN}
 
@@ -529,7 +530,7 @@ do
     
     #finally put the header back
 
-    outPath=${STATDIR}/XI/XI_K1000_ALL_BLIND_${BLIND}_${LENSFIT_VER}_${angTag}_${tomoPairTag}.asc
+    outPath=${STATDIR}/XI/XI_K1000_ALL_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc
     cat ${TMPDIR}/xi_header ${TMPDIR}/xi_comb > ${outPath}
 
     # Did it work?
