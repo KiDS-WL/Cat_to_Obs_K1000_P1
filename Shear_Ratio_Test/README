@@ -1,0 +1,16 @@
+This is a work in progress!
+
+create_tomocats_GGL.py:  for the shear ratio test we need finer lens bins than normal so we have a special script to create these
+run_shear_ratio_w_spin.sh:  once source/lens bins in place this script to runs different spin trials in parallel - issue with this because of the Treecorr memory leak that needs work
+Shear_ratio_wspin_test.py:  the workhorse code that makes all the measurements
+calc_spin_test_cov.py - creates a covariance matrix from all the spin trials
+
+Once the data is assembled the main shear ratio test is done in
+GGL_shear_ratio_test_zall.py  - this needs some input data however from...
+Dls_over_Ds.py: which calculates a bunch of different shear ratios for a fixed cosmology (using cosmology.py)
+run_Dls_over_Ds.sh: is the master script that creates the Dls/Ds files
+
+for cuillin users the output files are here
+/home/cech/KiDSLenS/Cat_to_Obs_K1000_P1/Shear_Ratio_Test
+
+Blame to:  this is code from Hendrik, hacked by Catherine
