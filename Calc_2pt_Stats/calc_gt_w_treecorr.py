@@ -14,11 +14,11 @@ import numpy as np
 
 
 # Read in user input to set the nbins, theta_min, theta_max, lin_not_log, lenscat, rancat, sourcecat, outfilename
-if len(sys.argv) <8: 
+if len(sys.argv) < 8: 
     #print("Usage: %s nbins theta_min(arcmin) theta_max(arcmin) lin_not_log(true or false)? lenscat.fits \
     #        randomcat.fits sourcecat.fits outfilename" % sys.argv[0]) 
-    print "Usage: %s nbins theta_min(arcmin) theta_max(arcmin) lin_not_log(true or false)? \
-           lenscat.fits randomcat.fits sourcecat.fits catalogue1.fits catalogue2.fits outfilename" % sys.argv[0] 
+    print("Usage: %s nbins theta_min(arcmin) theta_max(arcmin) lin_not_log(true or false)? \
+          lenscat.fits randomcat.fits sourcecat.fits catalogue1.fits catalogue2.fits outfilename" % sys.argv[0])
     sys.exit(1)
 else:
     nbins = int(sys.argv[1]) 
