@@ -6,8 +6,8 @@
 # Questions to: cblake@swin.edu.au
 # Original version 13th May 2019                                        #
 # History
-#
-#
+# CH 20th Nov - update output to ldac format (still compatible with fits)
+# also included KiDS MASK information
 ########################################################################
 
 import sys
@@ -38,10 +38,11 @@ def makecats(ired):
   edge = 6.0
   rmin,rmax,dmin,dmax = rmin_N-edge,rmax_N+edge,dmin_N-edge,dmax_N+edge
   rasbossdat,decbossdat,redbossdat,weicompbossdat,weifkpbossdat,nbossdat = readboss(1,ired,rmin,rmax,dmin,dmax)
-#  rasbossran,decbossran,redbossran,weicompbossran,weifkpbossran,nbossran = readboss(2,ired,rmin,rmax,dmin,dmax)
+  rasbossran,decbossran,redbossran,weicompbossran,weifkpbossran,nbossran = readboss(2,ired,rmin,rmax,dmin,dmax)
   
 # You might want to sub-sample the BOSS randoms to increase your speed
-# We need high signal-to-noise random gamma_t signals though so we do not sub-sample here
+# but we need high signal-to-noise random gamma_t signals though so we do not sub-sample here
+
 # Sub-sample BOSS randoms to 40x data for consistency with 2dFLenS
 #  cut = np.random.choice(nbossran,40*nbossdat,replace=False)
 #  rasbossran,decbossran,redbossran,weicompbossran,weifkpbossran = rasbossran[cut],decbossran[cut], \
@@ -52,9 +53,9 @@ def makecats(ired):
 # Read in 2dFLenS data and random lenses 
 # We do not need to apply ra/dec cuts here as 2dFLenS is designed to overlap with KiDS
   ras2dfdat,dec2dfdat,red2dfdat,weifkp2dfdat,n2dfdat = read2dflens(1,ired)
-#  ras2dfran,dec2dfran,red2dfran,weifkp2dfran,n2dfran = read2dflens(2,ired)
+  ras2dfran,dec2dfran,red2dfran,weifkp2dfran,n2dfran = read2dflens(2,ired)
 # completeness weights=1 for 2dFLenS
-  #weicomp2dfdat,weicomp2dfran = np.ones(n2dfdat),np.ones(n2dfran)
+  weicomp2dfdat,weicomp2dfran = np.ones(n2dfdat),np.ones(n2dfran)
   weicomp2dfdat = np.ones(n2dfdat)
 
 # Find KiDS mags/colours of BOSS and 2dFLenS data lenses
@@ -71,7 +72,7 @@ def makecats(ired):
                                                                      rmin_S,rmax_S,dmin_S,dmax_S)
 
 # Determine magnitude weights of 2dFLenS data with BOSS as reference
-# For the reference sample we only want to use BOSS galaxies that haven't been masked in the KiDS data
+# For the reference sample we only want to use BOSS galaxies that haven't been masked in the gri KiDS data
 # but it's OK to reweight the 2dFLens galaxies in a mask - we can use the mask later to add caution
   cutboss = ((iphotbossdat > 0) & (kidsmaskbossdat < 2))
   cut2df = (iphot2dfdat > 0)
@@ -81,7 +82,7 @@ def makecats(ired):
   weimag2dfdat[cut2df] = calcmagweights(mags2dfdat,magsbossdat,weicompbossdat[cutboss])
 
 # Determine magnitude weights of BOSS data with 2dFLenS as reference
-# For the reference sample we only want to use 2dfLenS galaxies that haven't been masked in the KiDS data
+# For the reference sample we only want to use 2dfLenS galaxies that haven't been masked in the gri KiDS data
 # but it's OK to reweight the BOSS galaxies in a mask- we can use the mask later to add caution
   cutboss = (iphotbossdat > 0 )
   cut2df = ((iphot2dfdat > 0) & (kidsmask2dfdat < 2))
@@ -89,12 +90,13 @@ def makecats(ired):
   mags2dfdat = np.dstack([grcol2dfdat[cut2df],ricol2dfdat[cut2df],rmag2dfdat[cut2df]])[0]
   weimagbossdat = np.ones(nbossdat)
   weimagbossdat[cutboss] = calcmagweights(magsbossdat,mags2dfdat,weicomp2dfdat[cut2df])
-# magnitudes=0 and weights=1 for randoms
   
-  #iphotbossran,weimagbossran,grcolbossran,ricolbossran,rmagbossran,kidsmaskbossran = np.zeros(nbossran,dtype='int'),np.ones(nbossran),\
-  #                                                                   np.zeros(nbossran),np.zeros(nbossran),np.zeros(nbossran),np.zeros(nbossran,dtype='int')
-  #iphot2dfran,weimag2dfran,grcol2dfran,ricol2dfran,rmag2dfran,kidsmask2dfran = np.zeros(n2dfran,dtype='int'),np.ones(n2dfran),\
-  #                                                              np.zeros(n2dfran),np.zeros(n2dfran),np.zeros(n2dfran),np.zeros(nbossran,dtype='int')
+# magnitudes=0, and weights=1 for randoms
+  
+  iphotbossran,weimagbossran,grcolbossran,ricolbossran,rmagbossran,kidsmaskbossran = np.zeros(nbossran,dtype='int'),np.ones(nbossran),\
+                                                                     np.zeros(nbossran),np.zeros(nbossran),np.zeros(nbossran),np.zeros(nbossran,dtype='int')
+  iphot2dfran,weimag2dfran,grcol2dfran,ricol2dfran,rmag2dfran,kidsmask2dfran = np.zeros(n2dfran,dtype='int'),np.ones(n2dfran),\
+                                                                np.zeros(n2dfran),np.zeros(n2dfran),np.zeros(n2dfran),np.zeros(nbossran,dtype='int')
 
   print '\nWriting out final catalogues...'
 # Write out fits file catalogues
@@ -102,14 +104,14 @@ def makecats(ired):
   writelensldaccat(outfile,rasbossdat,decbossdat,redbossdat,weicompbossdat,weifkpbossdat,\
                        iphotbossdat,weimagbossdat,grcolbossdat,ricolbossdat,rmagbossdat,kidsmaskbossdat)
   outfile = OUTDIR +'/BOSS_random_z' + str(ired) + '.fits'
-#  writelenscat(outfile,rasbossran,decbossran,redbossran,weicompbossran,weifkpbossran,\
-#                       iphotbossran,weimagbossran,grcolbossran,ricolbossran,rmagbossran,kidsmaskbossran)
+  writelensldaccat(outfile,rasbossran,decbossran,redbossran,weicompbossran,weifkpbossran,\
+                       iphotbossran,weimagbossran,grcolbossran,ricolbossran,rmagbossran,kidsmaskbossran)
   outfile = OUTDIR +'/2dFLenS_data_z' + str(ired) + '.fits'
   writelensldaccat(outfile,ras2dfdat,dec2dfdat,red2dfdat,weicomp2dfdat,weifkp2dfdat,\
                        iphot2dfdat,weimag2dfdat,grcol2dfdat,ricol2dfdat,rmag2dfdat,kidsmask2dfdat)
   outfile = OUTDIR +'/2dFLenS_random_z' + str(ired) + '.fits'
-#  writelenscat(outfile,ras2dfran,dec2dfran,red2dfran,weicomp2dfran,weifkp2dfran,\
-#                       iphot2dfran,weimag2dfran,grcol2dfran,ricol2dfran,rmag2dfran,kidsmask2dfran)
+  writelensldaccat(outfile,ras2dfran,dec2dfran,red2dfran,weicomp2dfran,weifkp2dfran,\
+                       iphot2dfran,weimag2dfran,grcol2dfran,ricol2dfran,rmag2dfran,kidsmask2dfran)
   return
 
 #============================================
@@ -233,7 +235,7 @@ def read2dflens(datopt,ired):
     nset = 1
   else:
     print '\nReading in 2dFLenS random lenses...'
-    nset = 40
+    nset = 100
   ras2df,dec2df,red2df,weifkp2df = [],[],[],[]
   for iset in range(nset):
     for ireg in range(1,3):
@@ -278,7 +280,7 @@ def read2dflens(datopt,ired):
 # Find magnitudes/colours of closest source to each lens
 def matchlenstosource(raslens,declens,rassource,decsource,grcolsource,ricolsource,rmagsource,masksource,rmin1,rmax1,dmin1,dmax1,rmin2,rmax2,dmin2,dmax2):
   print '\nFinding closest source to each lens...'
-  separcmax = 1. # Matching separation in arcsec
+  separcmax = 2. # Matching separation in arcsec - using BOSS fibre size as maximum separation
   nlens = len(raslens)
   grcollens,ricollens,rmaglens,masklens,iphotlens = np.zeros(nlens),np.zeros(nlens),np.zeros(nlens),np.zeros(nlens,dtype='int'),np.zeros(nlens,dtype='int')
   indexlens = np.arange(nlens)
