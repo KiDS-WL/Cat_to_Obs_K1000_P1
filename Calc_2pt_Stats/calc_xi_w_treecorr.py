@@ -33,19 +33,15 @@ cat1 = treecorr.Catalog(fitscat1, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', r
 cat2 = treecorr.Catalog(fitscat2, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
                                   g1_col='e1', g2_col='e2', w_col='weight')
 
-# AN UNFORTUNATE HACK FOR THE MOCKS
-# TBD - make mocks with the same column names as the data and a weight column
-#
-#cat1 = treecorr.Catalog(fitscat1, ra_col='RA', dec_col='DEC', ra_units='deg', dec_units='deg', \
-#                                  g1_col='G1', g2_col='G2')
-#cat2 = treecorr.Catalog(fitscat2, ra_col='RA', dec_col='DEC', ra_units='deg', dec_units='deg', \
-#                                  g1_col='G1', g2_col='G2')
+# the value of bin_slop
+fine_binning = True
 
-# the value of inbinslop is still TBD
-# when using fine bins I find this is suitable
-inbinslop = 1.5
-# when using broad bins it needs to be much finer
-inbinslop = 0.08
+if fine_binning:
+    # when using fine bins I find this is suitable
+    inbinslop = 1.5
+else:
+    # when using broad bins it needs to be much finer
+    inbinslop = 0.08
 
 # Define the binning based on command line input
 if(lin_not_log=='true'): 

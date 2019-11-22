@@ -39,29 +39,50 @@ rancat = treecorr.Catalog(rancatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000
 sourcecat = treecorr.Catalog(sourcecatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
                                   g1_col='e1', g2_col='e2', w_col='weight')
 
-# Define the binning based on command line input
-# Using bin_slop of 0.08 which Linc found to be optimal for xi_+/- on the mocks
-if(lin_not_log=='true'): 
-    gg = treecorr.GGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin',\
-         bin_type='Linear', bin_slop=0.08)
-else:
-    #gg = treecorr.GGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin',\
-    #bin_type='Log', bin_slop=0.08)
 
-# Set-up the different correlations that we want to measure
+# the value of bin_slop
+fine_binning = True
+
+if fine_binning:
+    # when using fine bins I find this is suitable
+    inbinslop_NN = 1.0
+    inbinslop_NG = 1.2
+else:
+    # when using broad bins it needs to be much finer
+    inbinslop_NN = 0.03
+    inbinslop_NG = 0.05
+
+
+# Define the binning based on command line input
+if(lin_not_log=='true'): 
+    # Number of source lens pairs
+    nlns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
+         bin_type='Linear', bin_slop=inbinslop_NN)
+    # Number of source random pairs     
+    nrns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
+         bin_type='Linear', bin_slop=inbinslop_NN)
+    # Average shear around lenses     
+    ls = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
+         bin_type='Linear', bin_slop=inbinslop_NG)
+    # Average shear around randoms     
+    rs = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
+         bin_type='Linear', bin_slop=inbinslop_NG)
+
+else:
+    # Set-up the different correlations that we want to measure
 
     # Number of source lens pairs
     nlns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-         bin_slop=0.08)
+         bin_slop=inbinslop_NN)
     # Number of source random pairs     
     nrns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-         bin_slop=0.08)
+         bin_slop=inbinslop_NN)
     # Average shear around lenses     
     ls = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-         bin_slop=0.08)
+         bin_slop=inbinslop_NG)
     # Average shear around randoms     
     rs = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-         bin_slop=0.08)
+         bin_slop=inbinslop_NG)
 
 # Now calculate the different 2pt correlation functions
 nlns.process(lenscat,sourcecat)
