@@ -69,7 +69,7 @@ plt.imshow(w_map, origin='lower',
            aspect='equal', interpolation='none',
            cmap=cmap, clim=(-max, max)) #, vmin=-0.005, vmax=0.005)
 plt.colorbar()
-plt.savefig(md+'/PLOTS/w_map_%s_V1.0.0_rev1.png' % (patch))
+plt.savefig(md+'/PLOTS/w_map_%s_V1.0.0A.png' % (patch))
 plt.close()
 
 # remove average c1/c2
@@ -89,7 +89,7 @@ plt.xlabel("$x$ [pix]", labelpad=-1)
 plt.ylabel("$y$ [pix]") #, labelpad=-2)
 cbar = plt.colorbar()
 cbar.set_label('$c_1$',size=18)
-plt.savefig(md+'/PLOTS/c1_map_%s_V1.0.0_rev1.pdf' % (patch))
+plt.savefig(md+'/PLOTS/c1_map_%s_V1.0.0A.pdf' % (patch))
 plt.close()
 
 max = np.max(c2_map)
@@ -99,7 +99,7 @@ plt.imshow(c2_map, origin='lower',
            aspect='equal', interpolation='none',
            cmap=cmap, clim=(-max, max)) #, vmin=-0.005, vmax=0.005)
 plt.colorbar()
-plt.savefig(md+'/PLOTS/c2_map_%s_V1.0.0_rev1.pdf' % (patch))
+plt.savefig(md+'/PLOTS/c2_map_%s_V1.0.0A.pdf' % (patch))
 plt.close()
 
 ###########################################################
@@ -110,18 +110,14 @@ ldac_table = ldac_cat['OBJECTS']
 # read in the useful columns
 KiDS_RA=ldac_table['ALPHA_J2000']
 KiDS_Dec=ldac_table['DELTA_J2000']
-Xpos_in=ldac_table['Xpos_THELI']
-Ypos_in=ldac_table['Ypos_THELI']
+Xpos_in=ldac_table['Xpos']
+Ypos_in=ldac_table['Ypos']
 
-e1_in=ldac_table['bias_corrected_e1']
-e2_in=ldac_table['bias_corrected_e2']
-#e1_in=ldac_table['e1_A']
-#e2_in=ldac_table['e2_A']
-#weight_in=ldac_table['weight']
-weight_in=ldac_table['recal_weight']
+e1_in=ldac_table['autocal_e1_A']
+e2_in=ldac_table['autocal_e2_A']
+weight_in=ldac_table['recal_weight_A']
 mag_in=ldac_table['MAG_AUTO']
 mask=ldac_table['MASK']
-flag=ldac_table['GAAP_Flag_ugriZYJHKs']
 
 we1_in=e1_in*weight_in
 we2_in=e2_in*weight_in
@@ -132,11 +128,8 @@ magsel = (mag_in>20.)
 # make MASK selection
 masksel = (mask==0)
 
-# make a GAaP flag selection
-flagsel = (flag==0)
-
 # combine selections
-allsel = magsel * masksel * flagsel
+allsel = magsel * masksel
 
 Xpos = Xpos_in[allsel]
 Ypos = Ypos_in[allsel]
@@ -185,7 +178,7 @@ plt.imshow(e1_mean, origin='lower',
            aspect='equal', interpolation='none',
            cmap=cmap, clim=(-max, max)) #, vmin=-0.005, vmax=0.005)
 plt.colorbar()
-plt.savefig(md+'/PLOTS/e1_mean_%s_V1.0.0_rev1.png' % (patch))
+plt.savefig(md+'/PLOTS/e1_mean_%s_V1.0.0A.png' % (patch))
 plt.close()
 
 max = np.max(e2_mean)
@@ -195,7 +188,7 @@ plt.imshow(e2_mean, origin='lower',
            aspect='equal', interpolation='none',
            cmap=cmap, clim=(-max, max)) #, vmin=-0.005, vmax=0.005)
 plt.colorbar()
-plt.savefig(md+'/PLOTS/e2_mean_%s_V1.0.0_rev1.png' % (patch))
+plt.savefig(md+'/PLOTS/e2_mean_%s_V1.0.0A.png' % (patch))
 plt.close()
 
 ### bin the data points ###
@@ -253,7 +246,7 @@ plt.plot((minx,maxx),(param[0]*minx+param[1],param[0]*maxx+param[1]))
 plt.xlabel('c1_map', labelpad=-1)
 plt.ylabel('e1_mean')
 plt.ylim(-0.01,0.01)
-plt.savefig(md+'/PLOTS/c1_e1_%s_V1.0.0_rev1.png' % (patch))
+plt.savefig(md+'/PLOTS/c1_e1_%s_V1.0.0A.png' % (patch))
 plt.close()
 
 param, err, rchi, dof, cov =general_fit(
@@ -285,7 +278,7 @@ plt.plot((minx,maxx),(param[0]*minx+param[1],param[0]*maxx+param[1]))
 plt.xlabel('c2_map', labelpad=-1)
 plt.ylabel('e2_mean')
 plt.ylim(-0.01,0.01)
-plt.savefig(md+'/PLOTS/c2_e2_%s_V1.0.0_rev1.png' % (patch))
+plt.savefig(md+'/PLOTS/c2_e2_%s_V1.0.0A.png' % (patch))
 plt.clf()
 
 ####for i in range(1,2):
@@ -327,7 +320,7 @@ plt.clf()
 ####cax = fig.add_axes([0.1, 0.05, 0.8, 0.01])
 ####fig.colorbar(im, cax=cax, orientation='horizontal')
 ####
-####plt.savefig(md+'/PLOTS/e_X_Y_%s_V1.0.0_rev1.png' % (patch))
+####plt.savefig(md+'/PLOTS/e_X_Y_%s_V1.0.0A.png' % (patch))
 #####plt.show()
 ##
 #####################################################
