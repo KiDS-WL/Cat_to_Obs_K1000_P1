@@ -205,21 +205,23 @@ if [ -z "${MODE// }" ]; then
 fi
 
 ##=================================================================
-##
+
 ## Define some environment variables that are used in several modes
 ## If the file structures/names change, these will need editing
 
-## Ensure all the directories that we want exist
-mkdir -p ${ODIR}/TOMOCATS
-mkdir -p ${ODIR}/OUTSTATS
+if [ "${USERCAT}" = "false" ]; then
+  ## Ensure all the directories that we want exist
+  mkdir -p ${ODIR}/TOMOCATS
+  mkdir -p ${ODIR}/OUTSTATS
 
-## STATDIR is the directory where all the results will go
-STATDIR=${ODIR}/OUTSTATS
-mkdir -p ${STATDIR}/XI
-mkdir -p ${STATDIR}/Pkk
-mkdir -p ${STATDIR}/Pgk
-mkdir -p ${STATDIR}/GT
-mkdir -p ${STATDIR}/COSEBIS
+  ## STATDIR is the directory where all the results will go
+  STATDIR=${ODIR}/OUTSTATS
+  mkdir -p ${STATDIR}/XI
+  mkdir -p ${STATDIR}/Pkk
+  mkdir -p ${STATDIR}/Pgk
+  mkdir -p ${STATDIR}/GT
+  mkdir -p ${STATDIR}/COSEBIS
+fi
 
 ## And we're going to make some TMP files along the way that we'll want to easily delete
 ## Depending on where you're running this script, this can be either in /home or /data 
@@ -229,19 +231,61 @@ mkdir -p ${TMPDIR}
 ## The default is to work with the main KiDS catalogue
 ## but you might want to work on mock data, in which case you can 
 ## fix the name of the mock catalogue with the -u option which sets MASTERCAT
-if [ ${USERCAT} = "false" ]; then
+if [ "${USERCAT}" = "false" ]; then
   ## User catalogue has not been defined - use KIDS
-  #Phase 1 catalogue
+  ## Phase 1 catalogue
   masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}
-  #Phase 0 catalogue
+  ## Phase 0 catalogue
   #masterTag=9band_mask_BLINDED_${LENSFIT_VER}
 
   MASTERCAT=${SDIR}/K1000_${PATCH}_${masterTag}.cat
   catTag=K1000_${PATCH}_BLIND_${BLIND}_${masterTag}
+  
 else
-  ## Set the filename of the output files to be the same as the name of the input fits catalogue
-  MASTERCAT=${SDIR}/${USERCAT} ## Dummy
-  catTag=${USERCAT}
+  ## Define the tags that mocks require
+  ## MASTERCAT is only used in CREATETOMO
+  ## If you use mocks you are not supposed to run with the CREATETOMO mode.
+  
+  MOCKINFO=(${USERCAT})
+  aves=${MOCKINFO[0]}
+  randTag=${MOCKINFO[1]}
+  runInd=${MOCKINFO[2]}
+  
+  STATDIR="${ODIR}/${aves}"
+  
+  if [ "${aves}" = "buceros" ] || [ "${aves}" = "diomedea" ] || [ "${aves}" = "egretta" ]; then
+    catTag="run${runInd}_${PATCH}"
+  else
+    catTag="run${runInd}"
+  fi
+  
+  if [ ${aves} = "buceros" ]; then
+    if [ ${PATCH} = "ALL" ]; then
+      lensType=$((${IZBIN} - 1))
+      srcType1=$((${IZBIN} + 1))
+      srcType2=$((${JZBIN} + 1))
+    fi
+  elif [ ${aves} = "diomedea" ]; then
+    if [ ${PATCH} = "N" ]; then
+      lensType=$((${IZBIN} * 2 - 2))
+      srcType1=$((${IZBIN} * 2 + 2))
+      srcType2=$((${JZBIN} * 2 + 2))
+    elif [ ${PATCH} = "S" ]; then
+      lensType=$((${IZBIN} * 2 - 1))
+      srcType1=$((${IZBIN} * 2 + 3))
+      srcType2=$((${JZBIN} * 2 + 3))
+    fi
+  elif [ ${aves} = "egretta" ]; then
+    if [ ${PATCH} = "N" ]; then
+      lensType=$((${IZBIN} * 2 - 2))
+      srcType1=$((${IZBIN} * 2 + 2))
+      srcType2=$((${JZBIN} * 2 + 2))
+    elif [ ${PATCH} = "S" ]; then
+      lensType=$((${IZBIN} * 2 - 1))
+      srcType1=$((${IZBIN} * 2 + 3))
+      srcType2=$((${JZBIN} * 2 + 3))
+    fi
+  fi
 fi
 
 ## Tomographic bins
@@ -276,19 +320,10 @@ ellTag="nbins_${ELLINFO[0]}_Ell_${ELLINFO[1]}_${ELLINFO[2]}"
 ## theta range for BP & COSEBIs
 BP_COSEBIS_THETAINFO=(${BP_COSEBIS_THETAINFO_STR})
 
-
-
-
-
-## TODO Figure out how to soften the hard codes of BP for apodisation & file cuts
-## TODO Implement GT & XI file loading for mocks
-## TODO Verify apoWidth definition
-## TODO Clean up COMBINEXI & COMBINEXI
-## TODO Get from Marika codes to rebin (both for xi & gt)
-
-
-
-
+## TODO CREATETOMO: adjust usercat / Implement GT & XI file loading for mocks
+## TODO GT: 2dFLenS random I/O problem; test on mocks; compare data
+## TODO XI: test on mocks; compare data
+## TODO REBIN GT XI
 
 
 
@@ -352,13 +387,48 @@ do
        GGL_ID="BOSS"
     elif [ "${PATCH}" = "S" ]; then
        GGL_ID="2dFLenS"
-    else
-      { echo "MODE ${mode} only runs on PATCH N or S! Run MODE CREATETOMO -p N or -p S!"; exit 1; }
     fi
 
-    lensCat="${LDIR}/${GGL_ID}_data_z${IZBIN}.fits"
-    randCat="${LDIR}/${GGL_ID}_random_z${IZBIN}.fits"
-    srcCat="${TOMOCAT}_${JZBIN}.fits"
+    ## Since the North-South separation cannot be necessary applied to mocks,
+    ## we detail all I/O paths here case by case.
+    ## These are paths to lens cat, rand cat, source cat, & TreeCorr results.
+    
+    ## KiDS data
+    if [ "${USERCAT}" = "false" ]; then
+      ## You should run N & S then combine.
+      if [ "${PATCH}" = "ALL" ]; then
+        { echo "MODE ${mode} only runs on PATCH N or S! Run MODE CREATETOMO -p N or -p S!"; exit 1; }
+      fi
+      
+      lensCat="${LDIR}/${GGL_ID}_data_z${IZBIN}.fits"
+      randCat="${LDIR}/${GGL_ID}_random_z${IZBIN}.fits"
+      srcCat="${TOMOCAT}_${JZBIN}.fits"
+      outPath="${STATDIR}/GT/GT_${catTag}_${angTag}_${tomoPairTag}.asc"
+      
+    ## Mocks with simple mask
+    elif [ "${aves}" = "buceros" ]; then
+      ## You should run ALL directly.
+      if [ "${PATCH}" != "ALL" ]; then
+        { echo "The ${aves} mocks only runs on PATCH ALL with MODE ${mode}!"; exit 1; }
+      fi
+      
+      lensCat="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${lensType}.fits"
+      randCat="${SDIR}/${aves}/MFP_randCat/randCat_type${lensType}.fits"
+      srcCat="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType2}.fits"
+      outPath="${STATDIR}/treecorr_K1000_${randTag}_NG/GT_${catTag}_${angTag}_${tomoPairTag}.asc"
+      
+    ## Mocks with complex mask
+    else
+      ## You should run N & S then combine.
+      if [ "${PATCH}" = "ALL" ]; then
+        { echo "The ${aves} mocks only runs on PATCH N or S with MODE ${mode}!"; exit 1; }
+      fi
+      
+      lensCat="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${lensType}.fits"
+      randCat="${LDIR}/${GGL_ID}_random_z${IZBIN}.fits"
+      srcCat="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType2}.fits"
+      outPath="${STATDIR}/treecorr_K1000_${randTag}_NG/GT_${catTag}_${angTag}_${tomoPairTag}.asc"
+    fi
 
     # check does the correct lens/source/random files exist?
     test -f ${lensCat} || \
@@ -367,9 +437,6 @@ do
       { echo "Error: Random catalogue ${randCat} does not exist."; exit 1; } 
     test -f ${srcCat} || \
       { echo "Error: Tomographic catalogue ${srcCat} does not exist! Run MODE CREATETOMO!"; exit 1; }
-
-    # where do we want to write the output to?
-    outPath=${STATDIR}/GT/GT_${catTag}_${angTag}_${tomoPairTag}.asc
 
     # Run treecorr - using the Mandelbaum estimator that subtracts off the random signal
     ${P_PYTHON3} calc_gt_w_treecorr.py ${THETAINFO_STR} ${LINNOTLOG} ${lensCat} ${randCat} ${srcCat} ${outPath}
@@ -393,17 +460,49 @@ do
     echo "Starting mode ${mode}: to calculate xi_+/- for tomo bin pair ${IZBIN} ${JZBIN} \
     with theta bins ${THETAINFO_STR}"
 
-    srcCat1="${TOMOCAT}_${IZBIN}.fits"
-    srcCat2="${TOMOCAT}_${JZBIN}.fits"
+    ## Since the North-South separation cannot be necessary applied to mocks,
+    ## we detail all I/O paths here case by case.
+    ## These are paths to lens cat, rand cat, source cat, & TreeCorr results.
+    
+    ## KiDS data
+    if [ "${USERCAT}" = "false" ]; then
+      ## You should run N & S then combine.
+      if [ "${PATCH}" = "ALL" ]; then
+        { echo "MODE ${mode} only runs on PATCH N or S! Run MODE CREATETOMO -p N or -p S!"; exit 1; }
+      fi
+      
+      srcCat1="${TOMOCAT}_${IZBIN}.fits"
+      srcCat2="${TOMOCAT}_${JZBIN}.fits"
+      outPath="${STATDIR}/XI/XI_${catTag}_${angTag}_${tomoPairTag}.asc"
+      
+    ## Mocks with simple mask
+    elif [ "${aves}" = "buceros" ]; then
+      ## You should run ALL directly.
+      if [ "${PATCH}" != "ALL" ]; then
+        { echo "The ${aves} mocks only runs on PATCH ALL with MODE ${mode}!"; exit 1; }
+      fi
+      
+      srcCat1="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType1}.fits"
+      srcCat2="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType2}.fits"
+      outPath="${STATDIR}/treecorr_K1000_${randTag}_GG/XI_${catTag}_${angTag}_${tomoPairTag}.asc"
+      
+    ## Mocks with complex mask
+    else
+      ## You should run N & S then combine.
+      if [ "${PATCH}" = "ALL" ]; then
+        { echo "The ${aves} mocks only runs on PATCH N or S with MODE ${mode}!"; exit 1; }
+      fi
+      
+      srcCat1="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType1}.fits"
+      srcCat2="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType2}.fits"
+      outPath="${STATDIR}/treecorr_K1000_${randTag}_GG/XI_${catTag}_${angTag}_${tomoPairTag}.asc"
+    fi
 
     # Check that the tomographic catalogue exist and exit if they don't 
     test -f ${srcCat1} || \
       { echo "Error: Tomographic catalogue ${srcCat1} does not exist! For KiDS run MODE CREATETOMO!"; exit 1; }
     test -f ${srcCat2} || \
       { echo "Error: Tomographic catalogue ${srcCat2} does not exist! For KiDS run MODE CREATETOMO!"; exit 1; }
-
-    # Define the name for our output ascii files from Treecorr etc
-    outPath=${STATDIR}/XI/XI_${catTag}_${angTag}_${tomoPairTag}.asc
 
     # Run treecorr
     ${P_PYTHON3} calc_xi_w_treecorr.py ${THETAINFO_STR} ${LINNOTLOG} ${srcCat1} ${srcCat2} ${outPath}
@@ -427,13 +526,29 @@ do
     echo "Starting mode ${mode}: to combine the gamma_t/x results from N/S for tomo bin pair ${IZBIN} ${JZBIN} \
     with theta bins ${THETAINFO_STR}"
 
-    # check do the files exist?
-    inFileN=${STATDIR}/GT/GT_K1000_N_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc
-    inFileS=${STATDIR}/GT/GT_K1000_S_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc
+    ## Define paths
 
-    test -f ${inFileN} || \
+    ## KiDS data
+    if [ "${USERCAT}" = "false" ]; then
+      inFileN="${STATDIR}/GT/GT_K1000_N_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc"
+      inFileS="${STATDIR}/GT/GT_K1000_S_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc"
+      outPath="${STATDIR}/GT/GT_K1000_ALL_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc"
+
+    ## Mocks with simple mask
+    elif [ "${aves}" = "buceros" ]; then
+      { echo "The ${aves} mocks not available for MODE ${mode}!"; exit 1; }
+
+    ## Mocks with complex mask
+    else
+      inFileN="${STATDIR}/treecorr_K1000_${randTag}_NG/GT_run${runInd}_N_${angTag}_${tomoPairTag}.asc"
+      inFileS="${STATDIR}/treecorr_K1000_${randTag}_NG/GT_run${runInd}_S_${angTag}_${tomoPairTag}.asc"
+      outPath="${STATDIR}/treecorr_K1000_${randTag}_NG/GT_run${runInd}_ALL_${angTag}_${tomoPairTag}.asc"
+    fi 
+
+    # check do the files exist?
+    test -f "${inFileN}" || \
     { echo "Error: KiDS-N GT results ${inFileN} do not exist. Run MODE GT -p N!"; exit 1; } 
-    test -f ${inFileS} || \
+    test -f "${inFileS}" || \
     { echo "Error: KiDS-S GT results ${inFileS} do not exist. Run MODE GT -p S!"; exit 1; } 
 
     # and now lets combine them using the fabulous awk
@@ -453,25 +568,28 @@ do
     # This isn't correct but we don't really use the sigma_xi column ($8 and $18) 
     # Finally give the sum of weights and the sum of npairs
     
-    awk 'NR>1 {printf "%7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e\n", 
-                     ($1*$10 + $11*$20)/($10+$20), \
-                     ($2*$10 + $12*$20)/($10+$20), \
-                     ($3*$10 + $13*$20)/($10+$20), \
-                     ($4*$10 + $14*$20)/($10+$20), \
-                     ($5*$10 + $15*$20)/($10+$20), \
-                     ($6*$10 + $16*$20)/($10+$20), \
-                     ($7*$10 + $17*$20)/($10+$20), \
-                     sqrt($8*$8 + $18*$18), $9+$19, $10+$20}' < ${TMPDIR}/gt_paste > ${TMPDIR}/gt_comb
+    awk 'NR>1 {printf " % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e\n", 
+                     ($1*$8 + $14*$21)/($8+$21), \
+                     ($2*$8 + $15*$21)/($8+$21), \
+                     ($3*$8 + $16*$21)/($8+$21), \
+                     ($4*$8 + $17*$21)/($8+$21), \
+                     ($5*$8 + $18*$21)/($8+$21), \
+                     sqrt($6*$6 + $19*$19), \
+                     $7+$20, \
+                     $8+$21, \
+                     ($9*$8 + $22*$21)/($8+$21), \
+                     ($10*$8 + $23*$21)/($8+$21), \
+                     ($11*$8 + $24*$21)/($8+$21), \
+                     ($12*$8 + $25*$21)/($8+$21), \
+                     sqrt($13*$13 + $26*$26)}' < ${TMPDIR}/gt_paste > ${TMPDIR}/gt_comb
     
-    #finally put the header back
-
-    outPath=${STATDIR}/GT/GT_K1000_ALL_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc
+    # Finally put the header back
     cat ${TMPDIR}/gt_header ${TMPDIR}/gt_comb > ${outPath}
 
     # Did it work?
     test -f ${outPath} || \
       { echo "Error: Combined Treecorr output ${outPath} was not created! !"; exit 1; }
-    echo "Success: Leaving mode COMBINE"
+    echo "Success: Leaving mode ${mode}"
 
   fi
 done
@@ -488,12 +606,26 @@ do
     echo "Starting mode ${mode}: to combine the xi_+/- results from N/S for tomo bin pair ${IZBIN} ${JZBIN} \
     with theta bins ${THETAINFO_STR}"
 
+    ## Define paths
+
+    ## KiDS data
+    if [ "${USERCAT}" = "false" ]; then
+      inFileN="${STATDIR}/XI/XI_K1000_N_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc"
+      inFileS="${STATDIR}/XI/XI_K1000_S_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc"
+      outPath="${STATDIR}/XI/XI_K1000_ALL_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc"
+
+    ## Mocks with simple mask
+    elif [ "${aves}" = "buceros" ]; then
+      { echo "The ${aves} mocks not available for MODE ${mode}!"; exit 1; }
+
+    ## Mocks with complex mask
+    else
+      inFileN="${STATDIR}/treecorr_K1000_${randTag}_GG/XI_run${runInd}_N_${angTag}_${tomoPairTag}.asc"
+      inFileS="${STATDIR}/treecorr_K1000_${randTag}_GG/XI_run${runInd}_S_${angTag}_${tomoPairTag}.asc"
+      outPath="${STATDIR}/treecorr_K1000_${randTag}_GG/XI_run${runInd}_ALL_${angTag}_${tomoPairTag}.asc"
+    fi 
+
     # check do the files exist?
-    inFileN=${STATDIR}/XI/XI_K1000_N_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc
-    inFileS=${STATDIR}/XI/XI_K1000_S_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc
-
-    echo ${inFileN}
-
     test -f ${inFileN} || \
     { echo "Error: KiDS-N XI results ${inFileN} do not exist. Run MODE XI -p N!"; exit 1; } 
     test -f ${inFileS} || \
@@ -503,7 +635,7 @@ do
     # which Tilman will be most scathing about, but I love it nevertheless
     # first lets grab the header which we want to replicate
 
-    head -2 < ${inFileN} > ${TMPDIR}/xi_header # TODO
+    head -2 < ${inFileN} > ${TMPDIR}/xi_header
 
     # paste the two catalogues together
     paste ${inFileN} ${inFileS} > ${TMPDIR}/xi_paste
@@ -528,15 +660,13 @@ do
                      $10+$21, \
                      $11+$22}' < ${TMPDIR}/xi_paste > ${TMPDIR}/xi_comb
     
-    #finally put the header back
-
-    outPath=${STATDIR}/XI/XI_K1000_ALL_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc
+    # Finally put the header back
     cat ${TMPDIR}/xi_header ${TMPDIR}/xi_comb > ${outPath}
 
     # Did it work?
     test -f ${outPath} || \
       { echo "Error: Combined Treecorr output ${outPath} was not created! !"; exit 1; }
-    echo "Success: Leaving mode COMBINE"
+    echo "Success: Leaving mode ${mode}"
 
   fi
 done
@@ -546,7 +676,12 @@ done
 ##  \"REBINGT\": rebin gamma_t/x for tomo bin pair i j
 ##
 
-# TODO
+# TODO python script
+# TODO load path for mocks
+# TODO save path for mocks
+# TODO load path for data
+# TODO save path for data
+
 for mode in ${MODE}
 do
   if [ "${mode}" = "REBINGT" ]; then
@@ -598,7 +733,7 @@ do
     # Did it work?
     test -f ${outPath} || \
       { echo "Error: Combined Treecorr output ${outPath} was not created! !"; exit 1; }
-    echo "Success: Leaving mode COMBINE"
+    echo "Success: Leaving mode ${mode}"
 
   fi
 done
@@ -608,7 +743,12 @@ done
 ##  \"REBINXI\": rebin xi_+/- for tomo bin pair i j
 ##
 
-# TODO
+# TODO python script
+# TODO load path for mocks
+# TODO save path for mocks
+# TODO load path for data
+# TODO save path for data
+
 for mode in ${MODE}
 do
   if [ "${mode}" = "REBINXI" ]; then
@@ -659,7 +799,7 @@ do
     # Did it work?
     test -f ${outPath} || \
       { echo "Error: Combined Treecorr output ${outPath} was not created! !"; exit 1; }
-    echo "Success: Leaving mode COMBINE"
+    echo "Success: Leaving mode ${mode}"
 
   fi
 done
@@ -676,18 +816,32 @@ do
     echo "Starting mode ${mode}: to calculate GGL bandpower for tomo bin pair ${IZBIN} ${JZBIN} \
     with ell bins ${ELLINFO_STR} & theta range ${BP_COSEBIS_THETAINFO_STR}"
 
-    # Check whether the correct xi files exist?
-    InputFileIdentifier=${catTag}_${angTag}_${tomoPairTag}
-    treePath=${STATDIR}/XI/XI_${InputFileIdentifier}.asc
+    InputFileIdentifier="${catTag}_${angTag}_${tomoPairTag}"
 
+    ## Define paths
+    ## For mocks, apo & non-apo cases have different paths
+
+    ## KiDS data
+    if [ ${USERCAT} = "false" ]; then
+      treePath="${STATDIR}/GT/GT_${InputFileIdentifier}.asc"
+      FolderName="${STATDIR}/Pgk"
+
+    ## Mocks
+    else
+      treePath="${STATDIR}/treecorr_K1000_${randTag}_NG/GT_${InputFileIdentifier}.asc"
+      if [ "${doApo}" = "true" ]; then
+        FolderName="${STATDIR}/catToObs_K1000_${randTag}_aPne"
+      else
+        FolderName="${STATDIR}/catToObs_K1000_${randTag}_Pne"
+      fi
+    fi
+
+    # check do the files exist?
     test -f ${treePath} || \
-    { echo "Error: KiDS-${PATCH} GT results ${treePath} do not exist. Either Run MODE GT (N/S) or COMBINE (ALL)!"; exit 1; } 
+      { echo "Error: KiDS-${PATCH} GT results ${treePath} do not exist. Either Run MODE GT (N/S) or COMBINE (ALL)!"; exit 1; } 
 
     ## Define correlation type (1: ee; 2: ne; 3: nn)
     corrType=2
-
-    # Define the workplace where crazy file handling happens
-    FolderName=${STATDIR}/Pgk
 
     # The files need to have this naming convention:  xi2bandpow_input_${InputFileIdentifier}.dat
     # They also need to have only 3 columns with no other lines or comments:
@@ -696,28 +850,35 @@ do
     # Let's use awk to convert the Treecorr output into the expected format and remove the header.
     # We will use the meanR as the radius to pass through to the bandpower code
     # This choise is not too important though the bins are finely binned
-    # Treecorr: #   R_nom       meanR       meanlogR       xip          xim         xip_im      xim_im      sigma_xi      weight       npairs
+    # Treecorr: #   r_nom       meanr       meanlogr       gamT         gamX        sigma        weight       npairs     nocor_gamT   nocor_gamX    rangamT      rangamX      ransigma
 
-    if [ "${doApo}" = "true" ]; then
-        ## apoWidth = log width of apodisation window
-        ## If nominal theta range (BP_COSEBIS_THETAINFO_STR) is theta_min to theta_max,
-        ## the real theta range that input file should provide is real_min to real_max, 
-        ## where real_min = theta_min / exp(apoWidth/2),
-        ##       real_max = theta_max * exp(apoWidth/2).
-        awk '(NR>1){print $2, $4-$5, $10-$11}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
-        apoWidth=0.5
-        N_theta_BP=300 # WARNING Temporary
+    if [ "${USERCAT}" = "false" ]; then
+        awk '(NR>1){print $2, $4, $5}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
+    elif [ "${aves}" = "buceros" ] || [ "${aves}" = "diomedea" ] || [ "${aves}" = "egretta" ]; then
+        ## Same as data
+        awk '(NR>1){print $2, $4, $5}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
     else
-        awk '(NR>30 && NR<=289){print $2, $4-$5, $10-$11}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
+        ## Old format that mocks use
+        awk '(NR>1){print $2, $4-$5, $10-$11}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
+    
+    N_theta_BP=`wc -l < ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat`
+
+    ## apoWidth = log width of apodisation window
+    ## If nominal theta range (BP_COSEBIS_THETAINFO_STR) is theta_min to theta_max,
+    ## the real theta range that input file should provide is real_min to real_max, 
+    ## where real_min = theta_min / exp(apoWidth/2),
+    ##       real_max = theta_max * exp(apoWidth/2).
+    if [ "${doApo}" = "true" ]; then
+        apoWidth=0.5
+    else
         apoWidth=-1
-        N_theta_BP=259 # WARNING Temporary
     fi
 
     # The output file is called xi2bandpow_output_${OutputFileIdentifier}.dat 
     # It has 3 columns for GGL: ell, bandpow, err
     # And 5 columns for cosmic shear: ell, l*2(P_E/2pi), err, l*2(P_B/2pi), err
     # ell is the log-central value
-    OutputFileIdentifier=${catTag}_${ellTag}_${tomoPairTag}
+    OutputFileIdentifier="${catTag}_${ellTag}_${tomoPairTag}"
 
     # These are the options for inputs for the c program xi2bandpow.c:
     # 1: <working directory>
@@ -738,15 +899,17 @@ do
                   ${N_theta_BP} ${BP_COSEBIS_THETAINFO[0]} ${BP_COSEBIS_THETAINFO[1]} ${BP_COSEBIS_THETAINFO[0]} ${BP_COSEBIS_THETAINFO[1]} \
                   ${ELLINFO[0]} ${ELLINFO[1]} ${ELLINFO[2]} ${corrType} ${apoWidth}
 
-    rm -f "${FolderName}/xi2bandpow_input_*"
-    rm -f "${FolderName}/xi2bandpow_kernels_*"
-    outPath=${FolderName}/xi2bandpow_output_${OutputFileIdentifier}.dat
+    ## For mocks, delete these files because they take too much space.
+    if [ "${USERCAT}" != "false" ]; then
+      rm -f "${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat"
+      rm -f "${FolderName}/xi2bandpow_kernels_${InputFileIdentifier}.dat"
+    fi
 
     # Did it work?
-    test -f ${outPath} || \
+    outPath="${FolderName}/xi2bandpow_output_${OutputFileIdentifier}.dat"
+    test -f "${outPath}" || \
       { echo "Error: bandpower output ${outPath} was not created! !"; exit 1; }
     echo "Success: Leaving mode ${mode}"
-
   fi
 done
 
@@ -762,18 +925,32 @@ do
     echo "Starting mode ${mode}: to calculate CS bandpower for tomo bin pair ${IZBIN} ${JZBIN} \
     with ell bins ${ELLINFO_STR} & theta range ${BP_COSEBIS_THETAINFO_STR}"
 
-    ## Check whether the correct xi files exist?
-    InputFileIdentifier=${catTag}_${angTag}_${tomoPairTag}
-    treePath=${STATDIR}/XI/XI_${InputFileIdentifier}.asc
+    InputFileIdentifier="${catTag}_${angTag}_${tomoPairTag}"
 
-    test -f ${treePath} || \
-    { echo "Error: KiDS-${PATCH} XI results ${treePath} do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; } 
+    ## Define paths
+    ## For mocks, apo & non-apo cases have different paths
 
+    ## KiDS data
+    if [ "${USERCAT}" = "false" ]; then
+      treePath="${STATDIR}/XI/XI_${InputFileIdentifier}.asc"
+      FolderName="${STATDIR}/Pkk"
+
+    ## Mocks
+    else
+      treePath="${STATDIR}/treecorr_K1000_${randTag}_GG/XI_${InputFileIdentifier}.asc"
+      if [ "${doApo}" = "true" ]; then
+        FolderName="${STATDIR}/catToObs_K1000_${randTag}_aPee"
+      else
+        FolderName="${STATDIR}/catToObs_K1000_${randTag}_Pee"
+      fi
+    fi
+
+    # check do the files exist?
+    test -f "${treePath}" || \
+      { echo "Error: KiDS-${PATCH} XI results ${treePath} do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; }
+    
     ## Define correlation type (1: ee; 2: ne; 3: nn)
     corrType=1
-
-    # Define the workplace where crazy file handling happens
-    FolderName=${STATDIR}/Pkk
 
     # The files need to have this naming convention:  xi2bandpow_input_${InputFileIdentifier}.dat
     # They also need to have only 3 columns with no other lines or comments:
@@ -784,26 +961,25 @@ do
     # This choise is not too important though the bins are finely binned
     # Treecorr: #   R_nom       meanR       meanlogR       xip          xim         xip_im      xim_im      sigma_xi      weight       npairs
 
+    awk '(NR>2){print $2, $4, $5}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
+    N_theta_BP=`wc -l < ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat`
+
+    ## apoWidth = log width of apodisation window
+    ## If nominal theta range (BP_COSEBIS_THETAINFO_STR) is theta_min to theta_max,
+    ## the real theta range that input file should provide is real_min to real_max, 
+    ## where real_min = theta_min / exp(apoWidth/2),
+    ##       real_max = theta_max * exp(apoWidth/2).
     if [ "${doApo}" = "true" ]; then
-        ## apoWidth = log width of apodisation window
-        ## If nominal theta range (BP_COSEBIS_THETAINFO_STR) is theta_min to theta_max,
-        ## the real theta range that input file should provide is real_min to real_max, 
-        ## where real_min = theta_min / exp(apoWidth/2),
-        ##       real_max = theta_max * exp(apoWidth/2).
-        awk '(NR>2){print $2, $4, $5}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
         apoWidth=0.5
-        N_theta_BP=300 # WARNING Temporary
     else
-        awk '(NR>31 && NR<=290){print $2, $4, $5}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
         apoWidth=-1
-        N_theta_BP=259 # WARNING Temporary
     fi
 
     # The output file is called xi2bandpow_output_${OutputFileIdentifier}.dat 
     # It has 3 columns for GGL: ell, bandpow, err
     # And 5 columns for cosmic shear: ell, l*2(P_E/2pi), err, l*2(P_B/2pi), err
     # ell is the log-central value
-    OutputFileIdentifier=${catTag}_${ellTag}_${tomoPairTag}
+    OutputFileIdentifier="${catTag}_${ellTag}_${tomoPairTag}"
 
     # These are the options for inputs for the c program xi2bandpow.c:
     # 1: <working directory>
@@ -824,15 +1000,17 @@ do
                   ${N_theta_BP} ${BP_COSEBIS_THETAINFO[0]} ${BP_COSEBIS_THETAINFO[1]} ${BP_COSEBIS_THETAINFO[0]} ${BP_COSEBIS_THETAINFO[1]} \
                   ${ELLINFO[0]} ${ELLINFO[1]} ${ELLINFO[2]} ${corrType} ${apoWidth}
 
-    rm -f "${FolderName}/xi2bandpow_input_*"
-    rm -f "${FolderName}/xi2bandpow_kernels_*"
-    outPath=${FolderName}/xi2bandpow_output_${OutputFileIdentifier}.dat
+    ## For mocks, delete these files because they take too much space.
+    if [ "${USERCAT}" != "false" ]; then
+      rm -f "${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat"
+      rm -f "${FolderName}/xi2bandpow_kernels_${InputFileIdentifier}.dat"
+    fi
 
-    # Did it work?
-    test -f ${outPath} || \
+    # Did it work?    
+    outPath="${FolderName}/xi2bandpow_output_${OutputFileIdentifier}.dat"
+    test -f "${outPath}" || \
       { echo "Error: bandpower output ${outPath} was not created! !"; exit 1; }
     echo "Success: Leaving mode ${mode}"
-
   fi
 done
 
@@ -845,16 +1023,27 @@ done
 
 for mode in ${MODE}
 do
-    if [ "${mode}" = "COSEBIS" ]; then
+  if [ "${mode}" = "COSEBIS" ]; then
 
     echo "Starting mode ${mode}: to calculate COSEBIs for tomo bin pair ${IZBIN} ${JZBIN} \
     with theta range ${BP_COSEBIS_THETAINFO_STR}"
 
-    # check does the correct input xi file exist?
-    treePath=${STATDIR}/XI/XI_${catTag}_${angTag}_${tomoPairTag}.asc
+    ## Define paths
 
-    test -f ${treePath} || \
-    { echo "Error: KiDS-${PATCH} XI results ${treePath} do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; }
+    ## KiDS data
+    if [ "${USERCAT}" = "false" ]; then
+      treePath="${STATDIR}/XI/XI_${catTag}_${angTag}_${tomoPairTag}.asc"
+      outcosebis="${STATDIR}/COSEBIS/"
+
+    ## Mocks
+    else
+      treePath="${STATDIR}/treecorr_K1000_${randTag}_GG/XI_${catTag}_${angTag}_${tomoPairTag}.asc"
+      outcosebis="${STATDIR}/catToObs_K1000_${randTag}_COSEBI/"
+    fi
+
+    # check does the correct input xi file exist?
+    test -f "${treePath}" || \
+      { echo "Error: KiDS-${PATCH} XI results ${treePath} do not exist. Either Run MODE XI (N/S) or COMBINE (ALL)!"; exit 1; }
 
     # check that the pre-computed COSEBIS tables exist
     SRCLOC=../src/cosebis
@@ -874,9 +1063,8 @@ do
       binning='lin'
     fi
 
-    # where do we want to write the output to?
-    filetail=COSEBIS_${catTag}_theta_${BP_COSEBIS_THETAINFO[0]}_${BP_COSEBIS_THETAINFO[1]}_${tomoPairTag}
-    outcosebis=${STATDIR}/COSEBIS/
+    # COSEBI output tag
+    filetail="COSEBIS_${catTag}_theta_${BP_COSEBIS_THETAINFO[0]}_${BP_COSEBIS_THETAINFO[1]}_${tomoPairTag}"
 
     # Now Integrate output from treecorr with COSEBIS filter functions
     # -i = input file
@@ -900,8 +1088,8 @@ do
             --norm ${normfile} --root ${rootfile}
 
     # I am expecting this to have produced two files called
-    Enfile=${outcosebis}/En_${filetail}.asc
-    Bnfile=${outcosebis}/Bn_${filetail}.asc
+    Enfile="${outcosebis}/En_${filetail}.asc"
+    Bnfile="${outcosebis}/Bn_${filetail}.asc"
 
     # Did it work?
     test -f ${Enfile} || \
@@ -911,6 +1099,6 @@ do
 
     echo "Success: Leaving mode ${mode}"
 
-    fi
+  fi
 done
 
