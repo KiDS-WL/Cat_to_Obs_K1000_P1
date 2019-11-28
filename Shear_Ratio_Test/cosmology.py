@@ -68,7 +68,7 @@ class Cosmology:
         """Returns the line of sight comoving distance between objects at
         redshifts z1 and z2, z2>z1. Value is in Mpc/h"""
         if z1>=z2:
-            print "z2 must be greater than z1"
+            print("z2 must be greater than z1")
             return -1
         dclos = self.dh * scipy.integrate.quad(self.ooEz, z1, z2)[0]
         return dclos

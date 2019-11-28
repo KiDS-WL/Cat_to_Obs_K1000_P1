@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 # Read in user input to set the nbins, theta_min, theta_max, lin_not_log, fitscat1, fitscat2, outfilename
 if len(sys.argv) <6: 
     #print("Usage: %s nbins theta_min(arcmin) theta_max(arcmin) source_tomobin number_of_spins" % sys.argv[0]) 
-    print"Usage: %s nbins theta_min(arcmin) theta_max(arcmin) source_tomobin" % sys.argv[0] 
+    print("Usage: %s nbins theta_min(arcmin) theta_max(arcmin) source_tomobin" % sys.argv[0]) 
     sys.exit(1)
 else:
     nbins = int(sys.argv[1]) 
@@ -33,7 +33,8 @@ CATDIR='/disk09/KIDS/K1000_TWO_PT_STATS/'
 fitscat=CATDIR+'/TOMOCATS/K1000_N_BLIND_'+Blind+'_v3_6Z_'+str(JZBIN)+'.fits'
 
 # Location of the output files
-OUTDIR=CATDIR+'/OUTSTATS/SHEAR_RATIO/GT/'
+OUTDIR='/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/Shear_Ratio_Test/Output/'
+#CATDIR+'/OUTSTATS/SHEAR_RATIO/GT/'
 
 # Because we're rotating the observed ellipticities of the sources
 # for the spin test we won't use the built
@@ -50,7 +51,7 @@ eobs2 = (fitsfile[1].data['e2'])
 weight = (fitsfile[1].data['weight'])
 
 ngals=len(ra)
-print "ngals", ngals
+print("ngals", ngals)
 
 # the unspun source catalogue
 sourcecat = treecorr.Catalog(ra=ra,dec=dec,g1=eobs1,g2=eobs2,ra_units='deg', dec_units='deg',w=weight)
@@ -91,13 +92,13 @@ for IZBIN in range (izin,izin+1):   #1,2,3,4,5
         bin_slop=bin_slop)
 
     # Now calculate the different 2pt correlation functions
-    print "Calculating the number of source-lens pairs"
+    print("Calculating the number of source-lens pairs")
     nlns.process(lenscat,sourcecat)
-    print "Calculating the number of source-random pairs"
+    print("Calculating the number of source-random pairs")
     nrns.process(rancat,sourcecat)
-    print "Calculating the average shear around the lenses"
+    print("Calculating the average shear around the lenses")
     ls.process(lenscat,sourcecat)    # only this one needs to be recalculated for each spin test
-    print "Calculating the average shear around the randoms"
+    print("Calculating the average shear around the randoms")
     rs.process(rancat,sourcecat)
 
     # We will use the Mandelbaum 2006 estimator which includes both the random and boost correction.
@@ -121,7 +122,7 @@ for IZBIN in range (izin,izin+1):   #1,2,3,4,5
     gamma_t = ls.xi*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi
     gamma_x = ls.xi_im*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi_im
 
-    print "Writing out", outfile_main
+    print("Writing out", outfile_main)
     
     #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
     treecorr.util.gen_write(outfile_main,
@@ -139,7 +140,7 @@ for IZBIN in range (izin,izin+1):   #1,2,3,4,5
     # for each of the source trials analysis of each lens bin we have to fix the seed
     np.random.seed(42)
 
-    print "Running spin test using ntrials =", ntrials
+    print("Running spin test using ntrials =", ntrials)
 
     if ntprevrun > 0 :
         for i in range (ntprevrun):

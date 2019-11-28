@@ -26,24 +26,27 @@ theta_max = 30.
 
 measurements = {}
 
-thetas_list = []
-gt_list = []
-gx_list = []
+thetas_list = []  
+gt_list = []      # gamma_t
+gx_list = []      # gamma_x
 gterr_list = []
 
 tomo_list = []
 speczbin_list = []
 Dls_over_Ds_list = []
 
-SPINDIR='/disk09/KIDS/K1000_TWO_PT_STATS//OUTSTATS/SHEAR_RATIO/'
-ntomo=5
-nspecz=5
-nspin=1000
+SPINDIR='/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/Shear_Ratio_Test/Output/'
+#'/disk09/KIDS/K1000_TWO_PT_STATS//OUTSTATS/SHEAR_RATIO/'
+ntomo=5              # Number of tomographic bins
+tomoz_first_bin=1    # ID of first bin (in case not you're not using them all).
+nspecz=3             # Same for specz
+specz_first_bin=3    # "...."
+nspin=600
 
 for tomobin in range(ntomo):
-    for speczbin in range(nspecz):
+    for speczbin in range(2,5):
 
-        gtfile=SPINDIR+'/GT/K1000_GT_6Z_source_'+str(tomobin+1)+'_5Z_lens_'+str(speczbin+1)+'.asc'
+        gtfile=SPINDIR+'/K1000_GT_6Z_source_'+str(tomobin+1)+'_5Z_lens_'+str(speczbin+1)+'.asc'
         gtdat=ascii.read(gtfile)
 
         measurements['thetas_'+str(speczbin)+"_"+str(tomobin)] = gtdat['meanr']
@@ -79,21 +82,21 @@ diag=np.zeros(nmatrix)
 covdiag=np.zeros([nmatrix,nmatrix])
 
 for tomobin in range(ntomo):
-    for speczbin in range(nspecz):
+    for speczbin in range(2,5):
         for ispin in range(nspin):
-            gtfile=SPINDIR+'/GT/SPIN/K1000_GT_SPIN_'+str(ispin)+'_6Z_source_'+str(tomobin+1)+'_5Z_lens_'+str(speczbin+1)+'.asc'
+            gtfile=SPINDIR+'/SPIN/K1000_GT_SPIN_'+str(ispin)+'_6Z_source_'+str(tomobin+1)+'_5Z_lens_'+str(speczbin+1)+'.asc'
             gtspindat=ascii.read(gtfile)
             gtlens[:,ispin]=gtspindat['gamT'] 
-        if speczbin==0 and tomobin==0:      
+        if speczbin==2 and tomobin==0:      
             gtprev = np.copy(gtlens)
         else:    
             gtall = np.vstack((gtprev,gtlens))
             gtprev= np.copy(gtall)
-            print len(gtall)
+            print(len(gtall))
     
 cov=np.cov(gtall)
 
-print len(cov)
+print(len(cov))
 for i in range(nmatrix):
     diag[i]=np.sqrt(cov[i,i])
     covdiag[i,i]=cov[i,i]
@@ -125,7 +128,7 @@ ndof = (ntomo * nspecz * ntheta) - (ntheta * nspecz)
 chi2_red = result['fun']/ndof
 p_value = 1 - stats.chi2.cdf(result['fun'], ndof)
 
-print "chi^2=%1.2f, dof=%i, chi^2/dof=%1.2f, p=%1.3f, success=%s\n" % (result['fun'], ndof, chi2_red, p_value, result['success'])
+print("chi^2=%1.2f, dof=%i, chi^2/dof=%1.2f, p=%1.3f, success=%s\n" % (result['fun'], ndof, chi2_red, p_value, result['success']))
 
 f = open('K1000xBOSS_Shear_ratio.res', 'w')
 f.write("chi^2=%1.2f, dof=%i, chi^2/dof=%1.2f, p=%1.3f, success=%s\n" % (result['fun'], ndof, chi2_red, p_value, result['success']))
