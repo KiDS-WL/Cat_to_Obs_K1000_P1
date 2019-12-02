@@ -77,7 +77,7 @@ for iz in range(1,ntomobin+1):
 
         # now plot the results (present l PBB/2pi rather than l^2 PBB/2pi which is given in the data file) 
         # inclue with annotations of the bin combination and p-value 
-        ax.errorbar(ell, PBB/ell*1e7, yerr=diagerr/ell*1e7, fmt='o', color='magenta',label=tomochar)
+        ax.errorbar(ell, PBB/ell*1e7, yerr=diagerr/ell*1e7, fmt='o', color='magenta',label=tomochar,markerfacecolor='none')
         ax.axhline(y=0, color='black', ls=':')
         ax.set_ylim(-3,3)
         ax.annotate(tomochar, xy=(0.2,0.9),xycoords='axes fraction',

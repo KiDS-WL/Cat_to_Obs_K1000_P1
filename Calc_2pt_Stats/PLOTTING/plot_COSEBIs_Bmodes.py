@@ -73,7 +73,7 @@ for iz in range(1,ntomobin+1):
         pvalchar='p=%0.3f'%(pval)
 
         # and plot the results with annotations of the bin combination and p-value
-        ax.errorbar(n, Bn*1e10, yerr=diagerr*1e10, fmt='o', color='magenta',label=tomochar)
+        ax.errorbar(n, Bn*1e10, yerr=diagerr*1e10, fmt='o', color='magenta',label=tomochar,markerfacecolor='none')
         ax.axhline(y=0, color='black', ls=':')
         ax.set_ylim(-9,12)
         ax.annotate(tomochar, xy=(0.2,0.9),xycoords='axes fraction',
