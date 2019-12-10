@@ -129,6 +129,7 @@ def makecats(ired):
   outfile = OUTDIR +'/BOSS_data_z' + str(ired) + '.fits'
   writelensldaccat(outfile,rasbossdat,decbossdat,redbossdat,weicompbossdat,weifkpbossdat,\
                        iphotbossdat,weimagbossdat,grcolbossdat,ricolbossdat,rmagbossdat,kidsmaskbossdat)
+  #outfile = OUTDIR +'/BOSS_random_CMASS_z' + str(ired) + '.fits'
   outfile = OUTDIR +'/BOSS_random_z' + str(ired) + '.fits'
   writelensldaccat(outfile,rasbossran,decbossran,redbossran,weicompbossran,weifkpbossran,\
                        iphotbossran,weimagbossran,grcolbossran,ricolbossran,rmagbossran,kidsmaskbossran)
@@ -237,6 +238,8 @@ def readboss(datopt,ired,rmin,rmax,dmin,dmax):
   else:
     datfile[0] = 'random0_DR12v5_CMASSLOWZTOT_North.fits'
     datfile[1] = 'random1_DR12v5_CMASSLOWZTOT_North.fits'
+    #datfile[0] = 'random0_DR12v5_CMASS_North.fits'
+    #datfile[1] = 'random1_DR12v5_CMASS_North.fits'
     nfiles = 2
 
   #rasboss_out,decboss_out,redboss_out,weicompboss_out,weifkpboss_out = [],[],[],[],[]
