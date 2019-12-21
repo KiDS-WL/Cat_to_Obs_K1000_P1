@@ -4,6 +4,7 @@
 # File Name:           doall_calc2pt.sh
 # Author:              Marika Asgari (ma@roe.ac.uk)
 #                      Catherine Heymans (heymans@roe.ac.uk)
+#                      Chieh-An Lin (calin@roe.ac.uk)
 # Description:         Master script to do all KiDS tasks related to converting a catalogue
 #                      to the cosmic shear and GGL observables that we want to measure
 # ----------------------------------------------------------------
