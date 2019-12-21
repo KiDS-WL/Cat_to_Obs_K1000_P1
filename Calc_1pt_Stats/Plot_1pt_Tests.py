@@ -75,6 +75,9 @@ def Read_Basic_Data(Read_NorS,tail):
 	ace2 = f[iext].data['autocal_e2_%s'%Blind]
 	acw = f[iext].data['recal_weight_%s'%Blind]
 
+	#unweighted but with a weight>0 cut
+	#acw[acw>0]=1
+
 	print "Reading in Xpos,Ypos,MAG,PSFe's...."
 	Xpos = f[iext].data['Xpos']
 	Ypos = f[iext].data['Ypos']
