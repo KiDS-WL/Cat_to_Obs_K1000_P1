@@ -12,8 +12,9 @@ survey='2dFLenS'
 #survey='BOSS'
 
 #Choose the number of KIDS bands for the overlap region
-nbands=9
-#nbands=4
+#nbands=9  # full 9-band area
+#nbands=3 # gri area
+nbands=1  # in the KiDS imaging area - i.e wcs mask
 
 if nbands==9:
     #To apply the 9-band photo-zs mask use
@@ -30,11 +31,21 @@ elif nbands==4:
     #for this you want
     bitmask=0x681C
     if survey=='BOSS':
-        #BOSS 4-band overlap area
+        #BOSS 3-band overlap area
         area=339.298
     else:
-        #2dFLenS 4-band ovelrap area
+        #2dFLenS 3-band overlap area
         area=355.2831
+elif nbands==1:
+    #You might however just want to know where the VST has looked
+    #for this you want
+    bitmask=0x4000
+    if survey=='BOSS':
+        #BOSS 1-band overlap area
+        area=408.321
+    else:
+        #2dFLenS 1-band overlap area
+        area=424.508
 
 #Now lets see how many lenses remain once the KiDS mask has been applied
 
