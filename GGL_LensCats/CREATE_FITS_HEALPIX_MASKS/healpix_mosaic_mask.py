@@ -17,10 +17,10 @@ from astropy.coordinates import SkyCoord
 #1: Read in the fitsmask and set the value you wish to mask out
 
 #Either read 2dFLenS flat mask
-#twodFfile='KiDS-S_2dFLenS_only_footprint.fits'
+#twodFfile='/home/cech/KiDSLenS/THELI_catalogues/MOSAIC_MASK/HEALPIX_MASK/KiDS-S_2dFLenS_only_footprint.fits'
 
 # or the joint 2dFLenS-KiDS mask
-twodFfile='KiDS-S_K1000_w_2dFLenS_footprint_full.fits'
+twodFfile='/home/cech/KiDSLenS/THELI_catalogues/MOSAIC_MASK/HEALPIX_MASK/KiDS-S_K1000_w_2dFLenS_footprint_full.fits'
 
 #Set the bitmask that we are applying
 #info here:http://lensingkids.strw.leidenuniv.nl/doku.php?id=kids-1000#mask_values_and_meanings
@@ -31,10 +31,14 @@ twodFfile='KiDS-S_K1000_w_2dFLenS_footprint_full.fits'
 
 #You might however just want to know where the gri information is
 #for the 2dFLenS re-weighting to BOSS - for this you want
-bitmask=0x681C
+#bitmask=0x681C
+
+#Maybe you just want to know if VST has ever pointed at this
+#patch of sky = i.e the KiDS extend (wcs mask - 16384 + 8 for the 2dFLenS coverage)
+bitmask=0x4008
 
 #Or maybe you are looking at the 2dFLenS only footprint
-#bitmask=1
+#bitmask=0x1
 
 #Read in the mask file
 hdulist = fits.open(twodFfile)
@@ -61,7 +65,9 @@ unmasked_eff_area=len(ra)*(0.1*0.1)/(60.0*60.0)
 # 9-band bitmask
 #print ('2dFLenS-KiDS-S 9-band effective area = %f sq. degrees'%(unmasked_eff_area))
 # gri bitmask
-print ('2dFLenS-KiDS-S gri effective area = %f sq. degrees'%(unmasked_eff_area))
+#print ('2dFLenS-KiDS-S gri effective area = %f sq. degrees'%(unmasked_eff_area))
+# wcs bitmask
+print ('2dFLenS-KiDS-S wcs effective area = %f sq. degrees'%(unmasked_eff_area))
 
 radec=np.stack((ra,dec)).T
 
@@ -84,11 +90,16 @@ countmap = np.bincount(mask_hppix, weights=weights, minlength=npix)
 #plt.savefig('2dFLenS_SGP_healpix.png')
 
 #Or write out the joint lensing-2dFLenS 9-band overlap
-#hp.write_map('K1000_w_2dFLenS_9_band_overlap_healpix.fits', countmap,coord='G')
+#hp.write_map('K1000_w_2dFLenS_9_band_overlap_healpix.fits', countmap,coord='G',overwrite=True)
 #hp.mollview(countmap,coord='C',xsize=20000, title='KiDS-2dFLenS 9-band overlap')
 #plt.savefig('K1000_w_2dFLenS_9_band_overlap.png')
 
 #Or write out the joint lensing-2dFLenS gri overlap
-hp.write_map('K1000_w_2dFLenS_gri_overlap_healpix.fits', countmap,coord='G')
-hp.mollview(countmap,coord='C',xsize=20000, title='KiDS-2dFLenS gri overlap')
-plt.savefig('K1000_w_2dFLenS_gri_overlap.png')
+#hp.write_map('K1000_w_2dFLenS_gri_overlap_healpix.fits', countmap,coord='G',overwrite=True)
+#hp.mollview(countmap,coord='C',xsize=20000, title='KiDS-2dFLenS gri overlap')
+#plt.savefig('K1000_w_2dFLenS_gri_overlap.png')
+
+#Or write out the joint lensing-2dFLenS KiDS extemt overlap
+hp.write_map('K1000_w_2dFLenS_wcs_overlap_healpix.fits', countmap,coord='G',overwrite=True)
+hp.mollview(countmap,coord='C',xsize=1000, title='KiDS-2dFLenS wcs overlap')
+plt.savefig('K1000_w_2dFLenS_wcs_overlap.png')
