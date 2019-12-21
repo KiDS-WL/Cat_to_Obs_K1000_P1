@@ -17,7 +17,10 @@ DD='/disk09/KIDS/K1000_TWO_PT_STATS/GGLCATS'
 
 #You might however just want to know where the gri information is
 #for this you want
-bitmask=0x681C
+#bitmask=0x681C
+
+#Or maybe you just want to know if the VST has looked at this area
+bitmask=0x4000
 
 #Lets first calculate how many randoms were in the original NGP random files
 nran_ngp = np.zeros(2)
@@ -55,7 +58,7 @@ for ilens in range(1):
     RAall=randomcat.field('ALPHA_J2000')
     Decall=randomcat.field('DELTA_J2000')
     
-    #filter based on the 9-band or gri mask
+    #filter based on the 9-band, gri mask, or wcs mask
     ifilter=np.logical_not(np.array(KIDSMASK.astype(int) & bitmask, dtype=bool))
     not_in_mask=KIDSMASK[ifilter]
     RA=RAall[ifilter]
@@ -73,7 +76,7 @@ for ilens in range(1):
     plt.xlabel('RA')
     plt.ylabel('Dec')
     #plt.savefig('random_distribution_ilens_%d.png' % (ilens))
-    plt.savefig('CMASS_random_distribution_ilens_%d.png' % (ilens))
+    plt.savefig('CMASS_random_distribution_ilens_%d_KiDS_wcs.png' % (ilens))
     #plt.savefig('LOWZ_random_distribution_ilens_%d.png' % (ilens))
     plt.show()
 
