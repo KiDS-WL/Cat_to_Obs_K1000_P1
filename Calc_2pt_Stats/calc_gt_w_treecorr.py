@@ -40,6 +40,9 @@ sourcecat = treecorr.Catalog(sourcecatname, ra_col='ALPHA_J2000', dec_col='DELTA
                                   g1_col='e1', g2_col='e2', w_col='weight')
 
 
+#to do include wcs cut
+#,flag_col='KIDSMASK',ignore_flag=16384
+
 # the value of bin_slop
 fine_binning = True
 
