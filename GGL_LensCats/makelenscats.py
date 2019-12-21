@@ -65,10 +65,10 @@ def makecats(ired):
 
   print ('\nMatching catalogues...')
 
-  grcolbossdat,ricolbossdat,rmagbossdat,kidsmaskbossdat,iphotbossdat = matchlenstosource(rasbossdat,decbossdat,raskids,deckids,\
+  grcolbossdat,ricolbossdat,rmagbossdat,kidsmaskbossdat_match,iphotbossdat = matchlenstosource(rasbossdat,decbossdat,raskids,deckids,\
                                                                           grcolkids,ricolkids,rmagkids,maskkids,\
                                                                           rmin_N,rmax_N,dmin_N,dmax_N,rmin_S,rmax_S,dmin_S,dmax_S)
-  grcol2dfdat,ricol2dfdat,rmag2dfdat,kidsmask2dfdat,iphot2dfdat = matchlenstosource(ras2dfdat,dec2dfdat,raskids,deckids,\
+  grcol2dfdat,ricol2dfdat,rmag2dfdat,kidsmask2dfdat_match,iphot2dfdat = matchlenstosource(ras2dfdat,dec2dfdat,raskids,deckids,\
                                                                      grcolkids,ricolkids,rmagkids,maskkids,\
                                                                      rmin_N,rmax_N,dmin_N,dmax_N,\
                                                                      rmin_S,rmax_S,dmin_S,dmax_S)
@@ -81,7 +81,7 @@ def makecats(ired):
 #info here:http://lensingkids.strw.leidenuniv.nl/doku.php?id=kids-1000#mask_values_and_meanings
 
   bitmask=0x681C
-  ifilter=np.logical_not(np.array(kidsmaskbossdat & bitmask, dtype=bool))
+  ifilter=np.logical_not(np.array(kidsmaskbossdat_match & bitmask, dtype=bool))
   cutboss = ((iphotbossdat > 0) & (ifilter))
   cut2df = (iphot2dfdat > 0)
 
@@ -97,7 +97,7 @@ def makecats(ired):
 # For the reference sample we only want to use 2dfLenS galaxies that haven't been masked in the gri KiDS data
 # but it's OK to reweight the BOSS galaxies in a mask- we can use the mask later to add caution
 
-  ifilter=np.logical_not(np.array(kidsmask2dfdat & bitmask, dtype=bool))
+  ifilter=np.logical_not(np.array(kidsmask2dfdat_match & bitmask, dtype=bool))
   cutboss = (iphotbossdat > 0 )
   cut2df = ((iphot2dfdat > 0) & (ifilter))
 
@@ -116,12 +116,15 @@ def makecats(ired):
                                                                      np.zeros(n2dfran),np.zeros(n2dfran),np.zeros(n2dfran)
 
 # add kids mask to the random catalogue to allow for gri KiDS overlap matching requirement
+# also do this for the data so the rare blend objects that aren't matched don't automatically get a wcs mask flag
 
   Nfitsmask='/home/cech/KiDSLenS/THELI_catalogues/MOSAIC_MASK/HEALPIX_MASK/KiDS-N_K1000_footprint_16bit.fits'
   kidsmaskbossran = addkidsmask(rasbossran,decbossran,Nfitsmask)
+  kidsmaskbossdat = addkidsmask(rasbossdat,decbossdat,Nfitsmask)
 
   Sfitsmask='/home/cech/KiDSLenS/THELI_catalogues/MOSAIC_MASK/HEALPIX_MASK/KiDS-S_K1000_footprint_16bit.fits'
   kidsmask2dfran = addkidsmask(ras2dfran,dec2dfran,Sfitsmask)
+  kidsmask2dfdat = addkidsmask(ras2dfdat,dec2dfdat,Sfitsmask)
   
   print ('\nWriting out final catalogues...')
 
@@ -155,7 +158,7 @@ def addkidsmask(ra,dec,fitsmask):
   pos=pywcs.utils.skycoord_to_pixel(c, w)
 
   ngals=np.shape(pos)[1]
-  mask=np.zeros(ngals)
+  mask=np.zeros(ngals).astype(int)
   for k in range(ngals):
     if int(pos[1][k])>=0 and int(pos[1][k])<np.shape(imagedata)[0] and \
        int(pos[0][k])>=0 and int(pos[0][k])<np.shape(imagedata)[1]:
@@ -306,7 +309,8 @@ def read2dflens(datopt,ired):
       else:
         cred = '_bz2'
       if (datopt == 1):
-        datfile = twodF_DIR + '/data' + cred + creg + '_ntar.dat'
+        #datfile = twodF_DIR + '/data' + cred + creg + '_ntar.dat'
+        datfile = twodF_DIR + '/data' + cred + creg + '_rat.dat'
       else:
         if (iset < 9):
           cset = '00' + str(iset+1)
@@ -314,7 +318,8 @@ def read2dflens(datopt,ired):
           cset = '0' + str(iset+1)
         else:
           cset = str(iset+1)
-        datfile = twodF_DIR + '/rand' + cset + cred + creg + '_ntar.dat'
+        #datfile = twodF_DIR + '/rand' + cset + cred + creg + '_ntar.dat'
+        datfile = twodF_DIR + '/rand' + cset + cred + creg + '_rat.dat'
       print (datfile)
 
       f = open(datfile,'r')
