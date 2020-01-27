@@ -35,7 +35,7 @@ ldac_table = ldac_cat['OBJECTS']
 # using phase 1 autocal column names
 e1colname='autocal_e1_'+blind
 e2colname='autocal_e2_'+blind
-wtcolname='recal_weight_'+blind  
+wtcolname='recal_weight_'+blind 
 
 #phase 0 column names  
 #e1colname='e1_'+blind
@@ -47,6 +47,10 @@ e2=ldac_table[e2colname]
 weight=ldac_table[wtcolname]
 Z_B=ldac_table['Z_B']
 
+# Lets also pass through the PSF ellipticity for star-gal-xcorr 
+PSF_e1=ldac_table['PSF_e1']
+PSF_e2=ldac_table['PSF_e2']
+
 ALPHA_J2000=ldac_table['ALPHA_J2000']
 DELTA_J2000=ldac_table['DELTA_J2000']
 
@@ -57,6 +61,8 @@ e2_inbin=e2[ztomo]
 w_inbin=weight[ztomo]
 ra_inbin=ALPHA_J2000[ztomo]
 dec_inbin=DELTA_J2000[ztomo]
+PSF_e1_inbin=PSF_e1[ztomo]
+PSF_e2_inbin=PSF_e2[ztomo]
 
 # THIS WOULD NEED TO BE UPDATED FOR METACAL TO ALSO INCLUDE THE M_CORRECTION
 if (ccorr=='true'):  
@@ -85,5 +91,7 @@ hdulist = fits.BinTableHDU.from_columns(
      fits.Column(name='DELTA_J2000', format='1D', unit='deg',array=dec_inbin),
      fits.Column(name='e1', format='1E', array=e1_corr),
      fits.Column(name='e2', format='1E', array=e2_corr),
+     fits.Column(name='PSF_e1', format='1E', array=PSF_e1_inbin),
+     fits.Column(name='PSF_e2', format='1E', array=PSF_e2_inbin),
      fits.Column(name='weight', format='1E', array=w_inbin)])
 hdulist.writeto(outfile, overwrite=True)
