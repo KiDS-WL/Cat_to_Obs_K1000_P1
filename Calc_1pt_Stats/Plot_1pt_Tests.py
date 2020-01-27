@@ -62,8 +62,8 @@ def Read_Basic_Data(Read_NorS,tail):
 	print "Reading in RA,Dec,e1,e2,w,ZB...."
 
 	# K1000- cats
-	f = fits.open('/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH/K1000_%s_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_%s.cat'%(Read_NorS,tail))
-	iext=2
+	f = fits.open('/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH/K1000_%s_V1.0.0A_ugriZYJHKs_photoz_SG_mask_%s.cat'%(Read_NorS,tail))
+	iext=1
 
 	ra = f[iext].data['ALPHA_J2000']
 	dec = f[iext].data['DELTA_J2000']
@@ -76,7 +76,7 @@ def Read_Basic_Data(Read_NorS,tail):
 	acw = f[iext].data['recal_weight_%s'%Blind]
 
 	#unweighted but with a weight>0 cut
-	#acw[acw>0]=1
+	acw[acw>0]=1
 
 	print "Reading in Xpos,Ypos,MAG,PSFe's...."
 	Xpos = f[iext].data['Xpos']
@@ -394,12 +394,12 @@ v2max=v1max
 
 t1 = time.time()
 # MEAN ELLIPTICITY VS PSF ELLIPTICITY
-#bin_PSFe_e_eerr = Plot_BinQx_VS_BinQy(np.vstack((PSFe1,PSFe2)), 1000*np.vstack((e1, e2)), w, m, 15, 
-#			[r'$\langle e_1 \rangle$', r'$\langle e_2 \rangle$'], r'$e_{\rm{PSF}}$', r'$\langle e \rangle \times 10^{-3}$', mc_or_ac,
-#			[-0.04,0.04], [-2.5,2.5], 
-#			'%s/GeneralPlots/K%s.%s.Blind%s.ePSF_VS_e.%s_%s.png' %(DIRECT,NorS,mc_or_ac,Blind,ZBlabel,tail), Bootstrap )
-#t2 = time.time()
-#print "It took %.0f s to bin and plot e VS PSFe" %(t2-t1)
+bin_PSFe_e_eerr = Plot_BinQx_VS_BinQy(np.vstack((PSFe1,PSFe2)), 1000*np.vstack((e1, e2)), w, m, 15, 
+			[r'$\langle e_1 \rangle$', r'$\langle e_2 \rangle$'], r'$e_{\rm{PSF}}$', r'$\langle e \rangle \times 10^{-3}$', mc_or_ac,
+			[-0.04,0.04], [-2.5,2.5], 
+			'%s/GeneralPlots/K%s.%s.Blind%s.ePSF_VS_e.%s_%s.png' %(DIRECT,NorS,mc_or_ac,Blind,ZBlabel,tail), Bootstrap )
+t2 = time.time()
+print "It took %.0f s to bin and plot e VS PSFe" %(t2-t1)
     
 # MEAN ELLIPTICITY VS ZB
 #bin_ZB_e_err = Plot_BinQx_VS_BinQy(np.vstack((ZB,ZB)), 1000*np.vstack((e1, e2)), w, m, 12, 
@@ -424,7 +424,7 @@ t1 = time.time()
 #print "Finished binning and plotting e VS TPSF" 
 
 # alpha VS ZB	
-Plot_alpha_vs_ZB(e1, e2, PSFe1, PSFe2, w, ZB, '%s/GeneralPlots/K%s.%s.Blind%s.alpha_VS_ZB.%s_%s.png' %(DIRECT,NorS,mc_or_ac,Blind,ZBlabel,tail)) #, labels, xlabel, ylabel, title,xlimits, ylimits, savename):
+#Plot_alpha_vs_ZB(e1, e2, PSFe1, PSFe2, w, ZB, '%s/GeneralPlots/K%s.%s.Blind%s.alpha_VS_ZB.%s_%s.png' %(DIRECT,NorS,mc_or_ac,Blind,ZBlabel,tail)) #, labels, xlabel, ylabel, title,xlimits, ylimits, savename):
 
 
 
