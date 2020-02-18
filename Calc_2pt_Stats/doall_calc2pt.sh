@@ -861,7 +861,7 @@ do
     else
         ## Old format that mocks use
         awk '(NR>1){print $2, $4-$5, $10-$11}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
-    
+    fi
     N_theta_BP=`wc -l < ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat`
 
     ## apoWidth = log width of apodisation window
