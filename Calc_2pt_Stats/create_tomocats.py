@@ -73,9 +73,9 @@ DELTA_J2000=ldac_table['DELTA_J2000']
 if flag_SOM:
     flag_SOM_name=flag_SOM+'_'+blind
     FLAG_SOM=ldac_table[flag_SOM_name]
-    ztomo=( (Z_B<zmax) & (Z_B>=zmin) & (FLAG_SOM > 0))
+    ztomo=( (Z_B<=zmax) & (Z_B>zmin) & (FLAG_SOM > 0))
 else:
-    ztomo=( (Z_B<zmax) & (Z_B>=zmin))
+    ztomo=( (Z_B<=zmax) & (Z_B>zmin))
     
 #Apply the tomographic/SOM selection
 
@@ -87,6 +87,7 @@ dec_inbin=DELTA_J2000[ztomo]
 PSF_e1_inbin=PSF_e1[ztomo]
 PSF_e2_inbin=PSF_e2[ztomo]
 w_inbin=weight[ztomo]
+wsq_inbin=weight[ztomo]*weight[ztomo]
 
 nboot = 300
 # THIS WOULD NEED TO BE UPDATED FOR METACAL TO ALSO INCLUDE THE M_CORRECTION
@@ -123,5 +124,6 @@ hdulist = fits.BinTableHDU.from_columns(
      fits.Column(name='e2', format='1E', array=e2_corr),
      fits.Column(name='PSF_e1', format='1E', array=PSF_e1_inbin),
      fits.Column(name='PSF_e2', format='1E', array=PSF_e2_inbin),
-     fits.Column(name='weight', format='1E', array=w_inbin)])
+     fits.Column(name='weight', format='1E', array=w_inbin),
+     fits.Column(name='weightsq', format='1E', array=wsq_inbin)])
 hdulist.writeto(outfile, overwrite=True)
