@@ -26,15 +26,25 @@ else:
     fitscat2 = sys.argv[6]
     outfile = sys.argv[7]
 
+if len(sys.argv) >7:  # optional column names supplied
+    cat1e1name = sys.argv[8]
+    cat1e2name = sys.argv[9]
+    cat2e1name = sys.argv[10]
+    cat2e2name = sys.argv[11]
+    fine_binning = sys.argv[12]
+else: #use defaults
+    cat1e1name = 'e1'
+    cat1e2name = 'e2'
+    cat2e1name = 'e1'
+    cat2e2name = 'e2'
+    fine_binning = True
+    
 # prepare the catalogues
 
 cat1 = treecorr.Catalog(fitscat1, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
-                                  g1_col='e1', g2_col='e2', w_col='weight')
+                                  g1_col=cat1e1name, g2_col=cat1e2name, w_col='weight')
 cat2 = treecorr.Catalog(fitscat2, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
-                                  g1_col='e1', g2_col='e2', w_col='weight')
-
-# the value of bin_slop
-fine_binning = True
+                                  g1_col=cat2e1name, g2_col=cat2e2name, w_col='weight')
 
 if fine_binning:
     # when using fine bins I find this is suitable
