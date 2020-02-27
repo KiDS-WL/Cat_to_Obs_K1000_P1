@@ -64,6 +64,10 @@ dec_inbin=DELTA_J2000[ztomo]
 PSF_e1_inbin=PSF_e1[ztomo]
 PSF_e2_inbin=PSF_e2[ztomo]
 
+#carry through the square of the weight for
+#Npair calculation hack with Treecorr
+wsq_inbin=weight[ztomo]*weight[ztomo]
+
 # THIS WOULD NEED TO BE UPDATED FOR METACAL TO ALSO INCLUDE THE M_CORRECTION
 if (ccorr=='true'):  
     # weighted mean   
@@ -93,5 +97,6 @@ hdulist = fits.BinTableHDU.from_columns(
      fits.Column(name='e2', format='1E', array=e2_corr),
      fits.Column(name='PSF_e1', format='1E', array=PSF_e1_inbin),
      fits.Column(name='PSF_e2', format='1E', array=PSF_e2_inbin),
-     fits.Column(name='weight', format='1E', array=w_inbin)])
+     fits.Column(name='weight', format='1E', array=w_inbin),
+     fits.Column(name='weightsq', format='1E', array=wsq_inbin)])
 hdulist.writeto(outfile, overwrite=True)
