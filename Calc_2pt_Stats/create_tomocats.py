@@ -24,6 +24,20 @@ else:
     outfile = sys.argv[4]
     blind = sys.argv[5]
     ccorr = sys.argv[6]
+    
+if len(sys.argv) >7:     # optional commands to carry through the SOM Flag of choice
+    flag_SOM = sys.argv[7]
+else:
+    flag_SOM = False
+
+# Define the bootstrap error function to calculate the error on the c-terms
+def Bootstrap_Error(nboot, samples, weights):
+	N = len(samples)
+	bt_samples = np.zeros(nboot)		 		# Will store mean of nboot resamples
+	for i in range(nboot):
+		idx = np.random.randint(0,N,N)			# Picks N random indicies with replacement
+		bt_samples[i] = np.sum( weights[idx]*samples[idx] ) / np.sum( weights[idx])
+	return np.std(bt_samples)
 
 #open the ldac catalogue using functions in ldac.py
 #tests have shown ldac.py is much faster than using astropy
@@ -54,26 +68,43 @@ PSF_e2=ldac_table['PSF_e2']
 ALPHA_J2000=ldac_table['ALPHA_J2000']
 DELTA_J2000=ldac_table['DELTA_J2000']
 
-#This is the tomographic selection that we want to apply
-ztomo=( (Z_B<zmax) & (Z_B>=zmin))
+# If a SOM Flag has been selected, them we need to apply the SOM Flag in the
+# tomographic selection
+if flag_SOM:
+    flag_SOM_name=flag_SOM+'_'+blind
+    FLAG_SOM=ldac_table[flag_SOM_name]
+    ztomo=( (Z_B<=zmax) & (Z_B>zmin) & (FLAG_SOM > 0))
+else:
+    ztomo=( (Z_B<=zmax) & (Z_B>zmin))
+    
+#Apply the tomographic/SOM selection
+
 e1_inbin=e1[ztomo]
+
 e2_inbin=e2[ztomo]
-w_inbin=weight[ztomo]
 ra_inbin=ALPHA_J2000[ztomo]
 dec_inbin=DELTA_J2000[ztomo]
 PSF_e1_inbin=PSF_e1[ztomo]
 PSF_e2_inbin=PSF_e2[ztomo]
+w_inbin=weight[ztomo]
+wsq_inbin=weight[ztomo]*weight[ztomo]
 
+nboot = 300
 # THIS WOULD NEED TO BE UPDATED FOR METACAL TO ALSO INCLUDE THE M_CORRECTION
 if (ccorr=='true'):  
     # weighted mean   
     c1=np.average(e1_inbin,weights=w_inbin)
     c2=np.average(e2_inbin,weights=w_inbin)
+
+    # Bootstrap error on the mean
+    errc1=Bootstrap_Error(nboot, e1_inbin, w_inbin)
+    errc2=Bootstrap_Error(nboot, e2_inbin, w_inbin)
+
     # weighted sd
-    sumosq1=np.average(e1_inbin*e1_inbin,weights=w_inbin)
-    sumosq2=np.average(e2_inbin*e2_inbin,weights=w_inbin)
-    errc1= np.sqrt(sumosq1 - c1*c1)
-    errc2= np.sqrt(sumosq2 - c2*c2)
+    #sumosq1=np.average(e1_inbin*e1_inbin,weights=w_inbin)
+    #sumosq2=np.average(e2_inbin*e2_inbin,weights=w_inbin)
+    #errc1= np.sqrt(sumosq1 - c1*c1)
+    #errc2= np.sqrt(sumosq2 - c2*c2)
 
     print(zmin, zmax, c1, errc1, c2, errc2)
 else:
@@ -93,5 +124,6 @@ hdulist = fits.BinTableHDU.from_columns(
      fits.Column(name='e2', format='1E', array=e2_corr),
      fits.Column(name='PSF_e1', format='1E', array=PSF_e1_inbin),
      fits.Column(name='PSF_e2', format='1E', array=PSF_e2_inbin),
-     fits.Column(name='weight', format='1E', array=w_inbin)])
+     fits.Column(name='weight', format='1E', array=w_inbin),
+     fits.Column(name='weightsq', format='1E', array=wsq_inbin)])
 hdulist.writeto(outfile, overwrite=True)
