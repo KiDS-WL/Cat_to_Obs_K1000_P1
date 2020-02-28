@@ -41,26 +41,33 @@ mkdir -p $LOGDIR
 # COMBINE: combine the results from N and S for cross bin combination i j"
 
 LENSFIT_VERSION=svn_309c_2Dbins
-for BLIND in B C
+
+: <<'=runmelater'
+for BLIND in A B C
 do
 
 ## Do you want to create the tomographic catalogues?  Safe to do this on the head node
 # No SOM Flag Selection
-#./doall_calc2pt.sh -m CREATETOMO -c true -p N -v $LENSFIT_VERSION -b $BLIND
-#./doall_calc2pt.sh -m CREATETOMO -c true -p S -v $LENSFIT_VERSION -b $BLIND
+./doall_calc2pt.sh -m CREATETOMO -c true -p N -v $LENSFIT_VERSION -b $BLIND
+./doall_calc2pt.sh -m CREATETOMO -c true -p S -v $LENSFIT_VERSION -b $BLIND
 
 # SOM Flag Selection
-for FLAG_SOM in Flag_SOM_Fid #Flag_SOM_noDEEP2
+for FLAG_SOM in Flag_SOM_Fid Flag_SOM_noDEEP2
 do
   ./doall_calc2pt.sh -m CREATETOMO -c true -p N -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
-  #./doall_calc2pt.sh -m CREATETOMO -c true -p S -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
+  ./doall_calc2pt.sh -m CREATETOMO -c true -p S -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
 done
 
 done
+=runmelater
 
 #Lets submit the XI-calculation to different nodes	    
 #This is for the default 5 bins
-: <<'=runmelater'
+#: <<'=runmelater'
+FLAG_SOM=Flag_SOM_Fid 
+#FLAG_SOM=Flag_SOM_noDEEP2
+
+
 for patch in N S
 do
     
@@ -85,15 +92,15 @@ do
 	        --constraint="datadisk" \
 	        --tasks-per-node=1 \
 	        --mem=0G \
-	        doall_calc2pt.sh -m XI -i $ibin -j $jbin -p $patch -v $LENSFIT_VERSION
+	        doall_calc2pt.sh -m XI -i $ibin -j $jbin -p $patch -v $LENSFIT_VERSION -s $FLAG_SOM
     ((jbin = jbin + 1))
   done
 done
 done
 
-done
 
-=runmelater
+
+#=runmelater
 : <<'=runmelater'
 
 
