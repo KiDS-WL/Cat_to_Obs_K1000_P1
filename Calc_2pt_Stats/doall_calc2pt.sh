@@ -503,6 +503,7 @@ do
       srcCat1="${TOMOCAT}_${IZBIN}.fits"
       srcCat2="${TOMOCAT}_${JZBIN}.fits"
       outPath="${STATDIR}/XI/XI_${catTag}_${angTag}_${tomoPairTag}.asc"
+      weightedanalysis="true"  # this will do an extra treecorr run to correctly calculate Npairs with a weighted sample
       
     ## Mocks with simple mask
     elif [ "${aves}" = "buceros" ]; then
@@ -514,7 +515,8 @@ do
       srcCat1="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType1}.fits"
       srcCat2="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType2}.fits"
       outPath="${STATDIR}/treecorr_K1000_${randTag}_GG/XI_${catTag}_${angTag}_${tomoPairTag}.asc"
-      
+      weightedanalysis="false"
+
     ## Mocks with complex mask
     else
       ## You should run N & S then combine.
@@ -525,6 +527,8 @@ do
       srcCat1="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType1}.fits"
       srcCat2="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType2}.fits"
       outPath="${STATDIR}/treecorr_K1000_${randTag}_GG/XI_${catTag}_${angTag}_${tomoPairTag}.asc"
+      weightedanalysis="false"
+
     fi
 
     # Check that the tomographic catalogue exist and exit if they don't 
@@ -534,7 +538,7 @@ do
       { echo "Error: Tomographic catalogue ${srcCat2} does not exist! For KiDS run MODE CREATETOMO!"; exit 1; }
 
     # Run treecorr
-    ${P_PYTHON3} calc_xi_w_treecorr.py ${THETAINFO_STR} ${LINNOTLOG} ${srcCat1} ${srcCat2} ${outPath}
+    ${P_PYTHON3} calc_xi_w_treecorr.py ${THETAINFO_STR} ${LINNOTLOG} ${srcCat1} ${srcCat2} ${outPath} ${weightedanalysis}
 
     # Did it work?
     test -f ${outPath} || \
