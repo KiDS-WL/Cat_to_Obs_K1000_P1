@@ -447,6 +447,9 @@ def writelensldaccat(outfile,raslens,declens,redlens,weicomplens,weifkplens,ipho
   ldac_table['RICOL']=ricollens
   ldac_table['RMAG']=rmaglens
   ldac_table['KIDSMASK']=kidsmask
+  # for the Treecorr hack to calculate Npairs for a weighted sample
+  # we also write out the weight squared
+  ldac_table['WEIMAGsq']=weimaglens*weimaglens
   
   ldac_table.saveas(outfile, overwrite=True)
   return
