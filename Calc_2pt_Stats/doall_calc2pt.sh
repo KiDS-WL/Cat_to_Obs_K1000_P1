@@ -433,6 +433,7 @@ do
       randCat="${LDIR}/${GGL_ID}_random_z${IZBIN}.fits"
       srcCat="${TOMOCAT}_${JZBIN}.fits"
       outPath="${STATDIR}/GT/GT_${catTag}_${angTag}_${tomoPairTag}.asc"
+      weightedanalysis="true"  # this will do an extra treecorr run to correctly calculate Npairs with a weighted sample
       
     ## Mocks with simple mask
     elif [ "${aves}" = "buceros" ]; then
@@ -445,6 +446,7 @@ do
       randCat="${SDIR}/${aves}/MFP_randCat/randCat_type${lensType}.fits"
       srcCat="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType2}.fits"
       outPath="${STATDIR}/treecorr_K1000_${randTag}_NG/GT_${catTag}_${angTag}_${tomoPairTag}.asc"
+      weightedanalysis="false"  
       
     ## Mocks with complex mask
     else
@@ -457,6 +459,7 @@ do
       randCat="${LDIR}/${GGL_ID}_random_z${IZBIN}.fits"
       srcCat="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType2}.fits"
       outPath="${STATDIR}/treecorr_K1000_${randTag}_NG/GT_${catTag}_${angTag}_${tomoPairTag}.asc"
+      weightedanalysis="false"  
     fi
 
     # check does the correct lens/source/random files exist?
@@ -468,7 +471,7 @@ do
       { echo "Error: Tomographic catalogue ${srcCat} does not exist! Run MODE CREATETOMO!"; exit 1; }
 
     # Run treecorr - using the Mandelbaum estimator that subtracts off the random signal
-    ${P_PYTHON3} calc_gt_w_treecorr.py ${THETAINFO_STR} ${LINNOTLOG} ${lensCat} ${randCat} ${srcCat} ${outPath}
+    ${P_PYTHON3} calc_gt_w_treecorr.py ${THETAINFO_STR} ${LINNOTLOG} ${lensCat} ${randCat} ${srcCat} ${outPath} ${weightedanalysis}
 
     # Did it work?
     test -f ${outPath} || \
