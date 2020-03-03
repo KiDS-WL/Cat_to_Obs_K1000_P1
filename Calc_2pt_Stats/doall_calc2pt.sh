@@ -137,7 +137,7 @@ THETAINFO_STR="326 0.37895134266193781 395.82918204307509"
 
 ## Information about the BP ell bins
 ## Format:  nbins, ell_min, ell_max, do apodisation
-ELLINFO_STR="8 100.0 1500.0 false"
+ELLINFO_STR="8 100.0 1500.0 true"
 
 ## Information about the COSEBIS theta bins
 ## Format:  nbins, theta_min, theta_max
@@ -273,19 +273,16 @@ mkdir -p ${TMPDIR}
 if [ "${USERCAT}" = "false" ]; then
   ## User catalogue has not been defined - use KIDS
   ## Phase 1 catalogue
-  masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}_goldclasses
+  if [ "${FLAG_SOM}" = "false" ]; then  # not using the SOM Flag
+    masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}_goldclasses
+  else
+    masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}_goldclasses_${FLAG_SOM}
+  fi
   ## Phase 0 catalogue
   #masterTag=9band_mask_BLINDED_${LENSFIT_VER}
 
   MASTERCAT=${SDIR}/K1000_${PATCH}_${masterTag}.cat
-
-  if [ "${FLAG_SOM}" = "false" ]; then  # not using the SOM Flag
-      catTag=K1000_${PATCH}_BLIND_${BLIND}_${masterTag}
-  else
-      catTag=K1000_${PATCH}_BLIND_${BLIND}_${masterTag}_${FLAG_SOM}
-      # also update masterTag with SOM Flag
-      masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}_goldclasses_${FLAG_SOM}
-  fi
+  catTag=K1000_${PATCH}_BLIND_${BLIND}_${masterTag}
   
 else
   ## Define the tags that mocks require

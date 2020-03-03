@@ -107,7 +107,7 @@ if __name__ == '__main__':
     if(lin_not_log=='true'): 
         gg = treecorr.GGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin',\
             bin_type='Linear', bin_slop=inbinslop)
-    else: # Log is he default bin_type for Treecorr
+    else: # Log is the default bin_type for Treecorr
         gg = treecorr.GGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
             bin_slop=inbinslop)
 
