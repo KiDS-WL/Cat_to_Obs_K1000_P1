@@ -117,7 +117,7 @@ LDIR=/disk09/KIDS/K1000_TWO_PT_STATS/GGLCATS/
 ODIR=/disk09/KIDS/K1000_TWO_PT_STATS/
 
 ## Catalogue Version number
-LENSFIT_VER=v3
+LENSFIT_VER=svn_309c_2Dbins
 
 ## Analyse either North or South - and use the COMBINE mode
 ## to combine the results.  Can be N, S, ALL
@@ -131,8 +131,9 @@ TOMOINFO_STR="5 0.1 0.3 0.5 0.7 0.9 1.2"
 ## Information about the GT & XI theta bins
 ## Format:  nbins, theta_min, theta_max
 THETAINFO_STR="326 0.37895134266193781 395.82918204307509"
-## This gives exact edges at 0.5 and 300 arcmin with 300 bins across that space.
-## There are 13 bins below 0.5 & 13 bins beyond 300.
+## This gives exact edges for COESBIS at 0.5 and 300 arcmin and also spans the
+## angular range needed for the band powers.
+## 13 bins below 0.5 & 13 bins beyond 300
 
 ## Information about the BP ell bins
 ## Format:  nbins, ell_min, ell_max, do apodisation
@@ -159,6 +160,19 @@ LINNOTLOG=false
 ## Which blind do you want to use?
 BLIND=A
 
+## Which SOM Flag do you want to use?
+#Default is None
+FLAG_SOM=false
+
+#Fiducial would be
+#FLAG_SOM=Flag_SOM_Fid
+# Other options are:
+#Flag_SOM_noVVDS
+#Flag_SOM_nozCOSMOS
+#Flag_SOM_noDEEP2
+#Flag_SOM_multispec3
+#Flag_SOM_speczquality4
+
 ## Do you want to define the input catalogue yourself with the -u 
 ## user defined catalogue option - if yes we need to set
 USERCAT=false
@@ -166,7 +180,7 @@ USERCAT=false
 ## Parse command line arguments
 MODE=""
 
-while getopts ":d:g:o:p:m:v:n:t:a:e:i:j:c:l:b:u:" opt; do
+while getopts ":d:g:o:p:m:v:n:t:a:e:i:j:c:l:b:u:s:" opt; do
   case ${opt} in
     d)
       SDIR=${OPTARG}
@@ -216,6 +230,9 @@ while getopts ":d:g:o:p:m:v:n:t:a:e:i:j:c:l:b:u:" opt; do
     u)
       USERCAT=${OPTARG}
       ;;
+    s)
+      FLAG_SOM=${OPTARG}
+      ;;
   esac
 done
 
@@ -256,12 +273,19 @@ mkdir -p ${TMPDIR}
 if [ "${USERCAT}" = "false" ]; then
   ## User catalogue has not been defined - use KIDS
   ## Phase 1 catalogue
-  masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}
+  masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}_goldclasses
   ## Phase 0 catalogue
   #masterTag=9band_mask_BLINDED_${LENSFIT_VER}
 
   MASTERCAT=${SDIR}/K1000_${PATCH}_${masterTag}.cat
-  catTag=K1000_${PATCH}_BLIND_${BLIND}_${masterTag}
+
+  if [ "${FLAG_SOM}" = "false" ]; then  # not using the SOM Flag
+      catTag=K1000_${PATCH}_BLIND_${BLIND}_${masterTag}
+  else
+      catTag=K1000_${PATCH}_BLIND_${BLIND}_${masterTag}_${FLAG_SOM}
+      # also update masterTag with SOM Flag
+      masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}_goldclasses_${FLAG_SOM}
+  fi
   
 else
   ## Define the tags that mocks require
@@ -385,11 +409,19 @@ do
         zmin=${TOMOINFO[${i}]}
         zmax=${TOMOINFO[${j}]}
 
-        # script to select galaxies between zmin/zmax from ${MASTERCAT} and write out to ${TOMOCAT}_$i.cat
+        # script to select galaxies between zmin/zmax from ${MASTERCAT}
+	# include the SOM selection, if required
+	# and write out to ${TOMOCAT}_$i.cat
+	
         # If CCORR is true, subtract off a c-term from the e1/e2 columns 
-        # Also returns the correction applied to stdout which we send to $C_RECORD
-        ${P_PYTHON3} create_tomocats.py ${zmin} ${zmax} ${MASTERCAT} ${TOMOCAT}_${i}.fits ${BLIND} ${CCORR}
+        # Returns the correction applied to stdout which we send to $C_RECORD
 
+        if [ "${FLAG_SOM}" = "false" ]; then  # not using the SOM Flag                             
+            ${P_PYTHON3} create_tomocats.py ${zmin} ${zmax} ${MASTERCAT} ${TOMOCAT}_${i}.fits ${BLIND} ${CCORR}
+	else
+            ${P_PYTHON3} create_tomocats.py ${zmin} ${zmax} ${MASTERCAT} ${TOMOCAT}_${i}.fits ${BLIND} ${CCORR} ${FLAG_SOM}
+	fi
+	
         # Check that the tomographic catalogues have been created and exit if they don't 
         test -f ${TOMOCAT}_${i}.fits || \
         { echo "Error: Tomographic catalogue ${TOMOCAT}_${i}.fits have not been created!"; exit 1; }
@@ -432,6 +464,7 @@ do
       randCat="${LDIR}/${GGL_ID}_random_z${IZBIN}.fits"
       srcCat="${TOMOCAT}_${JZBIN}.fits"
       outPath="${STATDIR}/GT/GT_${catTag}_${angTag}_${tomoPairTag}.asc"
+      weightedanalysis="true"  # this will do an extra treecorr run to correctly calculate Npairs with a weighted sample
       
     ## Mocks with simple mask
     elif [ "${aves}" = "buceros" ]; then
@@ -444,6 +477,7 @@ do
       randCat="${SDIR}/${aves}/MFP_selection/randCat_type${lensType}.fits"
       srcCat="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType2}.fits"
       outPath="${STATDIR}/treecorr_K1000_${randTag}_NG/GT_${catTag}_${angTag}_${tomoPairTag}.asc"
+      weightedanalysis="false"  
       
     ## Mocks with complex mask
     else
@@ -456,6 +490,7 @@ do
       randCat="${SDIR}/${aves}/MFP_selection/randCat_type${lensType}.fits"
       srcCat="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType2}.fits"
       outPath="${STATDIR}/treecorr_K1000_${randTag}_NG/GT_${catTag}_${angTag}_${tomoPairTag}.asc"
+      weightedanalysis="false"  
     fi
 
     # check does the correct lens/source/random files exist?
@@ -467,7 +502,7 @@ do
       { echo "Error: Tomographic catalogue ${srcCat} does not exist! Run MODE CREATETOMO!"; exit 1; }
 
     # Run treecorr - using the Mandelbaum estimator that subtracts off the random signal
-    ${P_PYTHON3} calc_gt_w_treecorr.py ${THETAINFO_STR} ${LINNOTLOG} ${lensCat} ${randCat} ${srcCat} ${outPath}
+    ${P_PYTHON3} calc_gt_w_treecorr.py ${THETAINFO_STR} ${LINNOTLOG} ${lensCat} ${randCat} ${srcCat} ${outPath} ${weightedanalysis}
 
     # Did it work?
     test -f ${outPath} || \
@@ -502,6 +537,7 @@ do
       srcCat1="${TOMOCAT}_${IZBIN}.fits"
       srcCat2="${TOMOCAT}_${JZBIN}.fits"
       outPath="${STATDIR}/XI/XI_${catTag}_${angTag}_${tomoPairTag}.asc"
+      weightedanalysis="true"  # this will do an extra treecorr run to correctly calculate Npairs with a weighted sample
       
     ## Mocks with simple mask
     elif [ "${aves}" = "buceros" ]; then
@@ -513,7 +549,8 @@ do
       srcCat1="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType1}.fits"
       srcCat2="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType2}.fits"
       outPath="${STATDIR}/treecorr_K1000_${randTag}_GG/XI_${catTag}_${angTag}_${tomoPairTag}.asc"
-      
+      weightedanalysis="false"
+
     ## Mocks with complex mask
     else
       ## You should run N & S then combine.
@@ -524,6 +561,8 @@ do
       srcCat1="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType1}.fits"
       srcCat2="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType2}.fits"
       outPath="${STATDIR}/treecorr_K1000_${randTag}_GG/XI_${catTag}_${angTag}_${tomoPairTag}.asc"
+      weightedanalysis="false"
+
     fi
 
     # Check that the tomographic catalogue exist and exit if they don't 
@@ -533,7 +572,7 @@ do
       { echo "Error: Tomographic catalogue ${srcCat2} does not exist! For KiDS run MODE CREATETOMO!"; exit 1; }
 
     # Run treecorr
-    ${P_PYTHON3} calc_xi_w_treecorr.py ${THETAINFO_STR} ${LINNOTLOG} ${srcCat1} ${srcCat2} ${outPath}
+    ${P_PYTHON3} calc_xi_w_treecorr.py ${THETAINFO_STR} ${LINNOTLOG} ${srcCat1} ${srcCat2} ${outPath} ${weightedanalysis}
 
     # Did it work?
     test -f ${outPath} || \
@@ -635,7 +674,7 @@ do
     with theta bins ${THETAINFO_STR}"
 
     ## Define paths
-
+    
     ## KiDS data
     if [ "${USERCAT}" = "false" ]; then
       inFileN="${STATDIR}/XI/XI_K1000_N_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc"
@@ -834,7 +873,7 @@ do
         ## Old format that mocks use
         awk '(NR>1){print $2, $4-$5, $10-$11}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
     fi
-    
+
     N_theta_BP=`wc -l < ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat`
 
     ## apoWidth = log width of apodisation window

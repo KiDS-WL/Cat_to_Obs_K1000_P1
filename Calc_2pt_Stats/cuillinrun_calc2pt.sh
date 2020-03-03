@@ -36,24 +36,38 @@ mkdir -p $LOGDIR
 # XI: calculate xi+/- for tomo bin combination i j"
 # COSEBIS: calculate En/Bn for tomo bin combination i j "
 # Pkk: calculate cosmic shear Band powers for tomo bin combination i j 
-# GAMMAT: calculate gamma_t and gamma_x for cross bin combination i j"
+# GT: calculate gamma_t and gamma_x for cross bin combination i j"
 # Pgk: calculate GGL Band powers to cross bin combination i j
 # COMBINE: combine the results from N and S for cross bin combination i j"
 
-LENSFIT_VERSION=svn_309c_2Dbins_5x50
+LENSFIT_VERSION=svn_309c_2Dbins
 
-for LENSFIT_VERSION in svn_309c_2Dbins_4x80 svn_309c_3x10x10 svn_309c_3x5x5  svn_309c_2Dbins_5x50 
+: <<'=runmelater'
+for BLIND in A B C
 do
 
 ## Do you want to create the tomographic catalogues?  Safe to do this on the head node
-#  ./doall_calc2pt.sh -m CREATETOMO -c true -p N -v $LENSFIT_VERSION
-#  ./doall_calc2pt.sh -m CREATETOMO -c true -p S -v $LENSFIT_VERSION
+# No SOM Flag Selection
+#./doall_calc2pt.sh -m CREATETOMO -c true -p N -v $LENSFIT_VERSION -b $BLIND
+#./doall_calc2pt.sh -m CREATETOMO -c true -p S -v $LENSFIT_VERSION -b $BLIND
 
-#done
+# SOM Flag Selection
+for FLAG_SOM in Flag_SOM_Fid #Flag_SOM_noDEEP2
+do
+  ./doall_calc2pt.sh -m CREATETOMO -c true -p N -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
+  ./doall_calc2pt.sh -m CREATETOMO -c true -p S -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
+done
+
+done
+=runmelater
 
 #Lets submit the XI-calculation to different nodes	    
 #This is for the default 5 bins
-: <<'=runmelater'
+#: <<'=runmelater'
+
+FLAG_SOM=Flag_SOM_Fid 
+#FLAG_SOM=Flag_SOM_noDEEP2
+
 for patch in N S
 do
     
@@ -78,16 +92,14 @@ do
 	        --constraint="datadisk" \
 	        --tasks-per-node=1 \
 	        --mem=0G \
-	        doall_calc2pt.sh -m XI -i $ibin -j $jbin -p $patch -v $LENSFIT_VERSION
+	        doall_calc2pt.sh -m XI -i $ibin -j $jbin -p $patch -v $LENSFIT_VERSION -s $FLAG_SOM
     ((jbin = jbin + 1))
   done
 done
 done
 
-done
-
 =runmelater
-#: <<'=runmelater'
+: <<'=runmelater'
 
 
 # Do you want to combine the tomographic catalogues?  Safe to do this on the head node
@@ -96,12 +108,13 @@ do
 	jbin=$ibin
   while [[ $jbin -le 5 ]]
   do
-  ./doall_calc2pt.sh -m COMBINEXI -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION
+  ./doall_calc2pt.sh -m COMBINEXI -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION -s $FLAG_SOM
   ((jbin = jbin + 1))
   done
 done   
 
-#=runmelater
+=runmelater
+
 : <<'=runmelater'
 # Do you want to calculate Pkk?  Safe to do this on the head node
 for ibin in {1..5}
@@ -114,19 +127,46 @@ do
   done
 done   
 
-
-: <<'=runmelater'
+=runmelater
+#: <<'=runmelater'
 # Do you want to calculate GGL?  do not do this on the head node
+# -p N automatically connects with BOSS
+# -p S automatically connects with 2dFLenS
+for patch in S  #N
+do
 for ibin in {1..2}
 do
-	for jbin in {1..6}
+	for jbin in {1..5}
   do
-  ./doall_calc2pt.sh -m GAMMAT -i $ibin -j $jbin -p N -g BOSS -t "6 0.5 300"
-  #./doall_calc2pt.sh -m GAMMAT -i $ibin -j $jbin -p S -g 2dFLenS 
+    sbatch --job-name=tomo_${ibin}_${jbin} \
+	        --output=$LOGDIR/GT_${ibin}_${jbin}.log \
+	        --error=$LOGDIR/GT_${ibin}_${jbin}.error \
+	        --time=8:40:00 \
+	        --exclusive \
+	        --constraint="datadisk" \
+	        --tasks-per-node=1 \
+	        --mem=0G \
+            doall_calc2pt.sh -m GT -i $ibin -j $jbin -p $patch  -v $LENSFIT_VERSION -s $FLAG_SOM
+  done
+done   
+done
+
+
+#=runmelater
+: <<'=runmelater'
+# Do you want to combine the tomographic catalogues?  Safe to do this on the head node
+for ibin in {1..2}
+do
+	jbin=$ibin
+  while [[ $jbin -le 5 ]]
+  do
+  ./doall_calc2pt.sh -m COMBINEGT -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION -s $FLAG_SOM
+  ((jbin = jbin + 1))
   done
 done   
 
-
+=runmelater
+: <<'=runmelater'
 # Do you want to calculate COSEBIS?  Safe to do this on the head node
 for ibin in {1..5}
 do
@@ -138,5 +178,4 @@ do
   done
 done   
 
-=runmelater
-done
+#=runmelater

@@ -13,7 +13,6 @@ import sys
 import numpy as np
 import astropy.io.fits as fits
 
-
 ## Calculate shape noise given noisy & noise-free shear
 def subtractNoise(g_1, g_2, eps_1, eps_2):
     g   = g_1 + 1j * g_2
@@ -25,11 +24,10 @@ def subtractNoise(g_1, g_2, eps_1, eps_2):
     return e
 
 if __name__ == '__main__':
-        
-    # Read in user input to set the nbins, theta_min, theta_max, lin_not_log, lenscat, rancat, sourcecat, outfilename
-    if len(sys.argv) < 8: 
+    # Read in user input to set the nbins, theta_min, theta_max, lin_not_log, lenscat, rancat, sourcecat, outfilename, weighted
+    if len(sys.argv) < 10: 
         print("Usage: %s nbins theta_min(arcmin) theta_max(arcmin) lin_not_log(true or false)? lenscat.fits \
-               randomcat.fits sourcecat.fits outfilename" % sys.argv[0]) 
+               randomcat.fits sourcecat.fits outfilename weighted_analysis?" % sys.argv[0]) 
         sys.exit(1)
     else:
         nbins = int(sys.argv[1]) 
@@ -40,12 +38,13 @@ if __name__ == '__main__':
         rancatname = sys.argv[6]
         sourcecatname = sys.argv[7]
         outfile = sys.argv[8]
+        weighted = sys.argv[9]
 
-    ## Prepare the catalogues
-    
+    # prepare the catalogues
+
     ## For mocks
     if 'MFP_galCat' in lenscatname:
-      
+        
         ## Lens catalogue
         L1_data = fits.getdata(lenscatname, 1)
         L1_RA   = L1_data.field('ALPHA_J2000')
@@ -62,7 +61,7 @@ if __name__ == '__main__':
             R1_wgt  = R1_data.field('WEICOMP')
         else:
             R1_wgt  = R1_data.field('WEIMAG') ## Dummy
-        
+
         ## Mask selection
         if '2dFLenS' in rancatname or 'BOSS' in rancatname:
             KIDSMASK = R1_data.field('KIDSMASK')
@@ -81,7 +80,7 @@ if __name__ == '__main__':
         S2_eps1 = S2_data.field('e1')
         S2_eps2 = S2_data.field('e2')
         S2_wgt  = S2_data.field('weight')
-        
+
         ## Make TreeCorr instances for lenses & randoms
         lenscat = treecorr.Catalog(ra=L1_RA, dec=L1_DEC, w=L1_wgt, ra_units='deg', dec_units='deg')
         rancat = treecorr.Catalog(ra=R1_RA, dec=R1_DEC, w=R1_wgt, ra_units='deg', dec_units='deg')
@@ -96,20 +95,26 @@ if __name__ == '__main__':
             sourcecat = treecorr.Catalog(ra=S2_RA, dec=S2_DEC, g1=S2_e[0], g2=S2_e[1], w=S2_wgt, ra_units='deg', dec_units='deg')
         else:
             raise ValueError('Houston, we have a problem.')
-    
+
     ## For data
-    #TODO WARNING
-    ## Re-implement this!!!!!!
     ## Things get very complicated that this section needs to be revised
     else:
-        lenscat = treecorr.Catalog(lenscatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', w_col='WEICOMP')
+        lenscat = treecorr.Catalog(lenscatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', 
+                                   ra_units='deg', dec_units='deg', w_col='WEICOMP')
+        #TODO Catherine, you might want to check if the column names are still different between
+        #TODO BOSS & 2dFLenS
         if '2dFLenS' in rancatname:
             w_col = 'WEICOMP'
         else:
             w_col = 'WEIMAG'
-        rancat = treecorr.Catalog(rancatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', w_col=w_col)
-        sourcecat = treecorr.Catalog(sourcecatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', g1_col='e1', g2_col='e2', w_col='weight')
+        rancat = treecorr.Catalog(rancatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', 
+                                  ra_units='deg', dec_units='deg', w_col=w_col)
+        sourcecat = treecorr.Catalog(sourcecatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', 
+                                     ra_units='deg', dec_units='deg', g1_col='e1', g2_col='e2', w_col='weight')
 
+
+    #TODO to do include wcs cut
+    #,flag_col='KIDSMASK',ignore_flag=16384
 
     ## Set bin_slop
     if nbins > 100: ## Fine-binning
@@ -119,37 +124,36 @@ if __name__ == '__main__':
         inbinslop_NN = 0.03
         inbinslop_NG = 0.05
 
-
     # Define the binning based on command line input
     if(lin_not_log=='true'): 
         # Number of source lens pairs
         nlns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-            bin_type='Linear', bin_slop=inbinslop_NN)
+             bin_type='Linear', bin_slop=inbinslop_NN)
         # Number of source random pairs     
         nrns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-            bin_type='Linear', bin_slop=inbinslop_NN)
+             bin_type='Linear', bin_slop=inbinslop_NN)
         # Average shear around lenses     
         ls = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-            bin_type='Linear', bin_slop=inbinslop_NG)
+             bin_type='Linear', bin_slop=inbinslop_NG)
         # Average shear around randoms     
         rs = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-            bin_type='Linear', bin_slop=inbinslop_NG)
+             bin_type='Linear', bin_slop=inbinslop_NG)
 
     else:
         # Set-up the different correlations that we want to measure
 
         # Number of source lens pairs
         nlns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-            bin_slop=inbinslop_NN)
+             bin_slop=inbinslop_NN)
         # Number of source random pairs     
         nrns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-            bin_slop=inbinslop_NN)
+             bin_slop=inbinslop_NN)
         # Average shear around lenses     
         ls = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-            bin_slop=inbinslop_NG)
+             bin_slop=inbinslop_NG)
         # Average shear around randoms     
         rs = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-            bin_slop=inbinslop_NG)
+             bin_slop=inbinslop_NG)
 
     ## A twig from Linc; he likes to use only 8 processors
     if 'MFP_galCat' in lenscatname:
@@ -158,10 +162,10 @@ if __name__ == '__main__':
         num_threads = None
 
     # Now calculate the different 2pt correlation functions
-    nlns.process(lenscat,sourcecat, num_threads=num_threads)
-    nrns.process(rancat,sourcecat, num_threads=num_threads)
-    ls.process(lenscat,sourcecat, num_threads=num_threads)
-    rs.process(rancat,sourcecat, num_threads=num_threads)
+    nlns.process(lenscat, sourcecat, num_threads=num_threads)
+    nrns.process(rancat, sourcecat, num_threads=num_threads)
+    ls.process(lenscat, sourcecat, num_threads=num_threads)
+    rs.process(rancat, sourcecat, num_threads=num_threads)
 
     # We will use the Mandelbaum 2006 estimator which includes both the random and boost correction.
     # It is given by
@@ -184,11 +188,43 @@ if __name__ == '__main__':
     gamma_t = ls.xi*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi
     gamma_x = ls.xi_im*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi_im
 
-    #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
-    treecorr.util.gen_write(outfile,
-            ['r_nom','meanr','meanlogr','gamT','gamX','sigma','weight','npairs', 'nocor_gamT', 'nocor_gamX', 
-            'rangamT','rangamX','ransigma' ],
-            [ ls.rnom,ls.meanr, ls.meanlogr,gamma_t, gamma_x, np.sqrt(ls.varxi), ls.weight, ls.npairs,
-            ls.xi, ls.xi_im, rs.xi, rs.xi_im, np.sqrt(rs.varxi) ],
-            precision=12
-    )
+    if (weighted=='true'):   
+        # prepare the weighted_square catalogues - hack so that Treecorr returns the correct Npairs for a weighted sample
+
+        lenscat_wsq = treecorr.Catalog(lenscatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
+                                       w_col='WEICOMPsq')
+        sourcecat_wsq = treecorr.Catalog(sourcecatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
+                                       g1_col='e1', g2_col='e2', w_col='weightsq')
+
+        # Define the binning based on command line input
+        if(lin_not_log=='true'): 
+            # Average shear around lenses     
+            ls_wsq = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
+                                            bin_type='Linear', bin_slop=inbinslop_NG)
+        else: # Log is the default bin_type for Treecorr   
+            ls_wsq = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
+                                            bin_slop=inbinslop_NG)
+
+        # Calculate the weighted square 2pt correlation function
+        ls_wsq.process(lenscat_wsq, sourcecat_wsq)
+        # Calculate the weighted Npairs = sum(weight_a*weight_b)^2 / sum(weight_a^2*weight_b^2)
+
+        npairs_weighted = (ls.weight)*(ls.weight)/ls_wsq.weight
+
+        #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
+        treecorr.util.gen_write(outfile,
+                ['r_nom','meanr','meanlogr','gamT','gamX','sigma','weight','npairs_weighted', 'nocor_gamT', 'nocor_gamX', 
+                'rangamT','rangamX','ransigma' ],
+                [ ls.rnom,ls.meanr, ls.meanlogr,gamma_t, gamma_x, np.sqrt(ls.varxi), npairs_weighted, ls.npairs,
+                ls.xi, ls.xi_im, rs.xi, rs.xi_im, np.sqrt(rs.varxi) ],
+                precision=12)
+
+    else:     
+         #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
+         treecorr.util.gen_write(outfile,
+                ['r_nom','meanr','meanlogr','gamT','gamX','sigma','weight','npairs', 'nocor_gamT', 'nocor_gamX', 
+                'rangamT','rangamX','ransigma' ],
+                [ ls.rnom,ls.meanr, ls.meanlogr,gamma_t, gamma_x, np.sqrt(ls.varxi), ls.weight, ls.npairs,
+                ls.xi, ls.xi_im, rs.xi, rs.xi_im, np.sqrt(rs.varxi) ],
+                precision=12)
+
