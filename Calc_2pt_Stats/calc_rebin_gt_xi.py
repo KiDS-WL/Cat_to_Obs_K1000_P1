@@ -8,8 +8,16 @@ import treecorr
 import sys
 import numpy as np
 
-
+## This function is adapted from Marika's script.
 def rebin(r_min, r_max, N_r, lin_not_log, meanr, meanlnr, weight, valueBlock, wgtBlock):
+    """
+    valueBlock are the columns that are treated like data.
+    The output value is the weighted sum.
+    
+    wgtBlock are the columns that are treated like weights.
+    The output value is the sum. 
+    """
+    
     if lin_not_log == 'true':
         bAndC  = np.linspace(r_min, r_max, 2*N_r+1)
     else:
@@ -61,7 +69,7 @@ def rebin(r_min, r_max, N_r, lin_not_log, meanr, meanlnr, weight, valueBlock, wg
 if __name__ == '__main__':
     
     # Read in user input to set
-    if len(sys.argv) <7: 
+    if len(sys.argv) < 8: 
         print("Usage: %s loadName GT_or_XI N_theta theta_min(arcmin) theta_max(arcmin) lin_not_log? saveName" % sys.argv[0]) 
         sys.exit(1)
     else:
@@ -77,6 +85,9 @@ if __name__ == '__main__':
     data = np.loadtxt(loadName, comments='#', delimiter=None).T
 
     if GT_or_XI == 'XI':
+        
+        ## WARNING This is hard-coded
+        ## TODO Catherine you will surely want to modify these.
         meanr = data[1]
         meanlnr = data[2]
         weight = data[9]
@@ -103,6 +114,9 @@ if __name__ == '__main__':
         )
     
     else:
+        
+        ## WARNING This is hard-coded
+        ## TODO Catherine you will surely want to modify these.
         meanr = data[1]
         meanlnr = data[2]
         weight = data[6]
