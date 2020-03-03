@@ -58,7 +58,6 @@ def makecats(ired):
   ras2dfran,dec2dfran,red2dfran,weifkp2dfran,n2dfran = read2dflens(2,ired)
 # completeness weights=1 for 2dFLenS
   weicomp2dfdat,weicomp2dfran = np.ones(n2dfdat),np.ones(n2dfran)
-  weicomp2dfdat = np.ones(n2dfdat)
 
 # Find KiDS mags/colours of BOSS and 2dFLenS data lenses
 # iphot is a flag which is 1 if there is a photometry match, otherwise 0
@@ -262,7 +261,7 @@ def readboss(datopt,ired,rmin,rmax,dmin,dmax):
       weicompboss = weisys*(weinoz+weicp-1.)
       print (len(rasboss),'BOSS lenses')
     else:
-      weicompboss = np.ones(len(rasboss))
+      weicompboss = np.ones(len(rasboss), dtype='f')
       print (len(rasboss),'BOSS randoms', ifile)
     hdulist.close()
 
@@ -278,6 +277,9 @@ def readboss(datopt,ired,rmin,rmax,dmin,dmax):
     if (ifile>0):
       rasboss_out=np.append(rasboss_out,rasboss[cut]) 
       decboss_out=np.append(decboss_out,decboss[cut])
+      redboss_out=np.append(redboss_out,redboss[cut]) 
+      weifkpboss_out=np.append(weifkpboss_out,weifkpboss[cut])
+      weicompboss_out=np.append(weicompboss_out,weicompboss[cut])
       
   nboss = len(rasboss_out)
   print ('Cut to',nboss,'BOSS lenses with',rmin,'< R.A. <',rmax,dmin,'< Dec. <',dmax,zmin,'< z <',zmax)
@@ -447,6 +449,9 @@ def writelensldaccat(outfile,raslens,declens,redlens,weicomplens,weifkplens,ipho
   ldac_table['RICOL']=ricollens
   ldac_table['RMAG']=rmaglens
   ldac_table['KIDSMASK']=kidsmask
+  # for the Treecorr hack to calculate Npairs for a weighted sample
+  # we also write out the weight squared
+  ldac_table['WEICOMPsq']=weicomplens*weicomplens
   
   ldac_table.saveas(outfile, overwrite=True)
   return

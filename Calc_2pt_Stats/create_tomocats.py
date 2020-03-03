@@ -87,9 +87,13 @@ dec_inbin=DELTA_J2000[ztomo]
 PSF_e1_inbin=PSF_e1[ztomo]
 PSF_e2_inbin=PSF_e2[ztomo]
 w_inbin=weight[ztomo]
+
+#carry through the square of the weight for
+#Npair calculation hack with Treecorr
 wsq_inbin=weight[ztomo]*weight[ztomo]
 
 nboot = 300
+
 # THIS WOULD NEED TO BE UPDATED FOR METACAL TO ALSO INCLUDE THE M_CORRECTION
 if (ccorr=='true'):  
     # weighted mean   
