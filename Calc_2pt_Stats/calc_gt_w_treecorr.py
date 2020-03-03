@@ -105,7 +105,7 @@ rs.process(rancat,sourcecat)
 # gt = (SD/NlNs)*NlNs/NrNs - SR/NrNs
 # where NsNl = number of source lens pairs
 # 
-# SD/NsNl = ls.xi
+# SD/NsNl = ls.xi 
 # NlNs = nlns.weight/nlns.tot
 # NrNs = nrns.weight/nrns.tot
 # SR/NrNs = rs.xi
@@ -114,31 +114,30 @@ gamma_t = ls.xi*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi
 gamma_x = ls.xi_im*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi_im
 
 if (weighted=='true'):   
-
-     # prepare the weighted_square catalogues - hack so that Treecorr returns the correct Npairs for a weighted sample
-
-     lenscat_wsq = treecorr.Catalog(lenscatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
-                                  w_col='WEICOMPsq')
-     sourcecat_wsq = treecorr.Catalog(sourcecatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
-                                  g1_col='e1', g2_col='e2', w_col='weightsq')
+    # prepare the weighted_square catalogues - hack so that Treecorr returns the correct Npairs for a weighted sample
+    
+    lenscat_wsq = treecorr.Catalog(lenscatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
+                                   w_col='WEICOMPsq')
+    sourcecat_wsq = treecorr.Catalog(sourcecatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
+                                   g1_col='e1', g2_col='e2', w_col='weightsq')
 
     # Define the binning based on command line input
     if(lin_not_log=='true'): 
-         # Average shear around lenses     
-          ls_wsq = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
+        # Average shear around lenses     
+        ls_wsq = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
                                         bin_type='Linear', bin_slop=inbinslop_NG)
     else: # Log is the default bin_type for Treecorr   
-          ls_wsq = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
+        ls_wsq = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
                                         bin_slop=inbinslop_NG)
 
-     # Calculate the weighted square 2pt correlation function
-     ls_wsq.process(lenscat_wsq,sourcecat_wsq)
-     # Calculate the weighted Npairs = sum(weight_a*weight_b)^2 / sum(weight_a^2*weight_b^2)
+    # Calculate the weighted square 2pt correlation function
+    ls_wsq.process(lenscat_wsq,sourcecat_wsq)
+    # Calculate the weighted Npairs = sum(weight_a*weight_b)^2 / sum(weight_a^2*weight_b^2)
     
-     npairs_weighted = (ls.weight)*(ls.weight)/ls_wsq.weight
+    npairs_weighted = (ls.weight)*(ls.weight)/ls_wsq.weight
 
-     #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
-     treecorr.util.gen_write(outfile,
+    #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
+    treecorr.util.gen_write(outfile,
             ['r_nom','meanr','meanlogr','gamT','gamX','sigma','weight','npairs_weighted', 'nocor_gamT', 'nocor_gamX', 
             'rangamT','rangamX','ransigma' ],
             [ ls.rnom,ls.meanr, ls.meanlogr,gamma_t, gamma_x, np.sqrt(ls.varxi), npairs_weighted, ls.npairs,
@@ -151,3 +150,4 @@ else:
             'rangamT','rangamX','ransigma' ],
             [ ls.rnom,ls.meanr, ls.meanlogr,gamma_t, gamma_x, np.sqrt(ls.varxi), ls.weight, ls.npairs,
             ls.xi, ls.xi_im, rs.xi, rs.xi_im, np.sqrt(rs.varxi) ])
+            
