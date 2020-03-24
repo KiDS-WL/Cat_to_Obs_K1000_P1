@@ -8,6 +8,7 @@
 # History
 # CH 20th Nov - update output to ldac format (still compatible with fits)
 # also included KiDS MASK information and 2dFLenS overlap information
+# CH 24th March - update to DR4.1 Masks
 ########################################################################
 
 import sys
@@ -117,11 +118,11 @@ def makecats(ired):
 # add kids mask to the random catalogue to allow for gri KiDS overlap matching requirement
 # also do this for the data so the rare blend objects that aren't matched don't automatically get a wcs mask flag
 
-  Nfitsmask='/home/cech/KiDSLenS/THELI_catalogues/MOSAIC_MASK/HEALPIX_MASK/KiDS-N_K1000_footprint_16bit.fits'
+  Nfitsmask='/home/cech/KiDSLenS/THELI_catalogues/MOSAIC_MASK/DR4.1_FITS_MASK/KiDS_N.16bit.6arcs.AIT.reg2.fits'
   kidsmaskbossran = addkidsmask(rasbossran,decbossran,Nfitsmask)
   kidsmaskbossdat = addkidsmask(rasbossdat,decbossdat,Nfitsmask)
 
-  Sfitsmask='/home/cech/KiDSLenS/THELI_catalogues/MOSAIC_MASK/HEALPIX_MASK/KiDS-S_K1000_footprint_16bit.fits'
+  Sfitsmask='/home/cech/KiDSLenS/THELI_catalogues/MOSAIC_MASK/DR4.1_FITS_MASK/KiDS_S.16bit.6arcs.AIT.reg2.fits'
   kidsmask2dfran = addkidsmask(ras2dfran,dec2dfran,Sfitsmask)
   kidsmask2dfdat = addkidsmask(ras2dfdat,dec2dfdat,Sfitsmask)
   
