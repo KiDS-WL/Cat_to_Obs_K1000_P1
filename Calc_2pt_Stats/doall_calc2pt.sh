@@ -221,6 +221,12 @@ if [ -z "${MODE// }" ]; then
   exit 1
 fi
 
+# Lets also write out which CPU this was run on
+#Record in the main log where this field was run
+WORKERID=`hostname` 
+echo ' RUNNING doall script in mode' $MODE 'on worker' $WORKERID
+
+
 ##=================================================================
 
 ## Define some environment variables that are used in several modes
@@ -251,7 +257,7 @@ mkdir -p ${TMPDIR}
 if [ "${USERCAT}" = "false" ]; then
   ## User catalogue has not been defined - use KIDS
   ## Phase 1 catalogue
-  masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}_goldclasses
+  masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER} #_goldclasses
   ## Phase 0 catalogue
   #masterTag=9band_mask_BLINDED_${LENSFIT_VER}
 
@@ -646,7 +652,7 @@ do
     with theta bins ${THETAINFO_STR}"
 
     ## Define paths
-    
+
     ## KiDS data
     if [ "${USERCAT}" = "false" ]; then
       inFileN="${STATDIR}/XI/XI_K1000_N_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc"
