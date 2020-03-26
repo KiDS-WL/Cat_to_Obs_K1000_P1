@@ -32,15 +32,15 @@ else:
 # prepare the catalogues
 
 lenscat = treecorr.Catalog(lenscatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
-                                  w_col='WEICOMP')
+                                  w_col='WEICOMP', flag_col='KIDSMASK', ignore_flag=16384)
 rancat = treecorr.Catalog(rancatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
-                                  w_col='WEICOMP')
+                                  w_col='WEICOMP', flag_col='KIDSMASK', ignore_flag=16384)
 sourcecat = treecorr.Catalog(sourcecatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
                                   g1_col='e1', g2_col='e2', w_col='weight')
 
 
-#to do include wcs cut
-#,flag_col='KIDSMASK',ignore_flag=16384
+#Here I've included a wcs cut in the data catalogues
+#flag_col='KIDSMASK',ignore_flag=16384
 
 # the value of bin_slop
 fine_binning = True
@@ -53,7 +53,6 @@ else:
     # when using broad bins it needs to be much finer
     inbinslop_NN = 0.03
     inbinslop_NG = 0.05
-
 
 # Define the binning based on command line input
 if(lin_not_log=='true'): 
@@ -92,32 +91,36 @@ nrns.process(rancat,sourcecat)
 ls.process(lenscat,sourcecat)
 rs.process(rancat,sourcecat)
 
-# We will use the Mandelbaum 2006 estimator which includes both the random and boost correction.
+#We also need to calculate the random oversampling factor
+N_oversample=np.sum(rancat.w)/np.sum(lenscat.w)
+
+# We will use the estimator in the methodology paper
+# which includes both the random and boost correction.
 # It is given by
-# gt = (SD-SR)/NsNr
+# gt = (SD*N_oversample-SR)/NsNr
 # SD = sum of shear around source-lens pairs
 # SR = sum of shear around source-random pairs
-# NrNs = number of source random pairs
-# Note that we have a different number of randoms from lenses so we also need to make
-# sure that we rescale NrNs accordingly
+# NrNs = weighted number of source random pairs
+# Note that we have a different number of randoms from lenses so N_oversample makes
+# sure that we rescale NrNs accrdingly
 
 # The easiest way to do this in Treecorr is
-# gt = (SD/NlNs)*NlNs/NrNs - SR/NrNs
+# gt = (SD/NlNs)*NlNs/NrNs*N_oversample - SR/NrNs
 # where NsNl = number of source lens pairs
 # 
 # SD/NsNl = ls.xi 
-# NlNs = nlns.weight/nlns.tot
-# NrNs = nrns.weight/nrns.tot
+# NlNs = nlns.weight
+# NrNs = nrns.weight
 # SR/NrNs = rs.xi
 
-gamma_t = ls.xi*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi
-gamma_x = ls.xi_im*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi_im
+gamma_t = ls.xi*(nlns.weight/nrns.weight)*N_oversample - rs.xi
+gamma_x = ls.xi_im*(nlns.weight/nrns.weight)*N_oversample - rs.xi_im
 
 if (weighted=='true'):   
     # prepare the weighted_square catalogues - hack so that Treecorr returns the correct Npairs for a weighted sample
     
     lenscat_wsq = treecorr.Catalog(lenscatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
-                                   w_col='WEICOMPsq')
+                                   w_col='WEICOMPsq', flag_col='KIDSMASK', ignore_flag=16384)
     sourcecat_wsq = treecorr.Catalog(sourcecatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
                                    g1_col='e1', g2_col='e2', w_col='weightsq')
 
@@ -132,9 +135,12 @@ if (weighted=='true'):
 
     # Calculate the weighted square 2pt correlation function
     ls_wsq.process(lenscat_wsq,sourcecat_wsq)
-    # Calculate the weighted Npairs = sum(weight_a*weight_b)^2 / sum(weight_a^2*weight_b^2)
+    # Calculate the weighted Npairs = sum(weight_r*weight_s)^2 / [N_rnd**2 * sum(weight_l^2*weight_s^2)]
+    npairs_weighted = (rs.weight)*(rs.weight)/(N_oversample**2 * ls_wsq.weight)
+
+    #The exact version is with a few percent of the simple alternative
+    #npairs_weighted_simple = (ls.weight)*(ls.weight)/(ls_wsq.weight)
     
-    npairs_weighted = (ls.weight)*(ls.weight)/ls_wsq.weight
 
     #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
     treecorr.util.gen_write(outfile,
