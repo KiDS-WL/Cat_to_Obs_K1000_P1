@@ -13,8 +13,8 @@ survey='2dFLenS'
 
 #Choose the number of KIDS bands for the overlap region
 #nbands=9  # full 9-band area
-#nbands=3 # gri area
-nbands=1  # in the KiDS imaging area - i.e wcs mask
+nbands=3 # gri area
+#nbands=1  # in the KiDS imaging area - i.e wcs mask
 
 if nbands==9:
     #To apply the 9-band photo-zs mask use
@@ -22,30 +22,30 @@ if nbands==9:
 
     if survey=='BOSS':
         #BOSS 9-band overlap area
-        area=319.506
+        area=322.255634
     else:
         #2dFLenS 9-band overlap area
-        area=341.888
-elif nbands==4:
+        area=342.879925
+elif nbands==3:
     #You might however just want to know where the gri information is
     #for this you want
     bitmask=0x681C
     if survey=='BOSS':
         #BOSS 3-band overlap area
-        area=339.298
+        area=340.132473
     else:
         #2dFLenS 3-band overlap area
-        area=355.2831
+        area=355.728369 
 elif nbands==1:
     #You might however just want to know where the VST has looked
     #for this you want
     bitmask=0x4000
     if survey=='BOSS':
         #BOSS 1-band overlap area
-        area=408.321
+        area=409.189476
     else:
         #2dFLenS 1-band overlap area
-        area=424.508
+        area=425.183122
 
 #Now lets see how many lenses remain once the KiDS mask has been applied
 
@@ -58,7 +58,7 @@ for ilens in range(2):
     KIDSMASK=datacat.field('KIDSMASK')
     Weightall=datacat.field('WEICOMP')  # BOSS and 2dFLens without gri weighting
     
-    if (survey=='2dFLenS' and nbands==4):
+    if (survey=='2dFLenS' and nbands==3):
         Weightall=datacat.field('WEIMAG') #2dFLenS with gri weighting
 
     #filter based on the 9-band or gri mask

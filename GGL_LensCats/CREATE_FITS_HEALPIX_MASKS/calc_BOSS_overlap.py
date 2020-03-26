@@ -17,10 +17,10 @@ DD='/disk09/KIDS/K1000_TWO_PT_STATS/GGLCATS'
 
 #You might however just want to know where the gri information is
 #for this you want
-#bitmask=0x681C
+bitmask=0x681C
 
 #Or maybe you just want to know if the VST has looked at this area
-bitmask=0x4000
+#bitmask=0x4000
 
 #Lets first calculate how many randoms were in the original NGP random files
 nran_ngp = np.zeros(2)
@@ -28,10 +28,11 @@ for iran in range(2):
     
     #you might assume that you should  use the full CMASS/LOWZ random file
     #this won't work though as this catalogue has variable density as LOWZ
-    #has a different footprint from CMASSS
+    #has a different footprint from CMASS
     #original_randomfile=DD+'/BOSS_original/random'+str(iran)+'_DR12v5_CMASSLOWZTOT_North.fits'
     
-    #It's therefore best to analyse the surveys seperately
+    #It's therefore best to determine the overlap area with just CMASS as this is the dominant sample for our analysis
+    #Although you can calculate the area with LOWZ for interest - (283 sq degrees of overlap compared to 409)
     original_randomfile=DD+'/BOSS_original/random'+str(iran)+'_DR12v5_CMASS_North.fits'
     #original_randomfile=DD+'/BOSS_original/random'+str(iran)+'_DR12v5_LOWZ_North.fits'
     
@@ -45,10 +46,10 @@ for iran in range(2):
     print (nran_ngp)
 
 #Now lets see how many remain once the KiDS mask has been applied
-for ilens in range(1):
+for ilens in range(2):
 
-    #randomfile=DD+'/BOSS_random_z'+str(ilens+1)+'.fits'
     randomfile=DD+'/BOSS_random_CMASS_z'+str(ilens+1)+'.fits'
+    #randomfile=DD+'/BOSS_random_z'+str(ilens+1)+'.fits'
     #randomfile=DD+'/BOSS_random_LOWZ_z'+str(ilens+1)+'.fits'
     
     #Read in the random catalogue and the MASK
@@ -75,9 +76,10 @@ for ilens in range(1):
     plt.colorbar()
     plt.xlabel('RA')
     plt.ylabel('Dec')
-    #plt.savefig('random_distribution_ilens_%d.png' % (ilens))
-    plt.savefig('CMASS_random_distribution_ilens_%d_KiDS_wcs.png' % (ilens))
-    #plt.savefig('LOWZ_random_distribution_ilens_%d.png' % (ilens))
+    #plt.savefig('random_distribution_ilens_%d_DR4.1.png' % (ilens))
+    #plt.savefig('CMASS_random_distribution_ilens_%d_KiDS_DR4.1_wcs.png' % (ilens))
+    plt.savefig('CMASS_random_distribution_ilens_%d_KiDS_DR4.1_4band.png' % (ilens))
+    #plt.savefig('LOWZ_random_distribution_ilens_%d_KiDS_DR4.1_wcs.png' % (ilens))
     plt.show()
 
     #We now compare the number of randoms within the KIDS footprint
@@ -90,5 +92,12 @@ for ilens in range(1):
     #We want the NGP effective area though
     #- for this use Table 2 of Reid et al (arxiv: 1509.06529): 6851 sq degrees 
 
-    print ('ilens %d BOSS overlap area %f'%(ilens,frac_in_footprint*6851.0))
+    print ('ilens %d BOSS-DR4.1 overlap area %f'%(ilens,frac_in_footprint*6851.0))
 
+
+# DR4.1 wcs results for CMASS   
+#ilens 0 BOSS-DR4.1 overlap area 408.794818
+#ilens 1 BOSS-DR4.1 overlap area 409.189476
+# DR4.1 wcs results for LOWZ
+#ilens 0 BOSS-DR4.1 overlap area 283.185003
+#ilens 1 BOSS-DR4.1 overlap area 283.493128
