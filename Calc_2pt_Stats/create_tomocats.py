@@ -131,3 +131,6 @@ hdulist = fits.BinTableHDU.from_columns(
      fits.Column(name='weight', format='1E', array=w_inbin),
      fits.Column(name='weightsq', format='1E', array=wsq_inbin)])
 hdulist.writeto(outfile, overwrite=True)
+
+#ascii output for athena
+#np.savetxt('test.asc',np.transpose([ra_inbin,dec_inbin,e1_corr,e2_corr,w_inbin]),header='ALPHA_J2000 DELTA_J2000 e1 e2 weight',fmt='%.12e')  

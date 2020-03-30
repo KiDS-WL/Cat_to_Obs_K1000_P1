@@ -88,10 +88,9 @@ if (weighted=='true'):
 
     #Use treecorr to write out the output file updating the npairs column and praise-be for Jarvis and his well documented code                                                   
     treecorr.util.gen_write(outfile,
-            ['r_nom','meanr','meanlogr','xip','xim','xip_pm','xim_im','sigma_xip', 'sigma_xim', 'weight','npairs_weighted' ],
-            [ gg.rnom,gg.meanr, gg.meanlogr,gg.xip, gg.xim, gg.xip_im, gg.xim_im, np.sqrt(gg.varxip), np.sqrt(gg.varxim), 
-            gg.weight, npairs_weighted])
-else:
-    
+            ['r_nom','meanr','meanlogr','xip','xim','xip_pm','xim_im','sigma_xip', 'npairs', 'weight','npairs_weighted' ],
+            [ gg.rnom,gg.meanr, gg.meanlogr,gg.xip, gg.xim, gg.xip_im, gg.xim_im, np.sqrt(gg.varxip), gg.npairs, 
+            gg.weight, npairs_weighted])                                                  
+else:    
     # Write it out unweighted npairs and praise-be again for Jarvis and his well documented code
     gg.write(outfile)
