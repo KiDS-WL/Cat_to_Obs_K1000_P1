@@ -257,7 +257,7 @@ mkdir -p ${TMPDIR}
 if [ "${USERCAT}" = "false" ]; then
   ## User catalogue has not been defined - use KIDS
   ## Phase 1 catalogue
-  masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER} #_goldclasses
+  masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}_goldclasses
   ## Phase 0 catalogue
   #masterTag=9band_mask_BLINDED_${LENSFIT_VER}
 
@@ -1128,7 +1128,7 @@ do
     # --root = TLogsRootsAndNorms/Root_${tmin}-${tmax}.table
 
     ${P_PYTHON3} ../src/cosebis/run_measure_cosebis_cats2stats.py -i ${treePath} -t 1 -p 3 -m 4 \
-            --cfoldername ${outcosebis} -o ${filetail} -b ${binning} -n 5 -s ${BP_COSEBIS_THETAINFO[0]} \
+            --cfoldername ${outcosebis} -o ${filetail} -b ${binning} -n 20 -s ${BP_COSEBIS_THETAINFO[0]} \
             -l ${BP_COSEBIS_THETAINFO[1]} --tfoldername ${SRCLOC}/Tplus_minus \
             --norm ${normfile} --root ${rootfile}
 

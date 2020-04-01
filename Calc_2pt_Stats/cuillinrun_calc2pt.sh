@@ -40,7 +40,7 @@ mkdir -p $LOGDIR
 # Pgk: calculate GGL Band powers to cross bin combination i j
 # COMBINE: combine the results from N and S for cross bin combination i j"
 
-LENSFIT_VERSION=svn_309c_2Dbins_v2_goldclasses
+LENSFIT_VERSION=svn_309c_2Dbins_v2
 
 : <<'=runmelater'
 for BLIND in A #B C
@@ -110,7 +110,7 @@ do
 	jbin=$ibin
   while [[ $jbin -le 5 ]]
   do
-  ./doall_calc2pt.sh -m COMBINEXI -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION #-s $FLAG_SOM
+  ./doall_calc2pt.sh -m COMBINEXI -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION -s $FLAG_SOM
   ((jbin = jbin + 1))
   done
 done   
@@ -123,13 +123,13 @@ do
 	jbin=$ibin
   while [[ $jbin -le 5 ]]
   do
-  ./doall_calc2pt.sh -m Pkk -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION
+  ./doall_calc2pt.sh -m Pkk -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION  -s $FLAG_SOM
   ((jbin = jbin + 1))
   done
 done   
 
 =runmelater
-#: <<'=runmelater'
+: <<'=runmelater'
 # Do you want to calculate GGL?  do not do this on the head node
 # -p N automatically connects with BOSS
 # -p S automatically connects with 2dFLenS
@@ -155,7 +155,7 @@ done
 done
 
 
-#=runmelater
+=runmelater
 : <<'=runmelater'
 # Do you want to combine the GT N/S results?  Safe to do this on the head node
 for ibin in {1..2}
@@ -167,17 +167,17 @@ do
   done
 done   
 
-#=runmelater
-: <<'=runmelater'
+=runmelater
+#: <<'=runmelater'
 # Do you want to calculate COSEBIS?  Safe to do this on the head node
 for ibin in {1..5}
 do
 	jbin=$ibin
   while [[ $jbin -le 5 ]]
   do
-  ./doall_calc2pt.sh -m COSEBIS -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION
+  ./doall_calc2pt.sh -m COSEBIS -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION -s $FLAG_SOM
   ((jbin = jbin + 1))
   done
 done   
 
-=runmelater
+#=runmelater
