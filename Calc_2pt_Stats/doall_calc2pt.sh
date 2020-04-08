@@ -296,7 +296,7 @@ else
   
   STATDIR="${ODIR}/${aves}"
   
-  if [ "${aves}" = "buceros" ] || [ "${aves}" = "cygnus" ] || [ "${aves}" = "diomedea" ] || [ "${aves}" = "egretta" ]; then
+  if [ "${aves}" = "buceros" ] || [ "${aves}" = "cygnus" ] || [ "${aves}" = "cuculus" ] || [ "${aves}" = "diomedea" ] || [ "${aves}" = "egretta" ]; then
     catTag="run${runInd}_${PATCH}"
   else
     catTag="run${runInd}"
@@ -309,6 +309,16 @@ else
       srcType2=$((${JZBIN} + 1))
     fi
   elif [ ${aves} = "cygnus" ]; then
+    if [ ${PATCH} = "N" ]; then
+      lensType=$((${IZBIN} * 2 - 2))
+      srcType1=$((${IZBIN} * 2 + 2))
+      srcType2=$((${JZBIN} * 2 + 2))
+    elif [ ${PATCH} = "S" ]; then
+      lensType=$((${IZBIN} * 2 - 1))
+      srcType1=$((${IZBIN} * 2 + 3))
+      srcType2=$((${JZBIN} * 2 + 3))
+    fi
+  elif [ ${aves} = "cuculus" ]; then
     if [ ${PATCH} = "N" ]; then
       lensType=$((${IZBIN} * 2 - 2))
       srcType1=$((${IZBIN} * 2 + 2))
