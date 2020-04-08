@@ -243,6 +243,12 @@ if [ -z "${MODE// }" ]; then
   exit 1
 fi
 
+# Lets also write out which CPU this was run on
+#Record in the main log where this field was run
+WORKERID=`hostname` 
+echo ' RUNNING doall script in mode' $MODE 'on worker' $WORKERID
+
+
 ##=================================================================
 
 ## Define some environment variables that are used in several modes
@@ -681,7 +687,7 @@ do
     with theta bins ${THETAINFO_STR}"
 
     ## Define paths
-    
+
     ## KiDS data
     if [ "${USERCAT}" = "false" ]; then
       inFileN="${STATDIR}/XI/XI_K1000_N_BLIND_${BLIND}_${masterTag}_${angTag}_${tomoPairTag}.asc"
@@ -1103,8 +1109,8 @@ do
     # --root = TLogsRootsAndNorms/Root_${tmin}-${tmax}.table
 
     ${P_PYTHON3} ../src/cosebis/run_measure_cosebis_cats2stats.py -i ${treePath} -t 1 -p 3 -m 4 \
-            --cfoldername ${outcosebis} -o ${filetail} -b ${binning} -n 5 -s ${BP_COSEBIS_THETAINFO[1]} \
-            -l ${BP_COSEBIS_THETAINFO[2]} --tfoldername ${SRCLOC}/Tplus_minus \
+            --cfoldername ${outcosebis} -o ${filetail} -b ${binning} -n 20 -s ${BP_COSEBIS_THETAINFO[0]} \
+            -l ${BP_COSEBIS_THETAINFO[1]} --tfoldername ${SRCLOC}/Tplus_minus \
             --norm ${normfile} --root ${rootfile}
 
     # I am expecting this to have produced two files called

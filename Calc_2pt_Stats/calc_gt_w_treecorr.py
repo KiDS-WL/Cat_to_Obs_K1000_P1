@@ -123,7 +123,7 @@ if __name__ == '__main__':
     else: ## Broad bins
         inbinslop_NN = 0.03
         inbinslop_NG = 0.05
-
+        
     # Define the binning based on command line input
     if(lin_not_log=='true'): 
         # Number of source lens pairs
@@ -154,7 +154,7 @@ if __name__ == '__main__':
         # Average shear around randoms     
         rs = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
              bin_slop=inbinslop_NG)
-
+        
     ## A twig from Linc; he likes to use only 8 processors
     if 'MFP_galCat' in lenscatname:
         num_threads = 8
@@ -166,6 +166,10 @@ if __name__ == '__main__':
     nrns.process(rancat, sourcecat, num_threads=num_threads)
     ls.process(lenscat, sourcecat, num_threads=num_threads)
     rs.process(rancat, sourcecat, num_threads=num_threads)
+    
+    #We also need to calculate the random oversampling factor
+    N_oversample=np.sum(rancat.w)/np.sum(lenscat.w)
+
 
     # We will use the Mandelbaum 2006 estimator which includes both the random and boost correction.
     # It is given by
@@ -185,14 +189,14 @@ if __name__ == '__main__':
     # NrNs = nrns.weight/nrns.tot
     # SR/NrNs = rs.xi
 
-    gamma_t = ls.xi*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi
-    gamma_x = ls.xi_im*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi_im
+    gamma_t = ls.xi*(nlns.weight/nrns.weight)*N_oversample - rs.xi
+    gamma_x = ls.xi_im*(nlns.weight/nrns.weight)*N_oversample - rs.xi_im
 
     if (weighted=='true'):   
         # prepare the weighted_square catalogues - hack so that Treecorr returns the correct Npairs for a weighted sample
 
         lenscat_wsq = treecorr.Catalog(lenscatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
-                                       w_col='WEICOMPsq')
+                                       w_col='WEICOMPsq', flag_col='KIDSMASK', ignore_flag=16384)
         sourcecat_wsq = treecorr.Catalog(sourcecatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
                                        g1_col='e1', g2_col='e2', w_col='weightsq')
 
@@ -207,9 +211,12 @@ if __name__ == '__main__':
 
         # Calculate the weighted square 2pt correlation function
         ls_wsq.process(lenscat_wsq, sourcecat_wsq)
-        # Calculate the weighted Npairs = sum(weight_a*weight_b)^2 / sum(weight_a^2*weight_b^2)
+    
+        # Calculate the weighted Npairs = sum(weight_r*weight_s)^2 / [N_rnd**2 * sum(weight_l^2*weight_s^2)]
+        npairs_weighted = (rs.weight)*(rs.weight)/(N_oversample**2 * ls_wsq.weight)
 
-        npairs_weighted = (ls.weight)*(ls.weight)/ls_wsq.weight
+        #The exact version is with a few percent of the simple alternative
+        #npairs_weighted_simple = (ls.weight)*(ls.weight)/(ls_wsq.weight)
 
         #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
         treecorr.util.gen_write(outfile,
@@ -227,4 +234,3 @@ if __name__ == '__main__':
                 [ ls.rnom,ls.meanr, ls.meanlogr,gamma_t, gamma_x, np.sqrt(ls.varxi), ls.weight, ls.npairs,
                 ls.xi, ls.xi_im, rs.xi, rs.xi_im, np.sqrt(rs.varxi) ],
                 precision=12)
-
