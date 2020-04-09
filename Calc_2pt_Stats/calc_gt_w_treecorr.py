@@ -99,10 +99,10 @@ if __name__ == '__main__':
     ## For data
     ## Things get very complicated that this section needs to be revised
     else:
-        lenscat = treecorr.Catalog(lenscatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', 
-                                   ra_units='deg', dec_units='deg', w_col='WEICOMP')
-        rancat = treecorr.Catalog(rancatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', 
-                                  ra_units='deg', dec_units='deg', w_col='WEICOMP')
+        lenscat = treecorr.Catalog(lenscatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', 
+                                   w_col='WEICOMP', flag_col='KIDSMASK', ignore_flag=16384)
+        rancat = treecorr.Catalog(rancatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', 
+                                  w_col='WEICOMP', flag_col='KIDSMASK', ignore_flag=16384)
         sourcecat = treecorr.Catalog(sourcecatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', 
                                      ra_units='deg', dec_units='deg', g1_col='e1', g2_col='e2', w_col='weight')
 
