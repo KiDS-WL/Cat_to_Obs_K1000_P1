@@ -101,20 +101,10 @@ if __name__ == '__main__':
     else:
         lenscat = treecorr.Catalog(lenscatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', 
                                    ra_units='deg', dec_units='deg', w_col='WEICOMP')
-        #TODO Catherine, you might want to check if the column names are still different between
-        #TODO BOSS & 2dFLenS
-        if '2dFLenS' in rancatname:
-            w_col = 'WEICOMP'
-        else:
-            w_col = 'WEIMAG'
         rancat = treecorr.Catalog(rancatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', 
-                                  ra_units='deg', dec_units='deg', w_col=w_col)
+                                  ra_units='deg', dec_units='deg', w_col='WEICOMP')
         sourcecat = treecorr.Catalog(sourcecatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', 
                                      ra_units='deg', dec_units='deg', g1_col='e1', g2_col='e2', w_col='weight')
-
-
-    #TODO to do include wcs cut
-    #,flag_col='KIDSMASK',ignore_flag=16384
 
     ## Set bin_slop
     if nbins > 100: ## Fine-binning
