@@ -279,16 +279,19 @@ mkdir -p ${TMPDIR}
 if [ "${USERCAT}" = "false" ]; then
   ## User catalogue has not been defined - use KIDS
   ## Phase 1 catalogue
-  if [ "${FLAG_SOM}" = "false" ]; then  # not using the SOM Flag
-    masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}_goldclasses
-  else
-    masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}_goldclasses_${FLAG_SOM}
-  fi
+  masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}_goldclasses
   ## Phase 0 catalogue
   #masterTag=9band_mask_BLINDED_${LENSFIT_VER}
 
   MASTERCAT=${SDIR}/K1000_${PATCH}_${masterTag}.cat
-  catTag=K1000_${PATCH}_BLIND_${BLIND}_${masterTag}
+
+  if [ "${FLAG_SOM}" = "false" ]; then  # not using the SOM Flag
+      catTag=K1000_${PATCH}_BLIND_${BLIND}_${masterTag}
+  else
+      catTag=K1000_${PATCH}_BLIND_${BLIND}_${masterTag}_${FLAG_SOM}
+      # also update masterTag with SOM Flag
+      masterTag=V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_${LENSFIT_VER}_goldclasses_${FLAG_SOM}
+  fi
   
 else
   ## Define the tags that mocks require
