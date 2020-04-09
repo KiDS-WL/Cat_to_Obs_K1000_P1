@@ -42,13 +42,11 @@ if __name__ == '__main__':
         cat1e2name = sys.argv[10]
         cat2e1name = sys.argv[11]
         cat2e2name = sys.argv[12]
-        fine_binning = sys.argv[13]
     else: #use defaults
         cat1e1name = 'e1'
         cat1e2name = 'e2'
         cat2e1name = 'e1'
         cat2e2name = 'e2'
-        fine_binning = 'true'
 
     # prepare the catalogues
     if 'MFP_galCat' in fitscat1:
@@ -96,11 +94,9 @@ if __name__ == '__main__':
         cat2 = treecorr.Catalog(fitscat2, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
                                           g1_col=cat2e1name, g2_col=cat2e2name, w_col='weight')
 
-        if fine_binning:
-            # when using fine bins I find this is suitable
+        if nbins > 100: ## Fine-binning
             inbinslop = 1.5
-        else:
-            # when using broad bins it needs to be much finer
+        else: ## Broad bins
             inbinslop = 0.08
 
     # Define the binning based on command line input
