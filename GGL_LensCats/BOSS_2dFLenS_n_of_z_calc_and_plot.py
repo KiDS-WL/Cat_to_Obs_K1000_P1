@@ -40,10 +40,10 @@ for ilens in range(2):
     twodffile=DD+'/2dFLenS_data_z'+str(ilens+1)+'.fits'
     
     #output ascii n(z)
-    bossnzfile=DD+'/N_of_Z/BOSS_n_of_z'+str(ilens+1)+'.txt'
-    twodfnzfile=DD+'/N_of_Z/2dFLenS_n_of_z'+str(ilens+1)+'.txt'
-    twodf_w_nzfile=DD+'/N_of_Z/2dFLenS_weighted_n_of_z'+str(ilens+1)+'.txt'
-    allnzfile=DD+'/N_of_Z/BOSS_and_2dFLenS_n_of_z'+str(ilens+1)+'.txt'
+    bossnzfile=DD+'/N_of_Z/BOSS_n_of_z'+str(ilens+1)+'_res_'+str(dz)+'.txt'
+    twodfnzfile=DD+'/N_of_Z/2dFLenS_n_of_z'+str(ilens+1)+'_res_'+str(dz)+'.txt'
+    twodf_w_nzfile=DD+'/N_of_Z/2dFLenS_weighted_n_of_z'+str(ilens+1)+'_res_'+str(dz)+'.txt'
+    allnzfile=DD+'/N_of_Z/BOSS_and_2dFLenS_n_of_z'+str(ilens+1)+'_res_'+str(dz)+'.txt'
     
     #set up the z-range to bin over and the number of bins
     if ilens==0:
