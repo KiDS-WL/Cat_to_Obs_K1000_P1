@@ -28,11 +28,12 @@ grid = ImageGrid(fig, 111,          # as in plt.subplot(111)
                  )
 # Read in user input to set the patch, blind, zmin,zmax, nbootstrap
 if len(sys.argv) <2: 
-    print("Usage: %s LFVER e.g 2Dbins_5x50" % sys.argv[0])
+    print("Usage: %s LFVER BLIND e.g 2Dbins_v2_goldclasses A" % sys.argv[0])
     sys.exit(1)
 else:
-	LFVER=sys.argv[1] # catalogue version identifier
-
+    LFVER=sys.argv[1] # catalogue version identifier
+    BLIND=sys.argv[2] # blind
+        
 # number of tomographic bins, and band power modes to plot
 ntomobin=5
 ntomocomb=15
@@ -42,14 +43,12 @@ nmodes=8
 #covdat='/disk05/calin/91_Data/mockFootprint/zosterops/MFP_for_others/cov_sim_PeeB_obs.dat'
 #These are 3x2pt covs, but the first 120x120 should be the cosmic shear band powers
 #Bmode covariance for the null-test
-Bcovdat='//home/cech/KiDSLenS/Cat_to_Obs_K1000_P1/Calc_2pt_Stats/PLOTTING/methodology_paper_cov/thps_cov_kids1000_egretta_bp_apo_obs_bandpower_B_apod_matrix.dat'
+#Bcovdat='//home/cech/KiDSLenS/Cat_to_Obs_K1000_P1/Calc_2pt_Stats/PLOTTING/methodology_paper_cov/thps_cov_kids1000_egretta_bp_apo_obs_bandpower_B_apod_matrix.dat'
+Bcovdat='/home/cech/KiDSLenS/Cat_to_Obs_K1000_P1/covariance/thps_cov_kids1000_mar30/thps_cov_kids1000_mar30_bandpower_B_apod_0_matrix.dat'
 Bcov=np.loadtxt(Bcovdat)
 #Emode covariance to compare the amplitude of the Bmode to the expected Emode signal
-Ecovdat='//home/cech/KiDSLenS/Cat_to_Obs_K1000_P1/Calc_2pt_Stats/PLOTTING/methodology_paper_cov/thps_cov_kids1000_egretta_bp_apo_obs_bandpower_E_apod_matrix.dat'
+Ecovdat='/home/cech/KiDSLenS/Cat_to_Obs_K1000_P1/covariance/thps_cov_kids1000_mar30/thps_cov_kids1000_mar30_bandpower_E_apod_0_matrix.dat'
 Ecov=np.loadtxt(Ecovdat)
-
-# a guess at the SOM neff difference
-#Bcov = Bcov*1.2*1.2
 
 #but the first 8x3 rows are w (2 bins, auto, auto cross)
 # the next 8x5x2 rows are gammat (8 nodes, 5 sources, 2 lenses)
@@ -65,7 +64,7 @@ cov_cs=Bcov[startpt:startpt+nmodes*ntomocomb,startpt:startpt+nmodes*ntomocomb]
 gridpos=-1
 
 #information about the file names
-filetop='/disk09/KIDS/K1000_TWO_PT_STATS/OUTSTATS/Pkk/xi2bandpow_output_K1000_ALL_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c'
+filetop='/disk09/KIDS/K1000_TWO_PT_STATS/OUTSTATS/Pkk/xi2bandpow_output_K1000_ALL_BLIND_'+str(BLIND)+'_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c'
 filetail='nbins_8_Ell_100.0_1500.0_zbins'
 
 # theory curves
