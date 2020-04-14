@@ -96,7 +96,7 @@ LDIR=/disk09/KIDS/K1000_TWO_PT_STATS/GGLCATS/
 ODIR=/disk09/KIDS/K1000_TWO_PT_STATS/
 
 ## Catalogue Version number
-LENSFIT_VER=svn_309c_2Dbins
+LENSFIT_VER=svn_309c_2Dbins_v2
 
 ## Analyse either North or South - and use the COMBINE mode
 ## to combine the results.  Can be N, S, ALL
