@@ -41,6 +41,7 @@ function printUsage
   echo "       -t number of theta bins, theta_min, theta_max"
   echo "       -a number of BP ell bins, ell_min, ell_max, apodisation"
   echo "       -e BP & COSEBIS theta_min, theta_max"
+  echo "       -x rebinning: N_theta, theta_min, theta_max"
   echo "       -i cross correlate bins i with j - for GGL i is the lens bin"
   echo "       -j cross correlate bins i with j - for GGL j is the source bin"
   echo "       -c c-corr on? true/false"
@@ -86,7 +87,7 @@ function printUsage
   echo "    ./doall_calc2pt.sh -m COMBINEGT -i 1 -j 5 -t \"326 0.37895134266193781 395.82918204307509\""
   echo ""
   echo "    Rebin xi_+/- into broad bins for pair 55?"
-  echo "    ./doall_calc2pt.sh -m REBINXI -p ALL -i 5 -j 5 -t \"326 0.37895134266193781 395.82918204307509\" -e \"9 0.5 300.0\""
+  echo "    ./doall_calc2pt.sh -m REBINXI -p ALL -i 5 -j 5 -x \"326 0.37895134266193781 395.82918204307509\" -e \"9 0.5 300.0\""
   echo ""
   echo "    Apodized GGL bandpower for pair 15?"
   echo "    ./doall_calc2pt.sh -m Pgk -p ALL -i 1 -j 5 -a \"8 100.0 1500.0 true\" -e \"9 0.5 300.0\""
@@ -141,7 +142,9 @@ ELLINFO_STR="8 100.0 1500.0 true"
 
 ## Information about the COSEBIS theta bins
 ## Format:  nbins, theta_min, theta_max
-BP_COSEBIS_THETAINFO_STR="9 0.5 300"
+BP_COSEBIS_THETAINFO_STR="0.5 300"
+
+REBINNING_THETAINFO_STR="9 0.5 300"
 
 ## Use a wrapper script to run over different bin 
 ## combinations - making it easier to run in parrallel
@@ -211,6 +214,9 @@ while getopts ":d:g:o:p:m:v:n:t:a:e:i:j:c:l:b:u:s:" opt; do
       ;;
     e)
       BP_COSEBIS_THETAINFO_STR=${OPTARG}
+      ;;
+    x)
+      REBINNING_THETAINFO_STR=${OPTARG}
       ;;
     i)
       IZBIN=${OPTARG}
@@ -391,7 +397,7 @@ ellTag="nbins_${ELLINFO[0]}_Ell_${ELLINFO[1]}_${ELLINFO[2]}"
 
 ## theta range for BP & COSEBIs
 BP_COSEBIS_THETAINFO=(${BP_COSEBIS_THETAINFO_STR})
-
+REBINNING_THETAINFO=(${REBINNING_THETAINFO_STR})
 
 
 
@@ -766,7 +772,7 @@ do
     echo "Starting mode ${mode} to rebin gamma_t for tomo bin pair ${IZBIN} ${JZBIN} \
     with theta bins ${THETAINFO_STR}"
 
-    angTag2="nbins_${BP_COSEBIS_THETAINFO[0]}_theta_${BP_COSEBIS_THETAINFO[1]}_${BP_COSEBIS_THETAINFO[2]}"
+    angTag2="nbins_${REBINNING_THETAINFO[0]}_theta_${REBINNING_THETAINFO[1]}_${REBINNING_THETAINFO[2]}"
 
     ## Data
     if [ "${USERCAT}" = "false" ]; then
@@ -784,7 +790,7 @@ do
     { echo "Error: GT results ${inFile} do not exist. Run COMBINEGT!"; exit 1; }
 
     ## Execute the script
-    ${P_PYTHON3} calc_rebin_gt_xi.py ${inFile} "GT" ${BP_COSEBIS_THETAINFO_STR} ${LINNOTLOG} ${outPath}
+    ${P_PYTHON3} calc_rebin_gt_xi.py ${inFile} "GT" ${REBINNING_THETAINFO_STR} ${LINNOTLOG} ${outPath}
 
     # Did it work?
     test -f ${outPath} || \
@@ -803,9 +809,9 @@ do
   if [ "${mode}" = "REBINXI" ]; then
 
     echo "Starting mode ${mode}: to rebin xi_+/- for tomo bin pair ${IZBIN} ${JZBIN} \
-    with theta bins ${THETAINFO_STR} into ${BP_COSEBIS_THETAINFO_STR}"
+    with theta bins ${THETAINFO_STR} into ${REBINNING_THETAINFO_STR}"
 
-    angTag2="nbins_${BP_COSEBIS_THETAINFO[0]}_theta_${BP_COSEBIS_THETAINFO[1]}_${BP_COSEBIS_THETAINFO[2]}"
+    angTag2="nbins_${REBINNING_THETAINFO[0]}_theta_${REBINNING_THETAINFO[1]}_${REBINNING_THETAINFO[2]}"
     
     ## Data
     if [ "${USERCAT}" = "false" ]; then
@@ -823,7 +829,7 @@ do
     { echo "Error: XI results ${inFile} do not exist. Run COMBINEXI!"; exit 1; }
 
     ## Execute the script
-    ${P_PYTHON3} calc_rebin_gt_xi.py ${inFile} "XI" ${BP_COSEBIS_THETAINFO_STR} ${LINNOTLOG} ${outPath}
+    ${P_PYTHON3} calc_rebin_gt_xi.py ${inFile} "XI" ${REBINNING_THETAINFO_STR} ${LINNOTLOG} ${outPath}
 
     # Did it work?
     test -f ${outPath} || \
@@ -925,7 +931,7 @@ do
     # 13: <log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin; <0 for no apodisation]>
     # now run the program (location is stored in progs.ini)
     $P_XI2BANDPOW ${FolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
-                  ${N_theta_BP} ${BP_COSEBIS_THETAINFO[1]} ${BP_COSEBIS_THETAINFO[2]} ${BP_COSEBIS_THETAINFO[1]} ${BP_COSEBIS_THETAINFO[2]} \
+                  ${N_theta_BP} ${BP_COSEBIS_THETAINFO[0]} ${BP_COSEBIS_THETAINFO[1]} ${BP_COSEBIS_THETAINFO[0]} ${BP_COSEBIS_THETAINFO[1]} \
                   ${ELLINFO[0]} ${ELLINFO[1]} ${ELLINFO[2]} ${corrType} ${apoWidth}
 
     ## For mocks, delete these files because they take too much space.
@@ -1026,7 +1032,7 @@ do
     # 13: <log width of apodisation window [total width of apodised range is tmax/tmin=exp(width) in arcmin; <0 for no apodisation]>
     # now run the program (location is stored in progs.ini)
     $P_XI2BANDPOW ${FolderName} ${InputFileIdentifier} ${OutputFileIdentifier} \
-                  ${N_theta_BP} ${BP_COSEBIS_THETAINFO[1]} ${BP_COSEBIS_THETAINFO[2]} ${BP_COSEBIS_THETAINFO[1]} ${BP_COSEBIS_THETAINFO[2]} \
+                  ${N_theta_BP} ${BP_COSEBIS_THETAINFO[0]} ${BP_COSEBIS_THETAINFO[1]} ${BP_COSEBIS_THETAINFO[0]} ${BP_COSEBIS_THETAINFO[1]} \
                   ${ELLINFO[0]} ${ELLINFO[1]} ${ELLINFO[2]} ${corrType} ${apoWidth}
 
     ## For mocks, delete these files because they take too much space.
@@ -1076,8 +1082,8 @@ do
 
     # check that the pre-computed COSEBIS tables exist
     SRCLOC=../src/cosebis
-    normfile=${SRCLOC}/TLogsRootsAndNorms/Normalization_${BP_COSEBIS_THETAINFO[1]}-${BP_COSEBIS_THETAINFO[2]}.table
-    rootfile=${SRCLOC}/TLogsRootsAndNorms/Root_${BP_COSEBIS_THETAINFO[1]}-${BP_COSEBIS_THETAINFO[2]}.table
+    normfile=${SRCLOC}/TLogsRootsAndNorms/Normalization_${BP_COSEBIS_THETAINFO[0]}-${BP_COSEBIS_THETAINFO[1]}.table
+    rootfile=${SRCLOC}/TLogsRootsAndNorms/Root_${BP_COSEBIS_THETAINFO[0]}-${BP_COSEBIS_THETAINFO[1]}.table
 
     test -f ${normfile} || \
     { echo "Error: COSEBIS pre-computed table ${normfile} is missing. Download from gitrepo!"; exit 1; }
@@ -1093,7 +1099,7 @@ do
     fi
 
     # COSEBI output tag
-    filetail="COSEBIS_${catTag}_theta_${BP_COSEBIS_THETAINFO[1]}_${BP_COSEBIS_THETAINFO[2]}_${tomoPairTag}"
+    filetail="COSEBIS_${catTag}_theta_${BP_COSEBIS_THETAINFO[0]}_${BP_COSEBIS_THETAINFO[1]}_${tomoPairTag}"
 
     # Now Integrate output from treecorr with COSEBIS filter functions
     # -i = input file
