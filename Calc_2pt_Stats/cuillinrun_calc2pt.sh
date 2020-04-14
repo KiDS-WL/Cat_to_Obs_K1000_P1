@@ -68,7 +68,7 @@ done
 FLAG_SOM=Flag_SOM_Fid 
 #FLAG_SOM=Flag_SOM_noDEEP2
 
-: <<'=runmelater'
+#: <<'=runmelater'
 for patch in N S
 do
     
@@ -94,13 +94,14 @@ do
 		--partition=WL \
 	        --tasks-per-node=1 \
 	        --mem=0G \
-	        doall_calc2pt.sh -m XI -i $ibin -j $jbin -p $patch -v $LENSFIT_VERSION -s $FLAG_SOM
+	        doall_calc2pt.sh -m XI -i $ibin -j $jbin -p $patch -v $LENSFIT_VERSION -s $FLAG_SOM -t "4000 0.5 300.0"
+#    	        doall_calc2pt.sh -m XI -i $ibin -j $jbin -p $patch -v $LENSFIT_VERSION -s $FLAG_SOM
     ((jbin = jbin + 1))
   done
 done
 done
 
-=runmelater
+#=runmelater
 : <<'=runmelater'
 
 
@@ -160,15 +161,27 @@ done
 # Do you want to combine the GT N/S results?  Safe to do this on the head node
 for ibin in {1..2}
 do
-	for jbin in {1..5}
+  for jbin in {1..5}
   do
-  ./doall_calc2pt.sh -m COMBINEGT -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION -s $FLAG_SOM
-  ((jbin = jbin + 1))
+    ./doall_calc2pt.sh -m COMBINEGT -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION -s $FLAG_SOM
   done
 done   
 
 =runmelater
-#: <<'=runmelater'
+
+
+: <<'=runmelater'
+# Do you want to calculate Pgk?  Safe to do this on the head node
+for ibin in {1..2}
+do
+    for jbin in {1..5}
+    do
+        ./doall_calc2pt.sh -m Pgk -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION  -s $FLAG_SOM
+    done
+done   
+=runmelater
+
+: <<'=runmelater'
 # Do you want to calculate COSEBIS?  Safe to do this on the head node
 for ibin in {1..5}
 do
@@ -180,4 +193,4 @@ do
   done
 done   
 
-#=runmelater
+=runmelater
