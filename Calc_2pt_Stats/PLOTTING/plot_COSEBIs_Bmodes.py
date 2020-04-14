@@ -18,7 +18,8 @@ font = {'family' : 'serif',
 plt.rc('font', **font)
 
 #set up the figure grid
-tick_spacing = 2
+#tick_spacing = 2
+tick_spacing = 5
 fig = plt.figure(figsize=(8, 6))
 grid = ImageGrid(fig, 111,          # as in plt.subplot(111)
                  nrows_ncols=(5,3),
@@ -27,18 +28,21 @@ grid = ImageGrid(fig, 111,          # as in plt.subplot(111)
                  )
 # Read in user input to set the patch, blind, zmin,zmax, nbootstrap
 if len(sys.argv) <2: 
-    print("Usage: %s LFVER e.g 2Dbins_5x50" % sys.argv[0])
+    print("Usage: %s LFVER BLIND e.g 2Dbins_v2_goldclasses_Flag_SOM_Fid A" % sys.argv[0])
     sys.exit(1)
 else:
-	LFVER=sys.argv[1] # catalogue version identifier
+    LFVER=sys.argv[1] # catalogue version identifier
+    BLIND=sys.argv[2] # catalogue version identifier
 
 # number of tomographic bins, COSEBIS modes and the value of the modes
 ntomobin=5
-nmodes=5
+nmodestot=20
+nmodes=20
 n=np.arange(1, nmodes+1, dtype=int)
 
 # before we read in the per tomo bin combination data, we need to read in the full covariance from the mocks
-covdat='/disk05/calin/91_Data/mockFootprint/zosterops/MFP_for_others/cov_sim_Bn_obs.dat'
+#covdat='/disk05/calin/91_Data/mockFootprint/zosterops/MFP_for_others/cov_sim_Bn_obs.dat'
+covdat='Covariance_blindA_nMaximum_20_0.50_300.00_nBins5_NoiseOnly.ascii'
 cov=np.loadtxt(covdat)
 # and set up a smaller array for each tomobin combination
 covizjz=np.zeros((nmodes,nmodes))
@@ -48,8 +52,8 @@ covizjz=np.zeros((nmodes,nmodes))
 gridpos=-1
 
 #information about the file names
-filetop='/disk09/KIDS/K1000_TWO_PT_STATS/OUTSTATS/COSEBIS/Bn_COSEBIS_K1000_ALL_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c'
-filetail='nbins_300_theta_0.5_300_zbins'
+filetop='/disk09/KIDS/K1000_TWO_PT_STATS/OUTSTATS/COSEBIS/Bn_COSEBIS_K1000_ALL_BLIND_'+str(BLIND)+'_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c'
+filetail='theta_0.5_300_zbins'
 
 # read in B mode data per tomo bin combination
 for iz in range(1,ntomobin+1):
@@ -60,10 +64,10 @@ for iz in range(1,ntomobin+1):
 
         tomochar='%s_%s'%(iz,jz)
         Bnfile='%s_%s_%s_%s.asc'%(filetop,LFVER,filetail,tomochar)
-        Bn = np.loadtxt(Bnfile)
-
+        Bnall = np.loadtxt(Bnfile)
+        Bn= Bnall[0:nmodes]
         #breaking up the large covariance matrix to find the significance per tomographic bin combination
-        ipos=gridpos*nmodes
+        ipos=gridpos*nmodestot
         cov_izjz=cov[ipos:ipos+nmodes,ipos:ipos+nmodes]
         diagerr=np.sqrt(np.diagonal(cov_izjz))
         invcov=np.linalg.inv(cov_izjz)
