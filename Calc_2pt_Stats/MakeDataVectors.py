@@ -7,8 +7,8 @@ def make_2pt_vector(input_files, m_corr,col=1):
         file= open(input_files[rp])
         data=np.loadtxt(file,comments='#')
         if rp==0:
-            data_all      = data[col-1].copy()
-            data_all_corr = data[col-1]/m_corr
+            data_all      = data[:,col-1].copy()
+            data_all_corr = data[:,col-1]/m_corr
         else:
             data_all=np.hstack(data_all,data[col-1])
             data_all_corr = np.hstack(data_all,data[col-1]/m_corr)
@@ -53,19 +53,19 @@ m=np.load(filename)[:,1]
 
 #####################################################################################################
 # BP
-name = FolderNameData +'/Pgk/xi2bandpow_output_K1000_ALL_BLIND_'+blind+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0_zbins'
+name = FolderNameData +'/Pgk/xi2bandpow_output_K1000_ALL_BLIND_'+blind+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0_zbins_'
 input_files = []
 m_corr_all  = []
-cols = 2
+col = 2
 for bin1 in range(nBins_lens):
     for bin2 in range(nBins_source):
-        fileNameInput=name+str(bin1+1)+str(bin2+1)+'.asc'
+        fileNameInput=name+str(bin1+1)+'_'+str(bin2+1)+'.dat'
         input_files.append(fileNameInput)
         m_corr= 1.+m[bin2]
         m_corr_all.append(m_corr)
 
 
-name = FolderNameData +'/Pkk/xi2bandpow_output_K1000_ALL_BLIND_'+blind+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0_zbins'
+name = FolderNameData +'/Pkk/xi2bandpow_output_K1000_ALL_BLIND_'+blind+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0_zbins_'
 for bin1 in range(nBins_source):
     for bin2 in range(bin1,nBins_source):
         fileNameInput=name+str(bin1+1)+'_'+str(bin2+1)+'.dat'
@@ -76,6 +76,7 @@ for bin1 in range(nBins_source):
 m_corr_arr=np.asarray(m_corr_all)
 
 BP_vector_no_m_bias, BP_vector_with_m_bias = make_2pt_vector(input_files,m_corr_arr,col=col)
+
 name_tag = 'no_m_bias'
 savename = outputFolder+'BP_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0.asc'
 np.savetxt(savename,BP_vector_no_m_bias)
