@@ -8,10 +8,10 @@ def make_2pt_vector(input_files, m_corr,col=1):
         data=np.loadtxt(file,comments='#')
         if rp==0:
             data_all      = data[:,col-1].copy()
-            data_all_corr = data[:,col-1]/m_corr
+            data_all_corr = data[:,col-1]/m_corr[rp]
         else:
             data_all=np.hstack(data_all,data[col-1])
-            data_all_corr = np.hstack(data_all,data[col-1]/m_corr)
+            data_all_corr = np.hstack(data_all,data[col-1]/m_corr[rp])
     return data_all,data_all_corr
 
 def rebin(x,signal,weight,x_min,x_max,nbins):
@@ -92,7 +92,7 @@ input_files = []
 m_corr_all  = []
 name = FolderNameData+'/COSEBIS/En_COSEBIS_K1000_ALL_BLIND_'+blind+'_'+cat_version+'_theta_0.5_300_zbins_'
 for bin1 in range(nBins_source):
-    for bin2 in range(bin1,nBins_srouce):
+    for bin2 in range(bin1,nBins_source):
         fileNameInput=name+str(bin1+1)+'_'+str(bin2+1)+'.asc'
         input_files.append(fileNameInput)
         m_corr= (1.+m[bin2])*(1.+m[bin1])
@@ -117,7 +117,7 @@ theta_max=300.0
 nTheta=9
 name = FolderNameData+'/XI/XI_K1000_ALL_BLIND_'+blind+'_'+cat_version+'_nbins_4000_theta_0.5_300.0_zbins_'
 for bin1 in range(nBins_source):
-    for bin2 in range(bin1,nBins_srouce):
+    for bin2 in range(bin1,nBins_source):
         m_corr= (1.+m[bin2])*(1.+m[bin1])
         fileNameInput=name+str(bin1+1)+'_'+str(bin2+1)+'.asc'
         file= open(fileNameInput)
