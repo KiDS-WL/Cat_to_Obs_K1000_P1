@@ -10,8 +10,8 @@ def make_2pt_vector(input_files, m_corr,col=1):
             data_all      = data[:,col-1].copy()
             data_all_corr = data[:,col-1]/m_corr[rp]
         else:
-            data_all=np.hstack(data_all,data[col-1])
-            data_all_corr = np.hstack(data_all,data[col-1]/m_corr[rp])
+            data_all      = np.hstack((data_all,data[:,col-1]))
+            data_all_corr = np.hstack((data_all,data[:,col-1]/m_corr[rp]))
     return data_all,data_all_corr
 
 def rebin(x,signal,weight,x_min,x_max,nbins):
