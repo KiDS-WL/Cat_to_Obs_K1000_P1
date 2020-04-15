@@ -45,7 +45,7 @@ cat_version = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclass
 FolderNameData = '/disk09/KIDS/K1000_TWO_PT_STATS/OUTSTATS/'
 
 # fiducial values
-filename="/home/ma/src/kids100_chains/data/kids/Summary_multiplicative_Fid_unblinded.npy"
+filename="/home/ma/src/kids1000_chains/data/kids/Summary_multiplicative_Fid_unblinded.npy"
 m=np.load(filename)[:,1]
 
 #####################################################################################################
