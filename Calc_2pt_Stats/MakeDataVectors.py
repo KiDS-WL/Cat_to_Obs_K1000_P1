@@ -58,7 +58,7 @@ input_files = []
 m_corr_all  = []
 cols = 2
 for bin1 in range(nBins_lens):
-    for bin2 in range(nBins_srouce):
+    for bin2 in range(nBins_source):
         fileNameInput=FolderName+name+str(bin1+1)+str(bin2+1)+'.asc'
         input_files.append(fileNameInput)
         m_corr= 1.+m[bin2]
@@ -67,7 +67,7 @@ for bin1 in range(nBins_lens):
 
 name = FolderNameData +'/Pkk/xi2bandpow_output_K1000_ALL_BLIND_'+blind+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0_zbins'
 for bin1 in range(nBins_source):
-    for bin2 in range(bin1,nBins_srouce):
+    for bin2 in range(bin1,nBins_source):
         fileNameInput=FolderName+name+str(bin1+1)+'_'+str(bin2+1)+'.dat'
         input_files.append(fileNameInput)
         m_corr= (1.+m[bin2])*(1.+m[bin1])
