@@ -43,7 +43,7 @@ blind = 'A'
 cat_version = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid'
 
 FolderNameData = '/disk09/KIDS/K1000_TWO_PT_STATS/OUTSTATS/'
-
+outputFolder  = "/home/ma/src/kids1000_chains/data/kids/"
 nBins_lens   = 2
 nBins_source = 5
 
@@ -59,7 +59,7 @@ m_corr_all  = []
 cols = 2
 for bin1 in range(nBins_lens):
     for bin2 in range(nBins_source):
-        fileNameInput=FolderName+name+str(bin1+1)+str(bin2+1)+'.asc'
+        fileNameInput=name+str(bin1+1)+str(bin2+1)+'.asc'
         input_files.append(fileNameInput)
         m_corr= 1.+m[bin2]
         m_corr_all.append(m_corr)
@@ -68,7 +68,7 @@ for bin1 in range(nBins_lens):
 name = FolderNameData +'/Pkk/xi2bandpow_output_K1000_ALL_BLIND_'+blind+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0_zbins'
 for bin1 in range(nBins_source):
     for bin2 in range(bin1,nBins_source):
-        fileNameInput=FolderName+name+str(bin1+1)+'_'+str(bin2+1)+'.dat'
+        fileNameInput=name+str(bin1+1)+'_'+str(bin2+1)+'.dat'
         input_files.append(fileNameInput)
         m_corr= (1.+m[bin2])*(1.+m[bin1])
         m_corr_all.append(m_corr)
@@ -77,11 +77,11 @@ m_corr_arr=np.asarray(m_corr_all)
 
 BP_vector_no_m_bias, BP_vector_with_m_bias = make_2pt_vector(input_files,m_corr_arr,col=col)
 name_tag = 'no_m_bias'
-savename = 'BP_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0.asc'
+savename = outputFolder+'BP_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0.asc'
 np.savetxt(savename,BP_vector_no_m_bias)
 
 name_tag = 'with_m_bias'
-savename = 'BP_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0.asc'
+savename = outputFolder+'BP_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0.asc'
 np.savetxt(savename,BP_vector_with_m_bias)
 
 
@@ -92,7 +92,7 @@ m_corr_all  = []
 name = FolderNameData+'/COSEBIS/En_COSEBIS_K1000_ALL_BLIND_'+blind+'_'+cat_version+'_theta_0.5_300_zbins_'
 for bin1 in range(nBins_source):
     for bin2 in range(bin1,nBins_srouce):
-        fileNameInput=FolderName+name+str(bin1+1)+'_'+str(bin2+1)+'.asc'
+        fileNameInput=name+str(bin1+1)+'_'+str(bin2+1)+'.asc'
         input_files.append(fileNameInput)
         m_corr= (1.+m[bin2])*(1.+m[bin1])
         m_corr_all.append(m_corr)
@@ -102,11 +102,11 @@ m_corr_arr=np.asarray(m_corr_all)
 COSEBIs_vector_no_m_bias, COSEBIs_vector_with_m_bias  = make_2pt_vector(input_files,m_corr_arr)
 
 name_tag = 'no_m_bias'
-savename = 'COSEBIs_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_theta_0.5_300.asc'
+savename = outputFolder+'COSEBIs_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_theta_0.5_300.asc'
 np.savetxt(savename,COSEBIs_vector_no_m_bias)
 
 name_tag = 'with_m_bias'
-savename = 'COSEBIs_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_theta_0.5_300.asc'
+savename = outputFolder+'COSEBIs_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_theta_0.5_300.asc'
 np.savetxt(savename,COSEBIs_vector_with_m_bias)
 
 #####################################################################################################
@@ -118,7 +118,7 @@ name = FolderNameData+'/XI/XI_K1000_ALL_BLIND_'+blind+'_'+cat_version+'_nbins_40
 for bin1 in range(nBins_source):
     for bin2 in range(bin1,nBins_srouce):
         m_corr= (1.+m[bin2])*(1.+m[bin1])
-        fileNameInput=FolderName+name+str(bin1+1)+'_'+str(bin2+1)+'.asc'
+        fileNameInput=name+str(bin1+1)+'_'+str(bin2+1)+'.asc'
         file= open(fileNameInput)
         xipm_in=np.loadtxt(file,comments='#')
         theta = xipm_in[:,0]
@@ -142,9 +142,9 @@ xipm_all      = np.hstack(xip_all,xim_all)
 xipm_all_corr = np.hstack(xip_all_corr,xim_all_corr)
 
 name_tag = 'no_m_bias'
-savename = 'XIPM_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_'+str(nTheta)+'_theta_'+str_tmin+'_'+str_tmax+'.asc'
+savename = outputFolder+'XIPM_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_'+str(nTheta)+'_theta_'+str_tmin+'_'+str_tmax+'.asc'
 np.savetxt(savename,xipm_all)
 
 name_tag = 'with_m_bias'
-savename = 'XIPM_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_'+str(nTheta)+'_theta_'+str_tmin+'_'+str_tmax+'.asc'
+savename = outputFolder+'XIPM_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_'+str(nTheta)+'_theta_'+str_tmin+'_'+str_tmax+'.asc'
 np.savetxt(savename,xipm_all_corr)
