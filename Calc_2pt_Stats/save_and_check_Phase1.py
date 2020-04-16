@@ -1,75 +1,26 @@
 
 
     ######################################
-    ##  save_and_check_twopoint.py      ##
-    ##  Chieh-An Lin                    ##
-    ##  Version 2020.04.08              ##
+    ##  save_and_check_Phase1.py        ##
+    ##  Marika Asgari                   ##
+    ##  Version 2020.04.15              ##
     ######################################
 
+# This is based on Linc's save_and_check_twopoint. 
+# It has been adapted to make .fits files for the Phase1 real data
 
 import sys
 
 import numpy as np
 import scipy.interpolate as itp
 import astropy.io.fits as fits
+import os
 
+# set the path to scale_cuts here
 sys.path.append("../../kcap/modules/scale_cuts/")
 #import twopoint
 import wrapper_twopoint as wtp
 import wrapper_twopoint2 as wtp2
-
-
-"""
-Frequently Asked Questions
-
-Q: Can I put only n(z) in?
-A: Yes you can. Check `saveFitsTwoPoint_NOfZ_buceros`.
-
-Q: Can I put only mean in?
-A: Yes you can.
-
-Q: Can I put only covariance in?
-A: I don't know what for, but yes you can.
-
-Q: I don't have n_gal or sigma_eps. Does it matter?
-A: For chains, no. Just put dummy values.
-
-Q: Can n(z) in a twopoint file be used by KCAP?
-A: YES!!! In your KCAP ini, add something like:
-     [fits_nz_lens]
-     nz_file = %(TWOPT_FILENAME)s
-     data_sets = LENS
-     
-     [fits_nz_source]
-     nz_file = %(TWOPT_FILENAME)s
-     data_sets = SOURCE
-
-Q: How to add noise to a mean vector?
-A: Not here. Go to your KCAP ini. In [load_data_and_cut_scales], add:
-     simulate = T ;; Save a file?
-     simulate_with_noise = T
-     number_of_simulations = 1
-     mock_filename = %{TWOPT_FILE_TO_BE_SAVED}s
-   And run test sampler.
-   
-Q: How to grab the mean of a file and put it into my new file?
-A: Check `saveFitsTwoPoint_copySameMean`.
-
-Q: How to apply scale cuts?
-A: Check `saveFitsTwoPoint_list_withCut`.
-
-Q: How to use a list-formatted covariance?
-A: Check `saveFitsTwoPoint_list_withCut`.
-
-Q: How to put multiple statistics together?
-A: Check `saveFitsTwoPoint_Flinc`.
-
-Q: How to check my saved file?
-A: Check `printTwoPointHDU`, `printTwoPoint_fromFile`, and `printTwoPoint_fromObj`.
-
-Q: How to compare two files?
-A: Check `unitaryTest`.
-"""
 
 ###############################################################################
 ## Main function
@@ -205,130 +156,117 @@ def saveFitsTwoPoint(
     )
     return
 
-# Reads in from the list of input_files and puts them all into a long vector. 
-# Make sure that the ordering is correct, col starts from 1
-def make_2pt_vector(input_files,col=1):
-    for rp in range(len(input_files)):
-        file= open(input_files[rp])
-        data=np.loadtxt(file,comments='#')
-        if rp==0:
-            data_all=data[col-1].copy()
-        else:
-            data_all=np.hstack(data_all,data[col-1])
-    return data_all
 
-def rebin(x,signal,weight,x_min,x_max,nbins):
-    # print('rebinning now')
-    binned_output=np.zeros((nbins,3))
-    for ibins in range(nbins):
-        x_binned=np.exp(np.log(x_min)+np.log(x_max/x_min)/(nbins)*(ibins+0.5))
-        upperEdge=np.exp(np.log(x_min)+np.log(x_max/x_min)/(nbins)*(ibins+1.0))
-        lowerEdge=np.exp(np.log(x_min)+np.log(x_max/x_min)/(nbins)*(ibins))
-        good=((x<upperEdge) & (x>lowerEdge))
-        # print(x_binned)
-        if(good.any()):
-            weight_sum=weight[good].sum()
-            x_binned_weighted=(x[good]*weight[good]).sum()/weight_sum
-            binned_output[ibins,0]=x_binned
-            binned_output[ibins,1]=x_binned_weighted
-            binned_output[ibins,2]=(signal[good]*weight[good]).sum()/weight_sum
-            # print(ibins,weight_sum,len(weight[good]))
-        else:
-            print("WARNING: not enough bins to rebin to "+str(nbins)+" log bins")
-    return binned_output
+# copied from cosmosis
+def load_histogram_form(ext):
+    # Load the various z columns.
+    # The cosmosis code is expecting something it can spline
+    # so  we need to give it more points than this - we will
+    # give it the intermediate z values (which just look like a step
+    # function)
+    zlow = ext.data['Z_LOW']
+    zhigh = ext.data['Z_HIGH']
+
+    # First bin.
+    i = 1
+    bin_name = 'BIN{0}'.format(i)
+    nz = []
+
+    z = ext.data['Z_MID']
+    # Load the n(z) columns, bin1, bin2, ...
+    while bin_name in ext.data.names:
+        col = ext.data[bin_name]
+        nz.append(col)
+        i += 1
+        bin_name = 'BIN{0}'.format(i)
+
+    # First bin.
+    i = 1
+    ngal_name = "NGAL_"+str(i)
+    n_bar= []
+    while ngal_name in ext.header.keys():
+        n_b = ext.header[ngal_name]
+        n_bar.append(n_b)
+        i += 1
+        ngal_name = "NGAL_"+str(i)
+
+    nbin = len(nz)
+    print("        Found {0} bins".format(nbin))
+    nz = np.array(nz)
+    # z, nz = ensure_starts_at_zero(z, nz)
+    for col in nz:
+        norm = np.trapz(col, z)
+        col /= norm
+
+    return z, nz, n_bar
+
+
+def mkdir_mine(dirName):
+    try:
+        # Create target Directory
+        os.mkdir(dirName)
+        print("Directory " , dirName ,  " Created ") 
+    except FileExistsError:
+        print("Directory " , dirName ,  " already exists")
 
 
 ##################################################################################
 ### Making fits files for Phase-1 real data
 
+
 # Folder and file names for nofZ, for the sources it will depend on the blind
 blind = 'A'
 cat_version = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid'
+name_tag  = 'no_m_bias'
 
-FolderNameNofZ = ''
-FolderNameData = '/disk09/KIDS/K1000_TWO_PT_STATS/OUTSTATS/'
+FolderNameInputs  = '../../kids1000_chains/data/'
+FolderNameCov     = '../../kids1000_chains/covariance/'
+
+bp_filename      = FolderNameInputs+'/kids/BP_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0.asc'
+cosebis_filename = FolderNameInputs+'/kids/COSEBIs_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_theta_0.5_300.asc'
+xipm_filename    = FolderNameInputs+'/kids/XIPM_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_9_theta_0.5_300.asc'
+
 nBins_lens = 2
-lens1 = 
-lens2 = 
+lens1 = FolderNameInputs+'/boss/nofz/BOSS_and_2dFLenS_n_of_z1_res_0.01_extended.txt'
+lens2 = FolderNameInputs+'/boss/nofz/BOSS_and_2dFLenS_n_of_z2_res_0.01_extended.txt'
 
 nBins_source = 5
-source1 = 
-source2 = 
-source3 = 
-source4 = 
-source5 = 
+source1 = FolderNameInputs+'/kids/nofz/SOM_N_of_Z/K1000_NS_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_DIRcols_Fid_blind'+blind+'_TOMO1_Nz.asc'
+source2 = FolderNameInputs+'/kids/nofz/SOM_N_of_Z/K1000_NS_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_DIRcols_Fid_blind'+blind+'_TOMO2_Nz.asc'
+source3 = FolderNameInputs+'/kids/nofz/SOM_N_of_Z/K1000_NS_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_DIRcols_Fid_blind'+blind+'_TOMO3_Nz.asc'
+source4 = FolderNameInputs+'/kids/nofz/SOM_N_of_Z/K1000_NS_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_DIRcols_Fid_blind'+blind+'_TOMO4_Nz.asc'
+source5 = FolderNameInputs+'/kids/nofz/SOM_N_of_Z/K1000_NS_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_DIRcols_Fid_blind'+blind+'_TOMO5_Nz.asc'
+
 
 # number density of galaxies per arcmin^2
-nGal_lens = [ , ] 
+
+# Lenses:
+# not sure if these are the correct numbers:
+n_2dflens    = np.asarray([0.002890,0.003674])
+n_boss       = np.asarray([0.014478,0.016597])
+area_2dflens = 342.879925
+area_boss    = 322.255634
+area_total   = 852.845901656631
+nGal_lens_average = n_2dflens*area_2dflens/area_total+n_boss*area_boss/area_total
+nGal_lens = [ nGal_lens_average[0],nGal_lens_average[1] ] 
+
+# Sources:
 # read from file
-filename =
+filename = FolderNameInputs+'/kids/number_density/ngal_blind'+blind+'.ascii'
 nGal_source = np.loadtxt(filename)
 
-nGal_all = nGal_lens + nGal_source
+nGal_all = nGal_lens + (nGal_source).tolist()
 
 # read from file
-filename = 
+filename = FolderNameInputs+'/kids/ellipticity_dispersion/sigma_e_blind'+blind+'.ascii'
 sigma_e  = np.loadtxt(filename)
 
-# read in the BP results
-name = FolderNameData +'/Pgk/xi2bandpow_output_K1000_ALL_BLIND_'+blind+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0_zbins'
-input_files=[]
-cols = 2
-for bin1 in range(nBins_lens):
-    for bin2 in range(bin1,nBins_srouce):
-        fileNameInput=FolderName+name+str(bin1+1)+str(bin2+1)+'.asc'
-        input_files.append(fileNameInput)
-
-name = FolderNameData +'/Pkk/xi2bandpow_output_K1000_ALL_BLIND_'+blind+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0_zbins'
-for bin1 in range(nBins_source):
-    for bin2 in range(bin1,nBins_srouce):
-        fileNameInput=FolderName+name+str(bin1+1)+'_'+str(bin2+1)+'.dat'
-        input_files.append(fileNameInput)
-
-BP_vector_no_m_bias = make_2pt_vector(input_files,col=col)
-
-
-# read in the COSEBIs results
-name = FolderNameData+'/COSEBIS/En_COSEBIS_K1000_ALL_BLIND_'+blind+'_'+cat_version+'_theta_0.5_300_zbins_'
-for bin1 in range(nBins_source):
-    for bin2 in range(bin1,nBins_srouce):
-        fileNameInput=FolderName+name+str(bin1+1)+'_'+str(bin2+1)+'.asc'
-        input_files.append(fileNameInput)
-
-COSEBIs_vector_no_m_bias = make_2pt_vector(input_files)
-
-# read in the xipm results, bin and sort
-theta_min=0.5
-theta_max=300.0
-nTheta=9
-name = FolderNameData+'/XI/XI_K1000_ALL_BLIND_'+blind+'_'+cat_version+'_nbins_4000_theta_0.5_300.0_zbins_'
-for bin1 in range(nBins_source):
-    for bin2 in range(bin1,nBins_srouce):
-        fileNameInput=FolderName+name+str(bin1+1)+'_'+str(bin2+1)+'.asc'
-        file= open(fileNameInput)
-        xipm_in=np.loadtxt(file,comments='#')
-        theta = xipm_in[:,0]
-        xip   = xipm_in[:,3]
-        xim   = xipm_in[:,4]
-        weight= xipm_in[:,-1]
-        xip_binned = rebin(theta,xip,weight,theta_min,theta_max,nTheta)
-        xim_binned = rebin(theta,xim,weight,theta_min,theta_max,nTheta)
-        if counter==1:
-            xip_all = xip_binned.copy()
-            xim_all = xim_binned.copy()
-        else:
-            xip_all = np.hstack(xip_all,xip_binned)
-            xim_all = np.hstack(xim_all,xim_binned)
-
-xipm_all = np.hstack(xip_all,xim_all)
 
 # Make the data and Cov and redshift file for BP for KiDS1000 Phase-1
 def saveFitsBP_list_KIDS1000():
     scDict = {
         'use_stats': 'PneE PeeE'.lower()
     }
-    # where are the redshifts saved? They should have the same z.
-    FolderName = FolderNameNofZ
     
     nOfZNameList = [ lens1 ,
                      lens2 ,
@@ -336,14 +274,17 @@ def saveFitsBP_list_KIDS1000():
                      source2,
                      source3,
                      source4,
-                     source5]
+                     source5 ]
 
     nGalList     = nGal_all
-    sigmaEpsList = sigma_e
+    sigmaEpsList = sigma_e.tolist()
 
-    covName   = 'covariance/kids1000/BP_cov_list.dat'
-    name_tag  = '_no_m_bias'
-    saveName  = 'BP_KIDS1000_Blind'+blind+name_tag+'_'+cat_version+'.fits'
+    if(name_tag=='no_m_bias'):
+        covName   = FolderNameCov+'/inputs/thps_cov_kids1000_apr6/thps_cov_kids1000_apr6_bandpower_E_apod_0_list.dat'
+    else:
+        covName   = FolderNameCov+'/inputs/thps_cov_kids1000_apr6/thps_cov_kids1000_apr6_bandpower_E_apod_0_list_with_sigma_m.dat'
+    
+    saveName  = FolderNameInputs+'/kids/fits/BP_KIDS1000_Blind'+blind+'_'+name_tag+'_'+cat_version+'.fits'
     
     saveFitsTwoPoint(
         nbTomoN=nBins_lens, nbTomoG=nBins_source,
@@ -353,15 +294,182 @@ def saveFitsBP_list_KIDS1000():
         prefix_Flinc=None,
         prefix_CosmoSIS=None,
         scDict=scDict,
-        meanTag='variable', meanName=BP_vector_no_m_bias,
+        meanTag='file', meanName=bp_filename,
         covTag='list', covName=covName,
         nOfZNameList=nOfZNameList, nGalList=nGalList, sigmaEpsList=sigmaEpsList,
         saveName=saveName
     )
     return
 
+
+def saveFitsCOSEBIs_KIDS1000():
+    scDict = {
+        'use_stats': 'En'.lower()
+    }
+
+    nOfZNameList = [ source1,
+                     source2,
+                     source3,
+                     source4,
+                     source5 ]
+
+    nGalList     = nGal_source.tolist()
+    sigmaEpsList = sigma_e.tolist()
+
+    if(name_tag=='no_m_bias'):
+        covName   = FolderNameCov+'/outputs/Covariance_no_m_bias_blindA_nMaximum_20_0.50_300.00_nBins5.ascii'
+    else:
+        covName   = FolderNameCov+'/outputs/Covariance_blindA_nMaximum_20_0.50_300.00_nBins5.ascii'
+    
+    saveName  = FolderNameInputs+'/kids/fits/COSEBIs_KIDS1000_Blind'+blind+'_'+name_tag+'_'+cat_version+'.fits'
+    
+    saveFitsTwoPoint(
+        nbTomoN=0, nbTomoG=nBins_source,
+        # N_theta=9, theta_min=0.5, theta_max=300,
+        # N_ell=8, ell_min=100, ell_max=1500,
+        nbModes=20,
+        prefix_Flinc=None,
+        prefix_CosmoSIS=None,
+        scDict=scDict,
+        meanTag='file', meanName=cosebis_filename,
+        covTag='file', covName=covName,
+        nOfZNameList=nOfZNameList, nGalList=nGalList, sigmaEpsList=sigmaEpsList,
+        saveName=saveName
+    )
+    return
+
+def saveFitsXIPM_list_KIDS1000():
+    scDict = {
+        'use_stats': 'xiP xiM'.lower()
+    }
+    
+    nOfZNameList = [lens1,
+                    lens2, 
+                    source1,
+                     source2,
+                     source3,
+                     source4,
+                     source5 ]
+
+    nGalList     = nGal_all
+    sigmaEpsList = sigma_e.tolist()
+
+    if(name_tag=='no_m_bias'):
+        covName   = FolderNameCov+'/inputs/thps_cov_kids1000_xipm_apr6/thps_cov_kids1000_xipm_apr6_list.dat'
+    else:
+        covName   = FolderNameCov+'/inputs/thps_cov_kids1000_apr6/thps_cov_kids1000_xipm_apr6_list_with_sigma_m.dat'
+    
+    saveName  = FolderNameInputs+'/kids/fits/XIPM_KIDS1000_Blind'+blind+'_'+name_tag+'_'+cat_version+'.fits'
+    
+    saveFitsTwoPoint(
+        nbTomoN=nBins_lens, nbTomoG=nBins_source,
+        N_theta=9, theta_min=0.5, theta_max=300,
+        #N_ell=8, ell_min=100, ell_max=1500,
+        # nbModes=5,
+        prefix_Flinc=None,
+        prefix_CosmoSIS=None,
+        scDict=scDict,
+        meanTag='file', meanName=xipm_filename,
+        covTag='list', covName=covName,
+        nOfZNameList=nOfZNameList, nGalList=nGalList, sigmaEpsList=sigmaEpsList,
+        saveName=saveName
+    )
+    return
+
+
 ###############################################################################
-## Checks
+## Checks and plots
+
+def plot_redshift(filename,title,savename):
+    import matplotlib.pyplot as plt
+    F=fits.open(filename)
+    ext=F["nz_source"]
+    z_source, nz_source, n_bar_source=load_histogram_form(ext)
+
+    try:
+        ext=F["nz_lens"]
+        z_lens, nz_lens, n_bar_lens=load_histogram_form(ext)
+        plot_lenses=True
+    except:
+        print("no lenses given")
+        plot_lenses=False
+
+    F.close()
+
+    if(plot_lenses):
+        plt.clf()
+        ax=plt.subplot(2,1,1)
+        plt.ylabel("P(z)")
+        plt.title(title)
+        plt.setp(ax.get_xticklabels(),  visible=False)
+        plt.subplots_adjust(wspace=0,hspace=0)
+        for bin1 in range(len(nz_lens)):
+            plt.xlim(0,2.0)
+            plt.plot(z_lens,nz_lens[bin1],label='lens '+str(bin1+1))
+            plt.legend(loc='best')
+
+        ax=plt.subplot(2,1,2)
+        plt.setp(ax.get_xticklabels(),  visible=True)
+        for bin1 in range(len(nz_source)):
+            plt.xlim(0,2.0)
+            plt.plot(z_source,nz_source[bin1],label='source '+str(bin1+1))
+            plt.legend(loc='best')
+
+        plt.xlabel("z")
+        plt.ylabel("P(z)")
+        plt.savefig(savename,bbox_inches='tight')
+    else:
+        plt.clf()
+        ax=plt.subplot(1,1,1)
+        plt.setp(ax.get_xticklabels(),  visible=True)
+        for bin1 in range(len(nz_source)):
+            plt.xlim(0,2.0)
+            plt.plot(z_source,nz_source[bin1],label='source '+str(bin1+1))
+            plt.legend(loc='best')
+
+        plt.xlabel("z")
+        plt.ylabel("P(z)")
+        plt.savefig(savename,bbox_inches='tight')
+
+
+def plot_covariance(filename,title,savename):
+    import matplotlib.pyplot as plt
+    F=fits.open(filename)
+    ext=F["COVMAT"]
+    covariance= ext.data
+    fig, ax = plt.subplots()
+    im = ax.imshow(covariance)
+    cbar = ax.figure.colorbar(im, ax=ax)
+    plt.title(title)
+    plt.savefig(savename)
+
+def plot_correlation_mat(filename,title,savename):
+    import matplotlib.pyplot as plt
+    F=fits.open(filename)
+    ext=F["COVMAT"]
+    cov= ext.data
+    corr=np.zeros((len(cov),len(cov)))
+    for i in range(len(cov)):
+        for j in range(len(cov)):
+            corr[i,j]=cov[i,j]/np.sqrt(cov[i,i]*cov[j,j])
+    fig, ax = plt.subplots()
+    im = ax.imshow(corr)
+    cbar = ax.figure.colorbar(im, ax=ax)
+    plt.title(title)
+    plt.savefig(savename)
+
+def plot_data(filename,title,extname,savename):
+    import matplotlib.pyplot as plt
+    F=fits.open(filename)
+    ext=F[extname]
+    data=ext.data['VALUE']
+    x_index = ext.data['ANGBIN']
+    x_val   = ext.data['ANG']
+    plt.clf()
+    plt.title(title)
+    plt.plot(data,'x')
+    plt.savefig(savename)
+
 
 def printTwoPointHDU(name, ind=1):
     """
@@ -460,4 +568,76 @@ def unitaryTest(name1, name2):
     wtp2.unitaryTest(name1, name2)
     return
 
+
+############################################################
+# plot things here
+
+saveFitsBP_list_KIDS1000()
+saveFitsCOSEBIs_KIDS1000()
+saveFitsXIPM_list_KIDS1000()
+
+filename=FolderNameInputs+"/kids/fits/BP_KIDS1000_BlindA_no_m_bias_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
+title= 'KiDS1000-BOSS'
+FolderPlots=FolderNameInputs+'/plots'
+mkdir_mine(FolderPlots)
+savename=FolderPlots+'/KiDS1000_nofz.pdf'
+plot_redshift(filename,title,savename)
+
+savename=FolderPlots+'/BP_covariance.pdf'
+plot_covariance(filename,title,savename)
+
+savename=FolderPlots+'/BP_correlation_matrix.pdf'
+plot_correlation_mat(filename,title,savename)
+
+
+file=open(bp_filename)
+bp=np.loadtxt(file)
+
+extname='PeeE'
+savename=FolderPlots+'/BP_data_'+extname+'.pdf'
+plot_data(filename,title,extname,savename)
+
+extname='PneE'
+savename=FolderPlots+'/BP_data_'+extname+'.pdf'
+plot_data(filename,title,extname,savename)
+
+
+filename=FolderNameInputs+"/kids/fits/COSEBIs_KIDS1000_BlindA_no_m_bias_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
+savename=FolderPlots+'/only_source.pdf'
+plot_redshift(filename,title,savename)
+
+title='COSEBIs'
+savename=FolderPlots+'/COSEBIs_covariance.pdf'
+plot_covariance(filename,title,savename)
+
+
+savename=FolderPlots+'/COSEBIs_correlation_matrix.pdf'
+plot_correlation_mat(filename,title,savename)
+
+
+extname='En'
+savename=FolderPlots+'/COSEBIs_data_'+extname+'.pdf'
+plot_data(filename,title,extname,savename)
+
+
+filename=FolderNameInputs+"/kids/fits/XIPM_KIDS1000_BlindA_no_m_bias_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
+title= 'Xipm'
+FolderPlots=FolderNameInputs+'/plots'
+mkdir_mine(FolderPlots)
+savename=FolderPlots+'/xipm_nofz.pdf'
+plot_redshift(filename,title,savename)
+
+savename=FolderPlots+'/xipm_covariance.pdf'
+plot_covariance(filename,title,savename)
+
+savename=FolderPlots+'/xipm_correlation_matrix.pdf'
+plot_correlation_mat(filename,title,savename)
+
+extname='xip'
+savename=FolderPlots+'/xip_data_'+extname+'.pdf'
+plot_data(filename,title,extname,savename)
+
+extname='xim'
+savename=FolderPlots+'/xim_data_'+extname+'.pdf'
+plot_data(filename,title,extname,savename)
 

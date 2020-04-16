@@ -56,7 +56,7 @@ nBins_lens   = 2
 nBins_source = 5
 
 # fiducial values
-filename="/home/ma/src/kids1000_chains/data/kids/Summary_multiplicative_Fid_unblinded.npy"
+filename="/home/ma/src/kids1000_chains/data/kids/multiplicative_bias/Summary_multiplicative_Fid_unblinded.npy"
 m=np.load(filename)[:,1]
 
 #####################################################################################################
@@ -122,7 +122,10 @@ np.savetxt(savename,COSEBIs_vector_with_m_bias)
 # XIPM
 theta_min=0.5
 theta_max=300.0
+str_tmin='0.5'
+str_tmax='300'
 nTheta=9
+counter=1
 name = FolderNameData+'/XI/XI_K1000_ALL_BLIND_'+blind+'_'+cat_version+'_nbins_4000_theta_0.5_300.0_zbins_'
 for bin1 in range(nBins_source):
     for bin2 in range(bin1,nBins_source):
@@ -137,18 +140,19 @@ for bin1 in range(nBins_source):
         xip_binned = rebin(theta,xip,weight,theta_min,theta_max,nTheta)
         xim_binned = rebin(theta,xim,weight,theta_min,theta_max,nTheta)
         if counter==1:
-            xip_all = xip_binned.copy()
-            xim_all = xim_binned.copy()
-            xip_all_corr = xip_binned/m_corr
-            xim_all_corr = xim_binned/m_corr
+            xip_all = xip_binned[:,-1].copy()
+            xim_all = xim_binned[:,-1].copy()
+            xip_all_corr = xip_binned[:,-1]/m_corr
+            xim_all_corr = xim_binned[:,-1]/m_corr
         else:
-            xip_all = np.hstack(xip_all,xip_binned)
-            xim_all = np.hstack(xim_all,xim_binned)
-            xip_all_corr = np.hstack(xip_all_corr,xip_binned/m_corr)
-            xim_all_corr = np.hstack(xim_all_corr,xim_binned/m_corr)
+            xip_all = np.hstack((xip_all,xip_binned[:,-1]))
+            xim_all = np.hstack((xim_all,xim_binned[:,-1]))
+            xip_all_corr = np.hstack((xip_all_corr,xip_binned[:,-1]/m_corr))
+            xim_all_corr = np.hstack((xim_all_corr,xim_binned[:,-1]/m_corr))
+        counter+=1
 
-xipm_all      = np.hstack(xip_all,xim_all)
-xipm_all_corr = np.hstack(xip_all_corr,xim_all_corr)
+xipm_all      = np.hstack((xip_all,xim_all))
+xipm_all_corr = np.hstack((xip_all_corr,xim_all_corr))
 
 name_tag = 'no_m_bias'
 savename = outputFolder+'XIPM_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_'+str(nTheta)+'_theta_'+str_tmin+'_'+str_tmax+'.asc'
