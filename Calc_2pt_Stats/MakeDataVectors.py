@@ -86,11 +86,11 @@ m_corr_arr=np.asarray(m_corr_all)
 BP_vector_no_m_bias, BP_vector_with_m_bias = make_2pt_vector(input_files,m_corr_arr,col=col)
 
 name_tag = 'no_m_bias'
-savename = outputFolder+'BP_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0.asc'
+savename = outputFolder+'bp_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0.asc'
 np.savetxt(savename,BP_vector_no_m_bias)
 
 name_tag = 'with_m_bias'
-savename = outputFolder+'BP_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0.asc'
+savename = outputFolder+'bp_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_8_Ell_100.0_1500.0.asc'
 np.savetxt(savename,BP_vector_with_m_bias)
 
 
@@ -111,11 +111,11 @@ m_corr_arr=np.asarray(m_corr_all)
 COSEBIs_vector_no_m_bias, COSEBIs_vector_with_m_bias  = make_2pt_vector(input_files,m_corr_arr)
 
 name_tag = 'no_m_bias'
-savename = outputFolder+'COSEBIs_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_theta_0.5_300.asc'
+savename = outputFolder+'cosebis_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_theta_0.5_300.asc'
 np.savetxt(savename,COSEBIs_vector_no_m_bias)
 
 name_tag = 'with_m_bias'
-savename = outputFolder+'COSEBIs_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_theta_0.5_300.asc'
+savename = outputFolder+'cosebis_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_theta_0.5_300.asc'
 np.savetxt(savename,COSEBIs_vector_with_m_bias)
 
 #####################################################################################################
@@ -155,9 +155,9 @@ xipm_all      = np.hstack((xip_all,xim_all))
 xipm_all_corr = np.hstack((xip_all_corr,xim_all_corr))
 
 name_tag = 'no_m_bias'
-savename = outputFolder+'XIPM_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_'+str(nTheta)+'_theta_'+str_tmin+'_'+str_tmax+'.asc'
+savename = outputFolder+'xipm_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_'+str(nTheta)+'_theta_'+str_tmin+'_'+str_tmax+'.asc'
 np.savetxt(savename,xipm_all)
 
 name_tag = 'with_m_bias'
-savename = outputFolder+'XIPM_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_'+str(nTheta)+'_theta_'+str_tmin+'_'+str_tmax+'.asc'
+savename = outputFolder+'xipm_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_'+str(nTheta)+'_theta_'+str_tmin+'_'+str_tmax+'.asc'
 np.savetxt(savename,xipm_all_corr)
