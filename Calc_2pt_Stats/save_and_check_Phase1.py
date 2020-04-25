@@ -217,7 +217,7 @@ def mkdir_mine(dirName):
 # Folder and file names for nofZ, for the sources it will depend on the blind
 blind = 'A'
 cat_version = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid'
-name_tag  = 'with_m_bias' # with_m_bias # no_m_bias
+name_tag  = 'no_m_bias' # with_m_bias # no_m_bias
 
 FolderNameInputs  = '../../kids1000_chains/data/'
 FolderNameCov     = '../../kids1000_chains/covariance/'
@@ -360,6 +360,7 @@ def saveFitsXIPM_list_KIDS1000():
         covTag='list'
         covName   = FolderNameCov+'/inputs/thps_cov_kids1000_xipm_apr6/thps_cov_kids1000_xipm_apr6_list.dat'
         nGalList     = nGal_all
+        nBins_lens = 2
         nOfZNameList = [ lens1,
                          lens2, 
                          source1,
