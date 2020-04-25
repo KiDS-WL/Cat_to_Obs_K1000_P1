@@ -44,9 +44,8 @@ def rebin(x,signal,weight,x_min,x_max,nbins):
 
 
 ##################################################################################
-### Making fits files for Phase-1 real data
+### Making data vectors for Phase-1 real data
 
-# Folder and file names for nofZ, for the sources it will depend on the blind
 blind = 'A'
 cat_version = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid'
 
