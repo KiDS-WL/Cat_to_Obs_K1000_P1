@@ -75,8 +75,9 @@ def Read_Basic_Data(Read_NorS,tail):
 	ace2 = f[iext].data['autocal_e2_%s'%Blind]
 	acw = f[iext].data['recal_weight_%s'%Blind]
 
+	#Testing the impact of weights, you might want to do
 	#unweighted but with a weight>0 cut
-	acw[acw>0]=1
+	#acw[acw>0]=1
 
 	print ("Reading in Xpos,Ypos,MAG,PSFe's....")
 	Xpos = f[iext].data['Xpos']
@@ -348,7 +349,7 @@ def Plot_alpha_vs_ZB(eobs1, eobs2, epsf1, epsf2, weight, ZB,savename): #, labels
 	ax2.legend(loc='best')
 	ax2.set_ylim(-1e-3,1e-3)
 
-	ax2.xlabel('ZB')
+	ax2.set_xlabel('ZB')
 	plt.tight_layout()
 	plt.savefig(savename)
 	plt.show()
