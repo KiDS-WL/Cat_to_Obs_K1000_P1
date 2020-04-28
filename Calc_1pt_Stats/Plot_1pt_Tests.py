@@ -324,16 +324,31 @@ def Plot_alpha_vs_ZB(eobs1, eobs2, epsf1, epsf2, weight, ZB,savename): #, labels
 	ZBbin[3]=0.8
 	ZBbin[4]=1.05
 
-	f, ((ax1)) = plt.subplots(1, 1, figsize=(8,7))
-	plt.errorbar(ZBbin, alpha_1_tomo, yerr=err_alpha_1_tomo, fmt='o', color='magenta',label=r'$\alpha_1$')
+	gridspec = dict(hspace=0.0, wspace=0.0)
+	f, ((ax1,ax2)) = plt.subplots(1, 2, figsize=(6,6),gridspec_kw=gridspec)
+
+	# alpha panel
+
+	ax1.errorbar(ZBbin, alpha_1_tomo, yerr=err_alpha_1_tomo, fmt='o', color='magenta',label=r'$\alpha_1$')
 	ax1.axhspan(alpha_1-err_alpha_1,alpha_1+err_alpha_1, facecolor='magenta', alpha=0.25)
-	plt.errorbar(ZBbin+0.02, alpha_2_tomo, yerr=err_alpha_2_tomo, fmt='o', color='dimgrey',label=r'$\alpha_2$')
+	ax1.errorbar(ZBbin+0.02, alpha_2_tomo, yerr=err_alpha_2_tomo, fmt='o', color='dimgrey',label=r'$\alpha_2$')
 	ax1.axhspan(alpha_2-err_alpha_2,alpha_2+err_alpha_2, facecolor='dimgrey', alpha=0.25)
 
-	plt.xlabel('ZB')
-	plt.ylabel(r'$\alpha$')
-	plt.legend(loc='best')
-	plt.ylim(-0.07,0.07)
+	ax1.set_ylabel(r'$\alpha$')
+	ax1.legend(loc='best')
+	ax1.set_ylim(-0.07,0.07)
+	
+	# c panel
+	ax2.errorbar(ZBbin, c_1_tomo, yerr=err_c_1_tomo, fmt='o', color='magenta',label=r'$c_1$')
+	ax2.axhspan(c_1-err_c_1,c_1+err_c_1, facecolor='magenta', alpha=0.25)
+	ax2.errorbar(ZBbin+0.02, c_2_tomo, yerr=err_c_2_tomo, fmt='o', color='dimgrey',label=r'$c_2$')
+	ax2.axhspan(c_2-err_c_2,c_2+err_c_2, facecolor='dimgrey', alpha=0.25)
+
+	ax2.set_ylabel(r'$c$')
+	ax2.legend(loc='best')
+	ax2.set_ylim(-1e-3,1e-3)
+
+	ax2.xlabel('ZB')
 	plt.tight_layout()
 	plt.savefig(savename)
 	plt.show()
