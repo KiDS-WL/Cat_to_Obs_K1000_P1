@@ -27,7 +27,7 @@ plt.rc('font', **font)
 
 # Read in user input to set the patch, blind, zmin,zmax, nbootstrap
 if len(sys.argv) <7: 
-    print "Usage: %s Patch Blind ZBmin ZBmax nbootstrap cattail" % sys.argv[0] 
+    print ("Usage: %s Patch Blind ZBmin ZBmax nbootstrap cattail" % sys.argv[0]) 
     sys.exit(1)
 else:
 	NorS=sys.argv[1]  # N for North, S for South, or 'All' for both.
@@ -47,11 +47,11 @@ Read_Cat_Or_Pickle = "Cat"
 DIRECT = os.getcwd() 
 
 def Pickle_Data(ra,dec,ace1,ace2,acw,ZB, Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR):
-	print "Pickling RA,Dec,e1,e2,w,ZB...."
+	print ("Pickling RA,Dec,e1,e2,w,ZB....")
 	outputrd='%s/Catalogues/K%s.Blind%s.ra_dec_e1_e2_w_ZB_all_%s' %(DIRECT,NorS,Blind,tail)
 	np.save(outputrd, np.column_stack((ra,dec,ace1,ace2,acw,ZB)) )
 
-	print "Pickling Xpos,Ypos,MAG,PSFe1,PSFe2,TPSF,SNR,ZB...."
+	print ("Pickling Xpos,Ypos,MAG,PSFe1,PSFe2,TPSF,SNR,ZB....")
 	outputXY='%s/Catalogues/K%s.Blind%s.Xpos_Ypos_MAG_PSFe1_PSFe2_TPSF_SNR_ZB_all_%s' %(DIRECT,NorS,Blind,tail)
 	np.save(outputXY, np.column_stack((Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR,ZB)) )
 
@@ -59,7 +59,7 @@ def Pickle_Data(ra,dec,ace1,ace2,acw,ZB, Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR):
 
 
 def Read_Basic_Data(Read_NorS,tail):
-	print "Reading in RA,Dec,e1,e2,w,ZB...."
+	print ("Reading in RA,Dec,e1,e2,w,ZB....")
 
 	# K1000- cats
 	f = fits.open('/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH/K1000_%s_V1.0.0A_ugriZYJHKs_photoz_SG_mask_%s.cat'%(Read_NorS,tail))
@@ -78,7 +78,7 @@ def Read_Basic_Data(Read_NorS,tail):
 	#unweighted but with a weight>0 cut
 	acw[acw>0]=1
 
-	print "Reading in Xpos,Ypos,MAG,PSFe's...."
+	print ("Reading in Xpos,Ypos,MAG,PSFe's....")
 	Xpos = f[iext].data['Xpos']
 	Ypos = f[iext].data['Ypos']
 	MAG = f[iext].data['MAG_AUTO']
@@ -93,7 +93,7 @@ def Read_Basic_Data(Read_NorS,tail):
 
 
 def Stack_NandS():
-	print "Stacking North and South..."
+	print ("Stacking North and South...")
 	t1 = time.time()
 	ra = np.append(ra_N, ra_S)
 	dec = np.append(dec_N, dec_S)
@@ -123,7 +123,7 @@ if Read_Cat_Or_Pickle == "Cat":
 	else:
 		ra,dec,ace1,ace2,acw,ZB, Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR = Read_Basic_Data(NorS,tail)
 	t2 = time.time()
-	print "It took %.0f seconds to read in from the catalogue" %(t2-t1)	
+	print ("It took %.0f seconds to read in from the catalogue" %(t2-t1))	
 	Pickle_Data(ra,dec,ace1,ace2,acw,ZB, Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR)
 
 elif Read_Cat_Or_Pickle == "Pickle":
@@ -134,38 +134,38 @@ elif Read_Cat_Or_Pickle == "Pickle":
 
 		# Check if pickled 'All' catalogue exists... If so, proceed...
 		if os.path.isfile('%s/Catalogues/K%s.Blind%s.ra_dec_e1_e2_w_ZB_all_%s.npy'%(DIRECT,NorS,Blind,tail)):
-			print "Reading in RA,Dec,e1,e2,w,ZB...."
+			print ("Reading in RA,Dec,e1,e2,w,ZB....")
 			ra,dec,ace1,ace2,acw,ZB = np.load('%s/Catalogues/K%s.Blind%s.ra_dec_e1_e2_w_ZB_all_%s.npy' %(DIRECT,NorS,Blind,tail)).transpose()[[0,1,2,3,4,5],:]
-			print "Reading in Xpos,Ypos,MAG,PSFe's...."
+			print ("Reading in Xpos,Ypos,MAG,PSFe's....")
 			Xpos,Ypos,MAG,PSFe1,PSFe2,TPSF,SNR = np.load('%s/Catalogues/K%s.Blind%s.Xpos_Ypos_MAG_PSFe1_PSFe2_TPSF_SNR_ZB_all_%s.npy' %(DIRECT,NorS,Blind,tail)).transpose()[[0,1,2,3,4,5,6],:]
 
 		# ...if pickled 'All; catalogue does not exist, make it, to save time stacking North and South next time...
 		else:
-			print "Reading in RA,Dec,e1,e2,w,ZB...."
+			print ("Reading in RA,Dec,e1,e2,w,ZB....")
 			ra_N,dec_N,ace1_N,ace2_N,acw_N,ZB_N = np.load('%s/Catalogues/KN.Blind%s.ra_dec_e1_e2_w_ZB_all_%s.npy' %(DIRECT,Blind,tail)).transpose()[[0,1,2,3,4,5],:]
 			ra_S,dec_S,ace1_S,ace2_S,acw_S,ZB_S = np.load('%s/Catalogues/KS.Blind%s.ra_dec_e1_e2_w_ZB_all_%s.npy' %(DIRECT,Blind,tail)).transpose()[[0,1,2,3,4,5],:]
-			print "Reading in Xpos,Ypos,MAG,PSFe's...."
+			print ("Reading in Xpos,Ypos,MAG,PSFe's....")
 			Xpos_N,Ypos_N,MAG_N,PSFe1_N,PSFe2_N,TPSF_N,SNR_N = np.load('%s/Catalogues/KN.Blind%s.Xpos_Ypos_MAG_PSFe1_PSFe2_TPSF_SNR_ZB_all_%s.npy' %(DIRECT,Blind,tail)).transpose()[[0,1,2,3,4,5,6],:]
 			Xpos_S,Ypos_S,MAG_S,PSFe1_S,PSFe2_S,TPSF_S,SNR_S = np.load('%s/Catalogues/KS.Blind%s.Xpos_Ypos_MAG_PSFe1_PSFe2_TPSF_SNR_ZB_all_%s.npy' %(DIRECT,Blind,tail)).transpose()[[0,1,2,3,4,5,6],:]
 			ra,dec,ace1,ace2,acw,ZB, Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR = Stack_NandS()
 			Pickle_Data(ra,dec,ace1,ace2,acw,ZB, Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR)
 
 	else:
-		print "Reading in RA,Dec,e1,e2,w,ZB...."
+		print ("Reading in RA,Dec,e1,e2,w,ZB....")
 		ra,dec,ace1,ace2,acw,ZB = np.load('%s/Catalogues/K%s.Blind%s.ra_dec_e1_e2_w_ZB_all_%s.npy' %(DIRECT,NorS,Blind,tail)).transpose()[[0,1,2,3,4,5],:]
-		print "Reading in Xpos,Ypos,MAG,PSFe's...."
+		print ("Reading in Xpos,Ypos,MAG,PSFe's....")
 		Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR = np.load('%s/Catalogues/K%s.Blind%s.Xpos_Ypos_MAG_PSFe1_PSFe2_TPSF_SNR_ZB_all_%s.npy' %(DIRECT,NorS,Blind,tail)).transpose()[[0,1,2,3,4,5,6],:]
 
 		
 
 	t2 = time.time()
-	print "It took %.0f seconds to read in from the pickled files" %(t2-t1)
+	print ("It took %.0f seconds to read in from the pickled files" %(t2-t1))
 	
 
 if str(ZBlo) == "None":
     ZBlabel = 'ZBcutNone'
 elif float(ZBlo)<float(ZBhi):
-	print "Making the ZBcut in the range %s to %s" %(ZBlo, ZBhi)
+	print ("Making the ZBcut in the range %s to %s" %(ZBlo, ZBhi))
 	ZBlabel = 'ZBcut%s-%s' %(ZBlo,ZBhi)
 	#idx = np.where( np.logical_and(ZB>float(ZBlo), ZB<float(ZBhi)) )[0]
 	idx=( (ZB>ZBlo) & (ZB<ZBhi))
@@ -185,7 +185,7 @@ elif float(ZBlo)<float(ZBhi):
 	TPSF=TPSF[idx]
 	SNR=SNR[idx]
 else:
-	print "ZBlo %s is not lower than ZBhi %s. Amend this or set them both to None."
+	print ("ZBlo %s is not lower than ZBhi %s. Amend this or set them both to None.")
 	sys.exit()
 # Save the weighted additive bias - and the weighted m-correction to apply to the bias (in the metacal case)
 np.savetxt('%s/Catalogues/K%s.Blind%s.ccorr_e1_e2.%s_%s.dat'%(DIRECT,NorS,Blind,ZBlabel,tail), 
@@ -252,7 +252,7 @@ def Plot_BinQx_VS_BinQy(Qx, Qy, weights, mcorr, num_bins, labels, xlabel, ylabel
 			#The number of bootstrap resamples to take in estimating the errors is set on the command line.
 			if Bootstrap:
 				biny_centres_err[i,j] = Bootstrap_Error(nboot, Qy[i,idx], weights[idx],mcorr[idx])
-   			else:
+			else:
 				biny_centres_err[i,j] = 0.
  
 		plt.errorbar(binx_centres[i,:], biny_centres[i,:], yerr=biny_centres_err[i,:], fmt='o', color=colors[i],label=labels[i])
@@ -311,11 +311,11 @@ def Plot_alpha_vs_ZB(eobs1, eobs2, epsf1, epsf2, weight, ZB,savename): #, labels
 	alpha_2_tomo[3], err_alpha_2_tomo[3], c_2_tomo[3], err_c_2_tomo[3] = calc_alpha(eobs2, epsf2, weight, ZB, 0.7, 0.9)
 	alpha_2_tomo[4], err_alpha_2_tomo[4], c_2_tomo[4], err_c_2_tomo[4] = calc_alpha(eobs2, epsf2, weight, ZB, 0.9, 1.2)
 
-	print alpha_1, err_alpha_1,c_1, err_c_1
-	print alpha_1_tomo, err_alpha_1_tomo
+	print (alpha_1, err_alpha_1,c_1, err_c_1)
+	print (alpha_1_tomo, err_alpha_1_tomo)
 
-	print alpha_2, err_alpha_2,c_2, err_c_2
-	print alpha_2_tomo, err_alpha_2_tomo
+	print (alpha_2, err_alpha_2,c_2, err_c_2)
+	print (alpha_2_tomo, err_alpha_2_tomo)
 
 	ZBbin=np.zeros(5)
 	ZBbin[0]=0.2
@@ -409,12 +409,12 @@ v2max=v1max
 
 t1 = time.time()
 # MEAN ELLIPTICITY VS PSF ELLIPTICITY
-bin_PSFe_e_eerr = Plot_BinQx_VS_BinQy(np.vstack((PSFe1,PSFe2)), 1000*np.vstack((e1, e2)), w, m, 15, 
-			[r'$\langle e_1 \rangle$', r'$\langle e_2 \rangle$'], r'$e_{\rm{PSF}}$', r'$\langle e \rangle \times 10^{-3}$', mc_or_ac,
-			[-0.04,0.04], [-2.5,2.5], 
-			'%s/GeneralPlots/K%s.%s.Blind%s.ePSF_VS_e.%s_%s.png' %(DIRECT,NorS,mc_or_ac,Blind,ZBlabel,tail), Bootstrap )
-t2 = time.time()
-print "It took %.0f s to bin and plot e VS PSFe" %(t2-t1)
+#bin_PSFe_e_eerr = Plot_BinQx_VS_BinQy(np.vstack((PSFe1,PSFe2)), 1000*np.vstack((e1, e2)), w, m, 15, 
+#			[r'$\langle e_1 \rangle$', r'$\langle e_2 \rangle$'], r'$e_{\rm{PSF}}$', r'$\langle e \rangle \times 10^{-3}$', mc_or_ac,
+#			[-0.04,0.04], [-2.5,2.5], 
+#			'%s/GeneralPlots/K%s.%s.Blind%s.ePSF_VS_e.%s_%s.png' %(DIRECT,NorS,mc_or_ac,Blind,ZBlabel,tail), Bootstrap )
+#t2 = time.time()
+#print ("It took %.0f s to bin and plot e VS PSFe" %(t2-t1))
     
 # MEAN ELLIPTICITY VS ZB
 #bin_ZB_e_err = Plot_BinQx_VS_BinQy(np.vstack((ZB,ZB)), 1000*np.vstack((e1, e2)), w, m, 12, 
@@ -439,7 +439,7 @@ print "It took %.0f s to bin and plot e VS PSFe" %(t2-t1)
 #print "Finished binning and plotting e VS TPSF" 
 
 # alpha VS ZB	
-#Plot_alpha_vs_ZB(e1, e2, PSFe1, PSFe2, w, ZB, '%s/GeneralPlots/K%s.%s.Blind%s.alpha_VS_ZB.%s_%s.png' %(DIRECT,NorS,mc_or_ac,Blind,ZBlabel,tail)) #, labels, xlabel, ylabel, title,xlimits, ylimits, savename):
+Plot_alpha_vs_ZB(e1, e2, PSFe1, PSFe2, w, ZB, '%s/GeneralPlots/K%s.%s.Blind%s.alpha_VS_ZB.%s_%s.png' %(DIRECT,NorS,mc_or_ac,Blind,ZBlabel,tail)) #, labels, xlabel, ylabel, title,xlimits, ylimits, savename):
 
 
 
