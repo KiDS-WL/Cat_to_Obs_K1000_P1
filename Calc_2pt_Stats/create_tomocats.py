@@ -39,6 +39,19 @@ def Bootstrap_Error(nboot, samples, weights):
 		bt_samples[i] = np.sum( weights[idx]*samples[idx] ) / np.sum( weights[idx])
 	return np.std(bt_samples)
 
+# Define the bootstrap error function to calculate the error on the c1^2 + c2^2 terms
+def Bootstrap_Error_csq(nboot, e1, e2, weights):
+    N = len(e1)
+    bt_e1 = np.zeros(nboot)		 		# Will store mean of nboot resamples
+    bt_e2 = np.zeros(nboot)
+    for i in range(nboot):
+        idx = np.random.randint(0,N,N)			# Picks N random indicies with replacement
+        bt_e1[i] = np.sum( weights[idx]*e1[idx] ) / np.sum( weights[idx])
+        bt_e2[i] = np.sum( weights[idx]*e2[idx] ) / np.sum( weights[idx])
+    c1=np.average(bt_e1)
+    c2=np.average(bt_e2)
+    return np.std(bt_e1),np.std(bt_e2), np.std(bt_e1*bt_e1 + bt_e2*bt_e2), np.std((bt_e1-c1)**2 + (bt_e2-c2)**2)
+
 #open the ldac catalogue using functions in ldac.py
 #tests have shown ldac.py is much faster than using astropy
 ldac_cat = ldac.LDACCat(infile)
@@ -104,13 +117,16 @@ if (ccorr=='true'):
     errc1=Bootstrap_Error(nboot, e1_inbin, w_inbin)
     errc2=Bootstrap_Error(nboot, e2_inbin, w_inbin)
 
+    #Bootstrap error on c1^2 + c2^2
+    errc1,errc2, errcsq, errdcsq= Bootstrap_Error_csq(nboot, e1_inbin, e2_inbin, w_inbin) 
+    
     # weighted sd
     #sumosq1=np.average(e1_inbin*e1_inbin,weights=w_inbin)
     #sumosq2=np.average(e2_inbin*e2_inbin,weights=w_inbin)
     #errc1= np.sqrt(sumosq1 - c1*c1)
     #errc2= np.sqrt(sumosq2 - c2*c2)
 
-    print(zmin, zmax, c1, errc1, c2, errc2)
+    print("%5.1f %5.1f %10.3e %10.3e %10.3e %10.3e %10.3e %10.3e"  % (zmin, zmax, c1, errc1, c2, errc2, errcsq, errdcsq))
 else:
     c1 = 0
     c2 = 0
@@ -131,6 +147,3 @@ hdulist = fits.BinTableHDU.from_columns(
      fits.Column(name='weight', format='1E', array=w_inbin),
      fits.Column(name='weightsq', format='1E', array=wsq_inbin)])
 hdulist.writeto(outfile, overwrite=True)
-
-#ascii output for athena
-#np.savetxt('test.asc',np.transpose([ra_inbin,dec_inbin,e1_corr,e2_corr,w_inbin]),header='ALPHA_J2000 DELTA_J2000 e1 e2 weight',fmt='%.12e')  
