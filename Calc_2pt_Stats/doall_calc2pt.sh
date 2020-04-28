@@ -373,10 +373,6 @@ do
   
     echo "Starting mode CREATETOMO to cut catalogues into ${NTOMO} tomographic bins"
 
-    if [ ${PATCH} = "ALL" ]; then
-      { echo "MODE CREATETOMO only runs on PATCH N or S! Run MODE CREATETOMO -p N or -p S!"; exit 1; }
-    fi
-
     # Check that the Master catalogue exists and exit if it doesn't 
     test -f ${MASTERCAT} || \
       { echo "Error: Master catalogue ${MASTERCAT} does not exist! Exiting!"; exit 1; }
