@@ -42,24 +42,25 @@ mkdir -p $LOGDIR
 
 LENSFIT_VERSION=svn_309c_2Dbins_v2
 
-: <<'=runmelater'
+#: <<'=runmelater'
 for BLIND in A #B C
 do
 
 ## Do you want to create the tomographic catalogues?  Safe to do this on the head node
 # No SOM Flag Selection
-./doall_calc2pt.sh -m CREATETOMO -c true -p N -v $LENSFIT_VERSION -b $BLIND
-./doall_calc2pt.sh -m CREATETOMO -c true -p S -v $LENSFIT_VERSION -b $BLIND
+#./doall_calc2pt.sh -m CREATETOMO -c true -p N -v $LENSFIT_VERSION -b $BLIND
+#./doall_calc2pt.sh -m CREATETOMO -c true -p S -v $LENSFIT_VERSION -b $BLIND
 
 # SOM Flag Selection
-for FLAG_SOM in Flag_SOM_Fid Flag_SOM_noDEEP2
+for FLAG_SOM in Flag_SOM_Fid #Flag_SOM_noDEEP2
 do
-  ./doall_calc2pt.sh -m CREATETOMO -c true -p N -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
-  ./doall_calc2pt.sh -m CREATETOMO -c true -p S -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
+  #./doall_calc2pt.sh -m CREATETOMO -c true -p N -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
+  #./doall_calc2pt.sh -m CREATETOMO -c true -p S -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
+  ./doall_calc2pt.sh -m CREATETOMO -c true -p ALL -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
 done
 
 done
-=runmelater
+#=runmelater
 
 #Lets submit the XI-calculation to different nodes	    
 #This is for the default 5 bins
@@ -68,7 +69,7 @@ done
 FLAG_SOM=Flag_SOM_Fid 
 #FLAG_SOM=Flag_SOM_noDEEP2
 
-#: <<'=runmelater'
+: <<'=runmelater'
 for patch in N S
 do
     
@@ -101,7 +102,7 @@ do
 done
 done
 
-#=runmelater
+=runmelater
 : <<'=runmelater'
 
 
