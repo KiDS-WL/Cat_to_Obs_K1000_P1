@@ -1,0 +1,10 @@
+bias_1 = 0.0
+bias_2 = 0.0
+bias_3 = 0.0
+bias_4 = 0.0
+bias_5 = 0.0
+uncorr_bias_1 = 0.0
+uncorr_bias_2 = 0.0
+uncorr_bias_3 = 0.0
+uncorr_bias_4 = 0.0
+uncorr_bias_5 = 0.0

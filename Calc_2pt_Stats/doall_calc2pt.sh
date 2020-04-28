@@ -41,6 +41,7 @@ function printUsage
   echo "       -t number of theta bins, theta_min, theta_max"
   echo "       -a number of BP ell bins, ell_min, ell_max, apodisation"
   echo "       -e BP & COSEBIS theta_min, theta_max"
+  echo "       -x rebinning: N_theta, theta_min, theta_max"
   echo "       -i cross correlate bins i with j - for GGL i is the lens bin"
   echo "       -j cross correlate bins i with j - for GGL j is the source bin"
   echo "       -c c-corr on? true/false"
@@ -76,11 +77,32 @@ function printUsage
   echo "    This script uses TreeCorr version 4.0 to allow for linear or log binning"
   echo ""
   echo "EXAMPLES:"
+  echo "    Create tomographic catalogue on the default data path and filters?"
   echo "    ./doall_calc2pt.sh -m \"CREATETOMO\""
-  echo "        runs the CREATETOMO mode on the default data path and filters"
+  echo ""
+  echo "    Fine bins xi_+/- for pair 55 in the North?"
+  echo "    ./doall_calc2pt.sh -m XI -i 5 -j 5 -p N -t \"326 0.37895134266193781 395.82918204307509\""
+  echo ""
+  echo "    Combine gamma_t North & South for pair 15?"
+  echo "    ./doall_calc2pt.sh -m COMBINEGT -i 1 -j 5 -t \"326 0.37895134266193781 395.82918204307509\""
+  echo ""
+  echo "    Rebin xi_+/- into broad bins for pair 55?"
+  echo "    ./doall_calc2pt.sh -m REBINXI -p ALL -i 5 -j 5 -x \"326 0.37895134266193781 395.82918204307509\" -e \"9 0.5 300.0\""
+  echo ""
+  echo "    Apodized GGL bandpower for pair 15?"
+  echo "    ./doall_calc2pt.sh -m Pgk -p ALL -i 1 -j 5 -a \"8 100.0 1500.0 true\" -e \"9 0.5 300.0\""
+  echo ""
+  echo "    Non-apodized shear bandpower for pair 55?"
+  echo "    ./doall_calc2pt.sh -m Pkk -p ALL -i 5 -j 5 -a \"8 100.0 1500.0 false\" -e \"9 0.5 300.0\""
+  echo ""
+  echo "    COSEBIs for pair 55?"
+  echo "    ./doall_calc2pt.sh -m COSEBIS -p ALL -i 5 -j 5 -e \"9 0.5 300.0\""
+  echo ""
+  
   echo ""
   echo "AUTHOR:"
   echo "    Catherine Heymans (heymans@roe.ac.uk)"
+  echo "    Chieh-An Lin (calin@roe.ac.uk)"
   echo ""
 }
 
@@ -111,15 +133,18 @@ TOMOINFO_STR="5 0.1 0.3 0.5 0.7 0.9 1.2"
 ## Format:  nbins, theta_min, theta_max
 THETAINFO_STR="326 0.37895134266193781 395.82918204307509"
 ## This gives exact edges for COESBIS at 0.5 and 300 arcmin and also spans the
-## angular range needed for the band powers
+## angular range needed for the band powers.
+## 13 bins below 0.5 & 13 bins beyond 300
 
 ## Information about the BP ell bins
 ## Format:  nbins, ell_min, ell_max, do apodisation
-ELLINFO_STR="8 100.0 1500.0 false"
+ELLINFO_STR="8 100.0 1500.0 true"
 
 ## Information about the COSEBIS theta bins
-## Format:  theta_min, theta_max
+## Format:  nbins, theta_min, theta_max
 BP_COSEBIS_THETAINFO_STR="0.5 300"
+
+REBINNING_THETAINFO_STR="9 0.5 300"
 
 ## Use a wrapper script to run over different bin 
 ## combinations - making it easier to run in parrallel
@@ -173,7 +198,7 @@ while getopts ":d:g:o:p:m:v:n:t:a:e:i:j:c:l:b:u:s:" opt; do
       PATCH=${OPTARG}
       ;;
     m)
-      MODE="${OPTARG}"
+      MODE=${OPTARG}
       ;;
     v)
       LENSFIT_VER=${OPTARG}
@@ -189,6 +214,9 @@ while getopts ":d:g:o:p:m:v:n:t:a:e:i:j:c:l:b:u:s:" opt; do
       ;;
     e)
       BP_COSEBIS_THETAINFO_STR=${OPTARG}
+      ;;
+    x)
+      REBINNING_THETAINFO_STR=${OPTARG}
       ;;
     i)
       IZBIN=${OPTARG}
@@ -283,7 +311,7 @@ else
   
   STATDIR="${ODIR}/${aves}"
   
-  if [ "${aves}" = "buceros" ] || [ "${aves}" = "diomedea" ] || [ "${aves}" = "egretta" ]; then
+  if [ "${aves}" = "buceros" ] || [ "${aves}" = "cygnus" ] || [ "${aves}" = "cuculus" ] || [ "${aves}" = "diomedea" ] || [ "${aves}" = "egretta" ]; then
     catTag="run${runInd}_${PATCH}"
   else
     catTag="run${runInd}"
@@ -294,6 +322,26 @@ else
       lensType=$((${IZBIN} - 1))
       srcType1=$((${IZBIN} + 1))
       srcType2=$((${JZBIN} + 1))
+    fi
+  elif [ ${aves} = "cygnus" ]; then
+    if [ ${PATCH} = "N" ]; then
+      lensType=$((${IZBIN} * 2 - 2))
+      srcType1=$((${IZBIN} * 2 + 2))
+      srcType2=$((${JZBIN} * 2 + 2))
+    elif [ ${PATCH} = "S" ]; then
+      lensType=$((${IZBIN} * 2 - 1))
+      srcType1=$((${IZBIN} * 2 + 3))
+      srcType2=$((${JZBIN} * 2 + 3))
+    fi
+  elif [ ${aves} = "cuculus" ]; then
+    if [ ${PATCH} = "N" ]; then
+      lensType=$((${IZBIN} * 2 - 2))
+      srcType1=$((${IZBIN} * 2 + 2))
+      srcType2=$((${JZBIN} * 2 + 2))
+    elif [ ${PATCH} = "S" ]; then
+      lensType=$((${IZBIN} * 2 - 1))
+      srcType1=$((${IZBIN} * 2 + 3))
+      srcType2=$((${JZBIN} * 2 + 3))
     fi
   elif [ ${aves} = "diomedea" ]; then
     if [ ${PATCH} = "N" ]; then
@@ -349,11 +397,7 @@ ellTag="nbins_${ELLINFO[0]}_Ell_${ELLINFO[1]}_${ELLINFO[2]}"
 
 ## theta range for BP & COSEBIs
 BP_COSEBIS_THETAINFO=(${BP_COSEBIS_THETAINFO_STR})
-
-## TODO CREATETOMO: adjust usercat / Implement GT & XI file loading for mocks
-## TODO GT: 2dFLenS random I/O problem; test on mocks; compare data
-## TODO XI: test on mocks; compare data
-## TODO REBIN GT XI
+REBINNING_THETAINFO=(${REBINNING_THETAINFO_STR})
 
 
 
@@ -448,7 +492,7 @@ do
       fi
       
       lensCat="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${lensType}.fits"
-      randCat="${SDIR}/${aves}/MFP_randCat/randCat_type${lensType}.fits"
+      randCat="${SDIR}/${aves}/MFP_selection/randCat_type${lensType}.fits"
       srcCat="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType2}.fits"
       outPath="${STATDIR}/treecorr_K1000_${randTag}_NG/GT_${catTag}_${angTag}_${tomoPairTag}.asc"
       weightedanalysis="false"  
@@ -461,7 +505,7 @@ do
       fi
       
       lensCat="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${lensType}.fits"
-      randCat="${LDIR}/${GGL_ID}_random_z${IZBIN}.fits"
+      randCat="${SDIR}/${aves}/MFP_selection/randCat_type${lensType}.fits"
       srcCat="${SDIR}/${aves}/MFP_galCat/galCat_run${runInd}_type${srcType2}.fits"
       outPath="${STATDIR}/treecorr_K1000_${randTag}_NG/GT_${catTag}_${angTag}_${tomoPairTag}.asc"
       weightedanalysis="false"  
@@ -609,7 +653,7 @@ do
     # This isn't correct but we don't really use the sigma_xi column ($8 and $18) 
     # Finally give the sum of weights and the sum of npairs
     
-    awk 'NR>1 {printf " % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e\n", 
+    awk 'NR>1 {printf " % .12e  % .12e  % .12e  % .12e  % .12e  % .12e  % .12e  % .12e  % .12e  % .12e  % .12e  % .12e  % .12e\n", 
                      ($1*$8 + $14*$21)/($8+$21), \
                      ($2*$8 + $15*$21)/($8+$21), \
                      ($3*$8 + $16*$21)/($8+$21), \
@@ -688,7 +732,7 @@ do
     # This isn't correct but we don't really use the sigma_xi column ($8, $9, $19, and $20) 
     # Finally give the sum of weights and the sum of npairs
     
-    awk 'NR>2 {printf " % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e  % 7.4e\n", 
+    awk 'NR>2 {printf " % .12e  % .12e  % .12e  % .12e  % .12e  % .12e  % .12e  % .12e  % .12e  % .12e  % .12e\n", 
                      ($1*$11 + $12*$22)/($11+$22), \
                      ($2*$11 + $13*$22)/($11+$22), \
                      ($3*$11 + $14*$22)/($11+$22), \
@@ -717,12 +761,6 @@ done
 ##  \"REBINGT\": rebin gamma_t/x for tomo bin pair i j
 ##
 
-# TODO python script
-# TODO load path for mocks
-# TODO save path for mocks
-# TODO load path for data
-# TODO save path for data
-
 for mode in ${MODE}
 do
   if [ "${mode}" = "REBINGT" ]; then
@@ -730,52 +768,30 @@ do
     echo "Starting mode ${mode} to rebin gamma_t for tomo bin pair ${IZBIN} ${JZBIN} \
     with theta bins ${THETAINFO_STR}"
 
-    # check do the files exist?
-    inFileN=${STATDIR}/GT/GT_K1000_N_${angTag}_${tomoPairTag}.asc
-    inFileS=${STATDIR}/GT/GT_K1000_S_${angTag}_${tomoPairTag}.asc
+    angTag2="nbins_${REBINNING_THETAINFO[0]}_theta_${REBINNING_THETAINFO[1]}_${REBINNING_THETAINFO[2]}"
 
-    test -f ${inFileN} || \
-    { echo "Error: KiDS-N GT results ${inFileN} do not exist. Run MODE GT -p N!"; exit 1; } 
-    test -f ${inFileS} || \
-    { echo "Error: KiDS-S GT results ${inFileS} do not exist. Run MODE GT -p S!"; exit 1; } 
+    ## Data
+    if [ "${USERCAT}" = "false" ]; then
+      inFile="${STATDIR}/GT/GT_${catTag}_${angTag}_${tomoPairTag}.asc"
+      outPath="${STATDIR}/GT/GT_binned_${catTag}_${angTag2}_${tomoPairTag}.asc"
 
-    # and now lets combine them using the fabulous awk
-    # which Tilman will be most scathing about, but I love it nevertheless
-    # first lets grab the header which we want to replicate
+    ## Mocks
+    else
+      inFile="${STATDIR}/treecorr_K1000_${randTag}_NG/GT_${catTag}_${angTag}_${tomoPairTag}.asc"
+      outPath="${STATDIR}/catToObs_K1000_${randTag}_gTX/GT_${catTag}_${angTag2}_${tomoPairTag}.asc"
+    fi
 
-    head -1 < ${inFileN} > ${TMPDIR}/xi_header
+    ## Check do the files exist?
+    test -f ${inFile} || \
+    { echo "Error: GT results ${inFile} do not exist. Run COMBINEGT!"; exit 1; }
 
-    # paste the two catalogues together
-    
-    paste ${inFileN} ${inFileS} > ${TMPDIR}/xi_paste
-
-    # time for awk where we use npairs to weight every other
-    # column to get the average
-    # $10 = npairs in KiDS-N,  $20 = npairs in KiDS-S
-    # For the sigma_xi column I'm assuming ngals in N and S are similar and sum sigma_xi in quadrature
-    # This isn't correct but we don't really use the sigma_xi column ($8 and $18) 
-    # Finally give the sum of weights and the sum of npairs
-    
-    awk 'NR>1 {printf "%7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e\n", 
-                     ($1*$10 + $11*$20)/($10+$20), \
-                     ($2*$10 + $12*$20)/($10+$20), \
-                     ($3*$10 + $13*$20)/($10+$20), \
-                     ($4*$10 + $14*$20)/($10+$20), \
-                     ($5*$10 + $15*$20)/($10+$20), \
-                     ($6*$10 + $16*$20)/($10+$20), \
-                     ($7*$10 + $17*$20)/($10+$20), \
-                     sqrt($8*$8 + $18*$18), $9+$19, $10+$20}' < ${TMPDIR}/xi_paste > ${TMPDIR}/xi_comb
-    
-    #finally put the header back
-
-    outPath=${STATDIR}/XI/XI_K1000_ALL_${angTag}_${tomoPairTag}.asc
-    cat ${TMPDIR}/xi_header ${TMPDIR}/xi_comb > ${outPath}
+    ## Execute the script
+    ${P_PYTHON3} calc_rebin_gt_xi.py ${inFile} "GT" ${REBINNING_THETAINFO_STR} ${LINNOTLOG} ${outPath}
 
     # Did it work?
     test -f ${outPath} || \
-      { echo "Error: Combined Treecorr output ${outPath} was not created! !"; exit 1; }
+      { echo "Error: Rebinned Treecorr output ${outPath} was not created! !"; exit 1; }
     echo "Success: Leaving mode ${mode}"
-
   fi
 done
 
@@ -784,64 +800,37 @@ done
 ##  \"REBINXI\": rebin xi_+/- for tomo bin pair i j
 ##
 
-# TODO python script
-# TODO load path for mocks
-# TODO save path for mocks
-# TODO load path for data
-# TODO save path for data
-
 for mode in ${MODE}
 do
   if [ "${mode}" = "REBINXI" ]; then
 
     echo "Starting mode ${mode}: to rebin xi_+/- for tomo bin pair ${IZBIN} ${JZBIN} \
-    with theta bins ${THETAINFO_STR}"
+    with theta bins ${THETAINFO_STR} into ${REBINNING_THETAINFO_STR}"
 
-    # check do the files exist?
-    inFileN=${STATDIR}/XI/XI_K1000_N_BLIND_${BLIND}_${LENSFIT_VER}_${angTag}_${tomoPairTag}.asc
-    inFileS=${STATDIR}/XI/XI_K1000_S_BLIND_${BLIND}_${LENSFIT_VER}_${angTag}_${tomoPairTag}.asc
-
-    test -f ${inFileN} || \
-    { echo "Error: KiDS-N XI results ${inFileN} do not exist. Run MODE XI -p N!"; exit 1; } 
-    test -f ${inFileS} || \
-    { echo "Error: KiDS-S XI results ${inFileS} do not exist. Run MODE XI -p S!"; exit 1; } 
-
-    # and now lets combine them using the fabulous awk
-    # which Tilman will be most scathing about, but I love it nevertheless
-    # first lets grab the header which we want to replicate
-
-    head -1 < ${inFileN} > ${TMPDIR}/xi_header
-
-    # paste the two catalogues together
-    paste ${inFileN} ${inFileS} > ${TMPDIR}/xi_paste
-
-    # time for awk where we use npairs to weight every other
-    # column to get the average
-    # $10 = npairs in KiDS-N,  $20 = npairs in KiDS-S
-    # For the sigma_xi column I'm assuming ngals in N and S are similar and sum sigma_xi in quadrature
-    # This isn't correct but we don't really use the sigma_xi column ($8 and $18) 
-    # Finally give the sum of weights and the sum of npairs
+    angTag2="nbins_${REBINNING_THETAINFO[0]}_theta_${REBINNING_THETAINFO[1]}_${REBINNING_THETAINFO[2]}"
     
-    awk 'NR>1 {printf "%7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e   %7.4e\n", 
-                     ($1*$10 + $11*$20)/($10+$20), \
-                     ($2*$10 + $12*$20)/($10+$20), \
-                     ($3*$10 + $13*$20)/($10+$20), \
-                     ($4*$10 + $14*$20)/($10+$20), \
-                     ($5*$10 + $15*$20)/($10+$20), \
-                     ($6*$10 + $16*$20)/($10+$20), \
-                     ($7*$10 + $17*$20)/($10+$20), \
-                     sqrt($8*$8 + $18*$18), $9+$19, $10+$20}' < ${TMPDIR}/xi_paste > ${TMPDIR}/xi_comb
+    ## Data
+    if [ "${USERCAT}" = "false" ]; then
+      inFile="${STATDIR}/XI/XI_${catTag}_${angTag}_${tomoPairTag}.asc"
+      outPath="${STATDIR}/XI/XI_binned_${catTag}_${angTag2}_${tomoPairTag}.asc"
     
-    #finally put the header back
+    ## Mocks
+    else
+      inFile="${STATDIR}/treecorr_K1000_${randTag}_GG/XI_${catTag}_${angTag}_${tomoPairTag}.asc"
+      outPath="${STATDIR}/catToObs_K1000_${randTag}_xiPM/XI_${catTag}_${angTag2}_${tomoPairTag}.asc"
+    fi
 
-    outPath=${STATDIR}/XI/XI_K1000_ALL_${angTag}_${tomoPairTag}.asc
-    cat ${TMPDIR}/xi_header ${TMPDIR}/xi_comb > ${outPath}
+    ## Check do the files exist?
+    test -f ${inFile} || \
+    { echo "Error: XI results ${inFile} do not exist. Run COMBINEXI!"; exit 1; }
+
+    ## Execute the script
+    ${P_PYTHON3} calc_rebin_gt_xi.py ${inFile} "XI" ${REBINNING_THETAINFO_STR} ${LINNOTLOG} ${outPath}
 
     # Did it work?
     test -f ${outPath} || \
-      { echo "Error: Combined Treecorr output ${outPath} was not created! !"; exit 1; }
+      { echo "Error: Rebinned Treecorr output ${outPath} was not created! !"; exit 1; }
     echo "Success: Leaving mode ${mode}"
-
   fi
 done
 
@@ -863,7 +852,7 @@ do
     ## For mocks, apo & non-apo cases have different paths
 
     ## KiDS data
-    if [ ${USERCAT} = "false" ]; then
+    if [ "${USERCAT}" = "false" ]; then
       treePath="${STATDIR}/GT/GT_${InputFileIdentifier}.asc"
       FolderName="${STATDIR}/Pgk"
 
@@ -895,13 +884,14 @@ do
 
     if [ "${USERCAT}" = "false" ]; then
         awk '(NR>1){print $2, $4, $5}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
-    elif [ "${aves}" = "buceros" ] || [ "${aves}" = "diomedea" ] || [ "${aves}" = "egretta" ]; then
+    elif [ "${aves}" = "buceros" ] || [ "${aves}" = "cygnus" ] || [ "${aves}" = "diomedea" ] || [ "${aves}" = "egretta" ]; then
         ## Same as data
         awk '(NR>1){print $2, $4, $5}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
     else
         ## Old format that mocks use
         awk '(NR>1){print $2, $4-$5, $10-$11}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
     fi
+
     N_theta_BP=`wc -l < ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat`
 
     ## apoWidth = log width of apodisation window
