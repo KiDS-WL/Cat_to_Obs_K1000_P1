@@ -27,7 +27,7 @@ plt.rc('font', **font)
 
 # Read in user input to set the patch, blind, zmin,zmax, nbootstrap
 if len(sys.argv) <7: 
-    print "Usage: %s Patch Blind ZBmin ZBmax nbootstrap cattail" % sys.argv[0] 
+    print("Usage: %s Patch Blind ZBmin ZBmax nbootstrap cattail" % sys.argv[0])
     sys.exit(1)
 else:
 	NorS=sys.argv[1]  # N for North, S for South, or 'All' for both.
@@ -40,18 +40,18 @@ else:
 
 Read_Cat_Or_Pickle = "Cat" 
 #Read_Cat_Or_Pickle = "Pickle" 	# Set to "Cat" to read from fitsfile catalogue (~680s for N&S)
-								# Or "Pickle" to read smaller pickled version (~20s for N&S)
+                      # Or "Pickle" to read smaller pickled version (~20s for N&S)
 
 # to do - I get different results (only slightly) if I use pickle or cat.... must be some precision issue?
 
 DIRECT = os.getcwd() 
 
 def Pickle_Data(ra,dec,ace1,ace2,acw,ZB, Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR):
-	print "Pickling RA,Dec,e1,e2,w,ZB...."
+	print("Pickling RA,Dec,e1,e2,w,ZB....")
 	outputrd='%s/Catalogues/K%s.Blind%s.ra_dec_e1_e2_w_ZB_all_%s' %(DIRECT,NorS,Blind,tail)
 	np.save(outputrd, np.column_stack((ra,dec,ace1,ace2,acw,ZB)) )
 
-	print "Pickling Xpos,Ypos,MAG,PSFe1,PSFe2,TPSF,SNR,ZB...."
+	print("Pickling Xpos,Ypos,MAG,PSFe1,PSFe2,TPSF,SNR,ZB....")
 	outputXY='%s/Catalogues/K%s.Blind%s.Xpos_Ypos_MAG_PSFe1_PSFe2_TPSF_SNR_ZB_all_%s' %(DIRECT,NorS,Blind,tail)
 	np.save(outputXY, np.column_stack((Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR,ZB)) )
 
@@ -59,7 +59,7 @@ def Pickle_Data(ra,dec,ace1,ace2,acw,ZB, Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR):
 
 
 def Read_Basic_Data(Read_NorS,tail):
-	print "Reading in RA,Dec,e1,e2,w,ZB...."
+	print("Reading in RA,Dec,e1,e2,w,ZB....")
 
 	# K1000- cats
 	f = fits.open('/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH/K1000_%s_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_%s.cat'%(Read_NorS,tail))
@@ -75,7 +75,7 @@ def Read_Basic_Data(Read_NorS,tail):
 	ace2 = f[iext].data['autocal_e2_%s'%Blind]
 	acw = f[iext].data['recal_weight_%s'%Blind]
 
-	print "Reading in Xpos,Ypos,MAG,PSFe's...."
+	print("Reading in Xpos,Ypos,MAG,PSFe's....")
 	Xpos = f[iext].data['Xpos']
 	Ypos = f[iext].data['Ypos']
 	MAG = f[iext].data['MAG_AUTO']
@@ -90,7 +90,7 @@ def Read_Basic_Data(Read_NorS,tail):
 
 
 def Stack_NandS():
-	print "Stacking North and South..."
+	print("Stacking North and South...")
 	t1 = time.time()
 	ra = np.append(ra_N, ra_S)
 	dec = np.append(dec_N, dec_S)
@@ -120,7 +120,7 @@ if Read_Cat_Or_Pickle == "Cat":
 	else:
 		ra,dec,ace1,ace2,acw,ZB, Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR = Read_Basic_Data(NorS,tail)
 	t2 = time.time()
-	print "It took %.0f seconds to read in from the catalogue" %(t2-t1)	
+	print("It took %.0f seconds to read in from the catalogue" %(t2-t1))
 	Pickle_Data(ra,dec,ace1,ace2,acw,ZB, Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR)
 
 elif Read_Cat_Or_Pickle == "Pickle":
@@ -131,38 +131,37 @@ elif Read_Cat_Or_Pickle == "Pickle":
 
 		# Check if pickled 'All' catalogue exists... If so, proceed...
 		if os.path.isfile('%s/Catalogues/K%s.Blind%s.ra_dec_e1_e2_w_ZB_all_%s.npy'%(DIRECT,NorS,Blind,tail)):
-			print "Reading in RA,Dec,e1,e2,w,ZB...."
+			print("Reading in RA,Dec,e1,e2,w,ZB....")
 			ra,dec,ace1,ace2,acw,ZB = np.load('%s/Catalogues/K%s.Blind%s.ra_dec_e1_e2_w_ZB_all_%s.npy' %(DIRECT,NorS,Blind,tail)).transpose()[[0,1,2,3,4,5],:]
-			print "Reading in Xpos,Ypos,MAG,PSFe's...."
+			print("Reading in Xpos,Ypos,MAG,PSFe's....")
 			Xpos,Ypos,MAG,PSFe1,PSFe2,TPSF,SNR = np.load('%s/Catalogues/K%s.Blind%s.Xpos_Ypos_MAG_PSFe1_PSFe2_TPSF_SNR_ZB_all_%s.npy' %(DIRECT,NorS,Blind,tail)).transpose()[[0,1,2,3,4,5,6],:]
 
 		# ...if pickled 'All; catalogue does not exist, make it, to save time stacking North and South next time...
 		else:
-			print "Reading in RA,Dec,e1,e2,w,ZB...."
+			print("Reading in RA,Dec,e1,e2,w,ZB....")
 			ra_N,dec_N,ace1_N,ace2_N,acw_N,ZB_N = np.load('%s/Catalogues/KN.Blind%s.ra_dec_e1_e2_w_ZB_all_%s.npy' %(DIRECT,Blind,tail)).transpose()[[0,1,2,3,4,5],:]
 			ra_S,dec_S,ace1_S,ace2_S,acw_S,ZB_S = np.load('%s/Catalogues/KS.Blind%s.ra_dec_e1_e2_w_ZB_all_%s.npy' %(DIRECT,Blind,tail)).transpose()[[0,1,2,3,4,5],:]
-			print "Reading in Xpos,Ypos,MAG,PSFe's...."
+			print("Reading in Xpos,Ypos,MAG,PSFe's....")
 			Xpos_N,Ypos_N,MAG_N,PSFe1_N,PSFe2_N,TPSF_N,SNR_N = np.load('%s/Catalogues/KN.Blind%s.Xpos_Ypos_MAG_PSFe1_PSFe2_TPSF_SNR_ZB_all_%s.npy' %(DIRECT,Blind,tail)).transpose()[[0,1,2,3,4,5,6],:]
 			Xpos_S,Ypos_S,MAG_S,PSFe1_S,PSFe2_S,TPSF_S,SNR_S = np.load('%s/Catalogues/KS.Blind%s.Xpos_Ypos_MAG_PSFe1_PSFe2_TPSF_SNR_ZB_all_%s.npy' %(DIRECT,Blind,tail)).transpose()[[0,1,2,3,4,5,6],:]
 			ra,dec,ace1,ace2,acw,ZB, Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR = Stack_NandS()
 			Pickle_Data(ra,dec,ace1,ace2,acw,ZB, Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR)
 
 	else:
-		print "Reading in RA,Dec,e1,e2,w,ZB...."
+		print("Reading in RA,Dec,e1,e2,w,ZB....")
 		ra,dec,ace1,ace2,acw,ZB = np.load('%s/Catalogues/K%s.Blind%s.ra_dec_e1_e2_w_ZB_all_%s.npy' %(DIRECT,NorS,Blind,tail)).transpose()[[0,1,2,3,4,5],:]
-		print "Reading in Xpos,Ypos,MAG,PSFe's...."
+		print("Reading in Xpos,Ypos,MAG,PSFe's....")
 		Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR = np.load('%s/Catalogues/K%s.Blind%s.Xpos_Ypos_MAG_PSFe1_PSFe2_TPSF_SNR_ZB_all_%s.npy' %(DIRECT,NorS,Blind,tail)).transpose()[[0,1,2,3,4,5,6],:]
 
 		
 
 	t2 = time.time()
-	print "It took %.0f seconds to read in from the pickled files" %(t2-t1)
+	print("It took %.0f seconds to read in from the pickled files" %(t2-t1))
 	
-
 if str(ZBlo) == "None":
     ZBlabel = 'ZBcutNone'
 elif float(ZBlo)<float(ZBhi):
-	print "Making the ZBcut in the range %s to %s" %(ZBlo, ZBhi)
+	print("Making the ZBcut in the range %s to %s" %(ZBlo, ZBhi))
 	ZBlabel = 'ZBcut%s-%s' %(ZBlo,ZBhi)
 	#idx = np.where( np.logical_and(ZB>float(ZBlo), ZB<float(ZBhi)) )[0]
 	idx=( (ZB>ZBlo) & (ZB<ZBhi))
@@ -182,12 +181,13 @@ elif float(ZBlo)<float(ZBhi):
 	TPSF=TPSF[idx]
 	SNR=SNR[idx]
 else:
-	print "ZBlo %s is not lower than ZBhi %s. Amend this or set them both to None."
+	print("ZBlo %s is not lower than ZBhi %s. Amend this or set them both to None.")
 	sys.exit()
 # Save the weighted additive bias - and the weighted m-correction to apply to the bias (in the metacal case)
 np.savetxt('%s/Catalogues/K%s.Blind%s.ccorr_e1_e2.%s_%s.dat'%(DIRECT,NorS,Blind,ZBlabel,tail), 
            np.c_[ np.average(ace1,weights=acw),np.average(ace2,weights=acw) ])
 
+sys.exit()
 
 def Bootstrap_Error(nboot, samples, weights,mcorr):
 	N = len(samples)
@@ -225,51 +225,51 @@ def Plot_XY_Grids(Q, yedges,xedges, lowlim, upplim, label, savename):
 
 def Plot_BinQx_VS_BinQy(Qx, Qy, weights, mcorr, num_bins, labels, xlabel, ylabel, title,xlimits, ylimits, savename, Bootstrap):
 
-	colors = ['magenta', 'dimgrey', 'darkblue', 'orange', 'lawngreen', 'red']
-	f, ((ax1)) = plt.subplots(1, 1, figsize=(8,7))
+    colors = ['magenta', 'dimgrey', 'darkblue', 'orange', 'lawngreen', 'red']
+    f, ((ax1)) = plt.subplots(1, 1, figsize=(8,7))
 
-	if len(Qx.shape) == 1:
-		Qx = np.reshape(Qx, (1,len(Qx)))
-		Qy = np.reshape(Qy, (1,len(Qy)))
+    if len(Qx.shape) == 1:
+        Qx = np.reshape(Qx, (1,len(Qx)))
+        Qy = np.reshape(Qy, (1,len(Qy)))
 
-	# Average the corresponding Y's to the X's
-	binx_centres = np.zeros([Qy.shape[0], num_bins])
-	biny_centres = np.zeros([Qy.shape[0], num_bins])
-	biny_centres_err = np.zeros([Qy.shape[0], num_bins])
-	probability = np.linspace(0,1,num_bins+1)	
+    # Average the corresponding Y's to the X's
+    binx_centres = np.zeros([Qy.shape[0], num_bins])
+    biny_centres = np.zeros([Qy.shape[0], num_bins])
+    biny_centres_err = np.zeros([Qy.shape[0], num_bins])
+    probability = np.linspace(0,1,num_bins+1)	
 
-	for i in range(Qy.shape[0]):			
-		binx_edges = mquantiles(Qx[i,:], prob=probability)				# Edges of the num_bins bins, each containing same-% of data points.
+    for i in range(Qy.shape[0]):			
+        binx_edges = mquantiles(Qx[i,:], prob=probability)				# Edges of the num_bins bins, each containing same-% of data points.
 		
-		for j in range(num_bins):
-			idx = np.where(np.logical_and(Qx[i,:]>=binx_edges[j], Qx[i,:]<binx_edges[j+1]))[0]
-			# print len(idx) / float(len(Qx[i,:]))
-			binx_centres[i,j] = np.sum( weights[idx]*Qx[i,idx] ) / np.sum( weights[idx] ) 
-			biny_centres[i,j] = np.sum( weights[idx]*Qy[i,idx] ) / np.sum( weights[idx] *mcorr[idx] ) 
-			#The number of bootstrap resamples to take in estimating the errors is set on the command line.
-			if Bootstrap:
-				biny_centres_err[i,j] = Bootstrap_Error(nboot, Qy[i,idx], weights[idx],mcorr[idx])
-   			else:
-				biny_centres_err[i,j] = 0.
+        for j in range(num_bins):
+            idx = np.where(np.logical_and(Qx[i,:]>=binx_edges[j], Qx[i,:]<binx_edges[j+1]))[0]
+            # print( len(idx) / float(len(Qx[i,:])) )
+            binx_centres[i,j] = np.sum( weights[idx]*Qx[i,idx] ) / np.sum( weights[idx] ) 
+            biny_centres[i,j] = np.sum( weights[idx]*Qy[i,idx] ) / np.sum( weights[idx] *mcorr[idx] ) 
+            #The number of bootstrap resamples to take in estimating the errors is set on the command line.
+            if Bootstrap:
+                biny_centres_err[i,j] = Bootstrap_Error(nboot, Qy[i,idx], weights[idx],mcorr[idx])
+            else:
+                biny_centres_err[i,j] = 0.
  
-		plt.errorbar(binx_centres[i,:], biny_centres[i,:], yerr=biny_centres_err[i,:], fmt='o', color=colors[i],label=labels[i])
+            plt.errorbar(binx_centres[i,:], biny_centres[i,:], yerr=biny_centres_err[i,:], fmt='o', color=colors[i],label=labels[i])
 
-		#you might want to add in an offset e.g
-		#offset = [-0.01,0.01, -0.03,0.03] 
-		# +offset[i]*np.mean(binx_centres)
+	    #you might want to add in an offset e.g
+	    #offset = [-0.01,0.01, -0.03,0.03] 
+	    # +offset[i]*np.mean(binx_centres)
 
-	plt.xlabel(xlabel)
-	plt.ylabel(ylabel)
-	plt.title(title)
-	if ylimits != None:
-		plt.ylim(ylimits)
-	if xlimits != None:
-		plt.plot( xlimits, [0.,0.], 'k--' )
-		plt.xlim(xlimits)
-	plt.legend(loc='best', frameon=False)
-	plt.savefig(savename)
-	#plt.show()
-	return np.dstack(( binx_centres, biny_centres, biny_centres_err ))
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    if ylimits != None:
+        plt.ylim(ylimits)
+    if xlimits != None:
+        plt.plot( xlimits, [0.,0.], 'k--' )
+        plt.xlim(xlimits)
+    plt.legend(loc='best', frameon=False)
+    plt.savefig(savename)
+    #plt.show()
+    return np.dstack(( binx_centres, biny_centres, biny_centres_err ))
 
 # functions to extract and plot alpha values from the data
 
@@ -308,11 +308,11 @@ def Plot_alpha_vs_ZB(eobs1, eobs2, epsf1, epsf2, weight, ZB,savename): #, labels
 	alpha_2_tomo[3], err_alpha_2_tomo[3], c_2_tomo[3], err_c_2_tomo[3] = calc_alpha(eobs2, epsf2, weight, ZB, 0.7, 0.9)
 	alpha_2_tomo[4], err_alpha_2_tomo[4], c_2_tomo[4], err_c_2_tomo[4] = calc_alpha(eobs2, epsf2, weight, ZB, 0.9, 1.2)
 
-	print alpha_1, err_alpha_1,c_1, err_c_1
-	print alpha_1_tomo, err_alpha_1_tomo
+	print( alpha_1, err_alpha_1,c_1, err_c_1 )
+	print( alpha_1_tomo, err_alpha_1_tomo )
 
-	print alpha_2, err_alpha_2,c_2, err_c_2
-	print alpha_2_tomo, err_alpha_2_tomo
+	print( alpha_2, err_alpha_2,c_2, err_c_2 )
+	print( alpha_2_tomo, err_alpha_2_tomo )
 
 	ZBbin=np.zeros(5)
 	ZBbin[0]=0.2
@@ -339,7 +339,7 @@ def Plot_alpha_vs_ZB(eobs1, eobs2, epsf1, epsf2, weight, ZB,savename): #, labels
 # ------------------------------------------------------------- 1-POINT STATISTICS PLOTS ------------------------------------------------------------- #
 # NOTE ON RETURNED ARRAY: bin_x_y_yerr[:,:,i] --> i=0 for x, i=1 for y, i=2 for yerr.
 
-#print "Exiting as the next 1pt plots are expensive (~100s) to produce due to bootstrapping errors."
+#print( "Exiting as the next 1pt plots are expensive (~100s) to produce due to bootstrapping errors." )
 #sys.exit()
 
 Bootstrap = True	# Bootstrap errors? Takes ~nboot times longer! (nboot defined on command line)

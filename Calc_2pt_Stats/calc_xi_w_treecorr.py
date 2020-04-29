@@ -28,10 +28,14 @@ else:
 
 # prepare the catalogues
 
-cat1 = treecorr.Catalog(fitscat1, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
-                                  g1_col='e1', g2_col='e2', w_col='weight')
-cat2 = treecorr.Catalog(fitscat2, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
-                                  g1_col='e1', g2_col='e2', w_col='weight')
+#cat1 = treecorr.Catalog(fitscat1, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
+#                                  g1_col='e1', g2_col='e2', w_col='weight')
+#cat2 = treecorr.Catalog(fitscat2, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
+#                                  g1_col='e1', g2_col='e2', w_col='weight')
+cat1 = treecorr.Catalog(fitscat1, ra_col='ra_gal', dec_col='dec_gal', ra_units='deg', dec_units='deg', \
+                                  g1_col='gamma1', g2_col='gamma2', w_col='recal_weight')
+cat2 = treecorr.Catalog(fitscat2, ra_col='ra_gal', dec_col='dec_gal', ra_units='deg', dec_units='deg', \
+                                  g1_col='gamma1', g2_col='gamma2', w_col='recal_weight')
 
 # AN UNFORTUNATE HACK FOR THE MOCKS
 # TBD - make mocks with the same column names as the data and a weight column

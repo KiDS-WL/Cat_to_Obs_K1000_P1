@@ -33,11 +33,18 @@ else:
 # prepare the catalogues
 
 lenscat = treecorr.Catalog(lenscatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
-                                  w_col='WEICOMP')
+                                  w_col='WEICOMP')  # w_col='weight')
 rancat = treecorr.Catalog(rancatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
                                   w_col='WEICOMP')
-sourcecat = treecorr.Catalog(sourcecatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
-                                  g1_col='e1', g2_col='e2', w_col='weight')
+#sourcecat = treecorr.Catalog(sourcecatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg',
+#                             g1_col='g1', g2_col='g2', w_col='weight')
+
+sourcecat = treecorr.Catalog(sourcecatname, ra_col='ra_gal', dec_col='dec_gal', ra_units='deg', dec_units='deg',
+                             g1_col='gamma1', g2_col='gamma2', w_col='recal_weight')
+#lenscat = treecorr.Catalog(lenscatname, ra_col='ra_gal', dec_col='dec_gal', ra_units='deg', dec_units='deg',
+#                             w_col='recal_weight')
+
+
 
 # Define the binning based on command line input
 # Using bin_slop of 0.08 which Linc found to be optimal for xi_+/- on the mocks
@@ -52,16 +59,16 @@ else:
 
     # Number of source lens pairs
     nlns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-         bin_slop=0.08)
+                                  bin_slop=0.08)
     # Number of source random pairs     
     nrns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-         bin_slop=0.08)
+                                  bin_slop=0.08)
     # Average shear around lenses     
     ls = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-         bin_slop=0.08)
+                                bin_slop=0.08)
     # Average shear around randoms     
     rs = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-         bin_slop=0.08)
+                                bin_slop=0.08)
 
 # Now calculate the different 2pt correlation functions
 nlns.process(lenscat,sourcecat)
@@ -87,8 +94,8 @@ rs.process(rancat,sourcecat)
 # NrNs = nrns.weight/nrns.tot
 # SR/NrNs = rs.xi
 
-gamma_t = ls.xi*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi
-gamma_x = ls.xi_im*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi_im
+gamma_t = ls.xi#*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi
+gamma_x = ls.xi_im#*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi_im
 
 #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
 treecorr.util.gen_write(outfile,
