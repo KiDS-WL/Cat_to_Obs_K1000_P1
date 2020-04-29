@@ -1,4 +1,10 @@
 #Script from Hendrik - hacked by Catherine
+# Hacked again by B. Giblin in the winter of 2019/20 and built
+# better, faster, stronger. We have the technology.
+# (It now works on MICE mocks, K1000/BOSS/GAMA data,
+# and the gamma_t model includes a new parameter to
+# fit for the effects of magnification).
+
 #Now we use treecorr and Mandelbaum estimator
 #to do the random and boost correction
 #we can simplify this script
@@ -19,6 +25,18 @@ import numpy.ma as ma
 from astropy.io import ascii 
 
 plt.rc('font', size=10)
+# ----- Load Input ----- #
+DFLAG = ''                    # Data Flag. Set to '' for Fiducial MICE. '_Octant' for MICE Octant.
+Include_mCov = True           # Include the uncertainty due to the m-correction
+Include_Hartlap = False       # Hartlap correction
+Include_Magnification = True  # If True, include extra param in gamma_t model: strength of magnifcation effect on gt.
+
+from Get_Input import Get_Input
+paramfile = sys.argv[1]   # e.g. params_KiDSdata.dat
+GI = Get_Input(paramfile)
+SOURCE_TYPE = GI.Source_Type()
+LENS_TYPE = GI.Lens_Type()
+RANDOM_TYPE = GI.Random_Type()
 
 ntheta = 4
 theta_min = 2.
@@ -26,24 +44,56 @@ theta_max = 30.
 
 measurements = {}
 
-thetas_list = []
-gt_list = []
-gx_list = []
+thetas_list = []  
+gt_list = []      # gamma_t
+gx_list = []      # gamma_x
 gterr_list = []
 
 tomo_list = []
 speczbin_list = []
 Dls_over_Ds_list = []
 
-SPINDIR='/disk09/KIDS/K1000_TWO_PT_STATS//OUTSTATS/SHEAR_RATIO/'
-ntomo=5
-nspecz=5
-nspin=1000
+
+Cov_Method = "Spin"   # The method for calculating the gamma_t realisations for use in covariance estimation
+                       # "Spin" many spin realisations of the source ellipticities (ie - shape noise only)
+                       # "Patch" using other MICE realisations (1/8 of the sky)
+                       # divided them into patches and calcuted the gamma_t from each patch.
+nPatch = 16             # If Cov_Method is Patch, the MICE octant is split into nPatch RA
+                       # and nPatch Dec slices (nPatch^2 patches in total). gamma_t is
+                       # calculated from each patch.   
+
+
+INDIR='Output/SOURCE-%s_LENS-%s' %(SOURCE_TYPE, LENS_TYPE)
+DlsDIR='Dls_over_Ds_data/SOURCE-%s_LENS-%s' %(SOURCE_TYPE, LENS_TYPE)
+if "MICE2" in SOURCE_TYPE:
+    # Additional identifiers when working with MICE
+    # True/Estimated P(z) and Magnification on/off
+    Mag_OnOff = GI.Mag_OnOff()
+    Pz = GI.Pz_TrueEstimated()
+    SN = GI.SN()
+    INDIR += '_Pz%s_SN%s_mag%s' %(Pz,SN,Mag_OnOff)
+    DlsDIR += '_Pz%s_mag%s%s' %(Pz,Mag_OnOff,DFLAG)
+
+
+ntomo=5              # Number of photo-z bins
+nspecz=5             # "..." of spec-z bins
+nspin=500
+if Cov_Method == "Spin":
+    ncycle = nspin
+    OUTDIR = INDIR + "/SPIN/"
+    Area_Scale = 1.
+elif Cov_Method == "Patch":
+    ncycle = nPatch*nPatch
+    OUTDIR = INDIR + "/PATCH/"
+    Area_Scale = 4*np.pi *(180./np.pi)**2. / 343.
+else:
+    print("Cov_Method must be set to Spin or Patch. Currently it's set to %s. EXITING." %Cov_Method)
+    sys.exit()
 
 for tomobin in range(ntomo):
     for speczbin in range(nspecz):
 
-        gtfile=SPINDIR+'/GT/K1000_GT_6Z_source_'+str(tomobin+1)+'_5Z_lens_'+str(speczbin+1)+'.asc'
+        gtfile='%s/GT_6Z_source_%s_%sZ_lens_%s%s.asc' %(INDIR,(tomobin+1), nspecz,(speczbin+1), DFLAG)
         gtdat=ascii.read(gtfile)
 
         measurements['thetas_'+str(speczbin)+"_"+str(tomobin)] = gtdat['meanr']
@@ -60,7 +110,7 @@ for tomobin in range(ntomo):
         speczbin_list.append(speczbin*np.ones((ntheta),dtype=np.int16))
 
         # Read in the Dls_over_Ds data created with Dls_over_Ds.py
-        Dls_over_Ds_file = 'Dls_over_Ds_data/Dls_over_Ds_DIR_6Z_source_'+str(tomobin+1)+'_5Z_lens_'+str(speczbin+1)+'.asc'        
+        Dls_over_Ds_file = '%s/Dls_over_Ds_DIR_6Z_source_%s_%sZ_lens_%s.asc' %(DlsDIR, (tomobin+1), nspecz,(speczbin+1))
         Dls_over_Ds_tmp = np.loadtxt(Dls_over_Ds_file)
         measurements['Dls_over_Ds_'+str(speczbin)+"_"+str(tomobin)] = np.repeat(Dls_over_Ds_tmp,ntheta)
         Dls_over_Ds_list.append(measurements['Dls_over_Ds_'+str(speczbin)+"_"+str(tomobin)])
@@ -74,26 +124,58 @@ gterr = np.hstack(gterr_list)
 Dls_over_Ds = np.hstack(Dls_over_Ds_list)
 
 nmatrix = nspecz*ntomo*ntheta
-gtlens=np.zeros([ntheta,nspin])
+gtlens=np.zeros([ntheta,ncycle])
 diag=np.zeros(nmatrix)
 covdiag=np.zeros([nmatrix,nmatrix])
 
 for tomobin in range(ntomo):
     for speczbin in range(nspecz):
-        for ispin in range(nspin):
-            gtfile=SPINDIR+'/GT/SPIN/K1000_GT_SPIN_'+str(ispin)+'_6Z_source_'+str(tomobin+1)+'_5Z_lens_'+str(speczbin+1)+'.asc'
-            gtspindat=ascii.read(gtfile)
-            gtlens[:,ispin]=gtspindat['gamT'] 
+        for icycle in range(ncycle):
+            if Cov_Method == "Spin":
+                gtfile='%s/SPIN/GT_SPIN_%s_6Z_source_%s_%sZ_lens_%s.asc' %(INDIR,icycle,
+                                                                           tomobin+1,nspecz,speczbin+1)
+            elif Cov_Method == "Patch":
+                gtfile='%s/PATCH/GT_PATCH_%sof%s_6Z_source_%s_%sZ_lens_%s.asc' %(INDIR,icycle,nPatch*nPatch,
+                                                                                 tomobin+1,nspecz,speczbin+1)
+                
+            gtcycledat=ascii.read(gtfile)
+            gtlens[:,icycle]=gtcycledat['gamT'] 
         if speczbin==0 and tomobin==0:      
             gtprev = np.copy(gtlens)
         else:    
             gtall = np.vstack((gtprev,gtlens))
             gtprev= np.copy(gtall)
-            print len(gtall)
-    
-cov=np.cov(gtall)
+            print(len(gtall))
 
-print len(cov)
+cov_gt=np.cov(gtall) 
+if Include_mCov:
+    # Here we include the uncertainty due to the m-correction
+    sigma_m = [0.019, 0.020, 0.017, 0.012, 0.010] # m-uncert. per source bin.
+    cov_m = np.zeros_like( cov_gt )
+    
+    # Arguably the gt in the eqn for m-cov should be theoretical, not noisy data.
+    # So we can read in the fit we obtained when excluding m-corr. But this seems
+    # to make fit slightly worse, so commented this out.
+    #gt_theory = np.loadtxt('gt_theory.dat')
+    for a in range( cov_m.shape[0] ):
+        for b in range( cov_m.shape[1] ):
+            # Find which tomo & spec bin element (a,b) corresponds to:
+
+            # For first gamma_1
+            i = int( a/(nspecz*ntheta) )   # tomo bin, changes every nspecz*ntheta elements
+            #j = int( a % (ntomo*ntheta))  # spec bin, not necessary to calculate.
+            
+            # For second gamma_t....:
+            k = int( b/(nspecz*ntheta) )
+            #l = int( b % (ntomo*ntheta))  
+
+            # The gt's here could be replaced by gt_theory if desired (doesnt seem to help at present).
+            cov_m[a,b] = gt[a] * gt[b] * (sigma_m[i]*sigma_m[k])
+else:
+    cov_m = np.zeros_like(cov_gt)
+    
+cov = (cov_gt + cov_m) * Area_Scale
+print(len(cov))
 for i in range(nmatrix):
     diag[i]=np.sqrt(cov[i,i])
     covdiag[i,i]=cov[i,i]
@@ -103,37 +185,86 @@ plt.imshow(Corr, interpolation='None')
 plt.colorbar()
 plt.axis('off')
 #plt.show()
-plt.savefig('K1000xBOSS_Shear_ratio_correlation_matrix.png')
+plt.savefig(OUTDIR+'/%sx%s_Shear_ratio_correlation_matrix.png'%(SOURCE_TYPE,LENS_TYPE))
 
-cov_inv=np.linalg.inv(cov)
+#cov_inv=np.linalg.inv(cov)
+# Catherine reckons these two lines are a more stable way of inverting
+# the cov than line above in cases where it's close to singular.
+# For 500 spin realisations & 5 lens bins, p-value is insensitive to which method we use.
+U,s,V=np.linalg.svd(cov)
+cov_inv = np.transpose(V) @ np.diag(1./s) @ np.transpose(U)
 #cov_inv=np.linalg.inv(covdiag)
+
+Hartlap = (ncycle - ntomo * nspecz * ntheta - 2.) / (ncycle - 1.)
+if Include_Hartlap:
+    cov_inv *= Hartlap
 
 #############################
 
 def func(params):
-    amplitude = np.hstack((params,)*ntomo)
-    return Dls_over_Ds * amplitude
+    # There is ntheta*nspecz amplitude values in 'params'
+    # and if Magnif is included, additonally nspecz alpha values.
+    amplitude = params[:(ntheta*nspecz)]
+    amplitude = np.hstack((amplitude,)*ntomo) # repeat array ntomo times
+    model = Dls_over_Ds * amplitude
+
+    if Include_Magnification:
+        alpha = params[(ntheta*nspecz):]
+        alpha = np.repeat(alpha, ntheta)  # repeat each element ntheta times (no. points per lens bin)
+        alpha = np.hstack((alpha,)*ntomo) # then create ntomo copies of this array
+        model = model + 2.*(alpha-1.) * Magnif_Shape
+    return model
 
 ######## including covariance ###
 
 def chi2(params, data, cov_inv):
+    if Include_Magnification:
+        #params[(ntheta*nspecz):] = np.ones(5) # Manually kill the magnification.
+        
+        # Apply a prior on the alpha parameters
+        if params[(ntheta*nspecz):].min()<0. or params[(ntheta*nspecz):].max()>5.:
+        #    print("min params is ", params[(ntheta*nspecz):].min(),
+        #          " max params is ", params[(ntheta*nspecz):].max(),
+        #          " returning chi2 of infinity.")
+            return np.inf
+        
+
     return np.dot(data-func(params),np.dot(cov_inv,data-func(params)))
 
-result = minimize(chi2, np.zeros([ntheta*nspecz]), args=(gt, cov_inv), options={'maxiter': 150000})
+if Include_Magnification:
+    # Read in the model for magnifcation shape, given the K1000/BOSS nofz's
+    # (NB: this shape won't be a good fit for other nofz's)
+    # There's also nspecz more free params in the model (one alpha per lens bin)
+    Magnif_Shape = np.load('/home/bengib/kcap_NewInst/kcap/examples/output_magnification_alpha1.0/SRTparam_Bij.npy').flatten()
+    nfreeparams = ntheta*nspecz + nspecz
+    params_initial = np.zeros(nfreeparams) 
+    
+    # Optimisation might be sensitive to initial values. Set initial alphas to no-mag case.
+    params_initial[ntheta*nspecz:] = np.ones(nspecz) 
+else:
+    # If not accounting for magnification, just fitting one amplitude parameter
+    # per lens and theta bin.
+    nfreeparams = ntheta*nspecz
+    params_initial = np.zeros(nfreeparams)
 
-ndof = (ntomo * nspecz * ntheta) - (ntheta * nspecz)
+
+
+ndof = (ntomo * nspecz * ntheta) - nfreeparams
+result = minimize(chi2, params_initial, args=(gt, cov_inv), options={'maxiter': 200000})#, method='TNC' )
+    
 chi2_red = result['fun']/ndof
 p_value = 1 - stats.chi2.cdf(result['fun'], ndof)
 
-print "chi^2=%1.2f, dof=%i, chi^2/dof=%1.2f, p=%1.3f, success=%s\n" % (result['fun'], ndof, chi2_red, p_value, result['success'])
+print("chi^2=%1.2f, dof=%i, chi^2/dof=%1.2f, p=%1.3f, success=%s\n" % (result['fun'], ndof, chi2_red, p_value, result['success']))
 
-f = open('K1000xBOSS_Shear_ratio.res', 'w')
+f = open(OUTDIR+'/%sx%s_Shear_ratio.res'%(SOURCE_TYPE,LENS_TYPE), 'w')
 f.write("chi^2=%1.2f, dof=%i, chi^2/dof=%1.2f, p=%1.3f, success=%s\n" % (result['fun'], ndof, chi2_red, p_value, result['success']))
 f.close()
 
 params_0=result['x']
-
-#np.savetxt(model_file,np.transpose(np.vstack((thetas,func(params_0)))))
+np.savetxt(OUTDIR+'/%sx%s_FitParams_Mag%s.dat'%(SOURCE_TYPE,LENS_TYPE,Include_Magnification), params_0)
+np.savetxt(OUTDIR+'/%sx%s_FitModel_Mag%s.dat'%(SOURCE_TYPE,LENS_TYPE,Include_Magnification),
+           np.transpose(np.vstack(( thetas,func(params_0) )) ) )
 
 ######### plots ###
 
@@ -188,6 +319,6 @@ for i in range(ntomo):
 axs[2,0].set_ylabel(r"$\theta \times <\gamma_t>$ [arcmin]")
 for i in range(nspecz):
     axs[-1,i].set_xlabel(r"$\theta$ [arcmin]")
-fig.suptitle(" BOSS lenses, K1000-P1 sources,  $\chi^2/$dof={:1.2f}".format(chi2_red)+",  $p$={:2.1f}%".format(p_value*100.))
-plt.savefig('K1000xBOSS_Shear_ratio.png')
+fig.suptitle(str(LENS_TYPE)+ " lenses, " + str(SOURCE_TYPE) +" sources,  $\chi^2/$dof={:1.2f}".format(chi2_red)+",  $p$={:2.1f}%".format(p_value*100.))
+plt.savefig(OUTDIR+'/%sx%s_Shear_ratio%s.png'%(SOURCE_TYPE,LENS_TYPE,DFLAG))
 plt.show()

@@ -26,7 +26,17 @@ norm_lens = np.sum(lens_hist[0])
 
 lens_hist_norm = lens_hist[0] / norm_lens
 
-source_hist = np.loadtxt(sys.argv[2])
+# Annoyingly, the K1000 source data binned using SOM-z's are FITS files,
+# whereas the DIR-binned K1000 data & MICE data are ascii catalogues,
+# necessitating the following if statement:
+if '.fits' in sys.argv[2]:
+    tmp = fits.open(sys.argv[2])
+    zs = tmp[1].data['binstart']
+    nzs = tmp[1].data['density']
+    source_hist = np.column_stack(( zs, nzs ))
+else:
+    source_hist = np.loadtxt(sys.argv[2])
+    
 z_source_max = source_hist[-1,0]
 
 no_z_source_bins = np.shape(source_hist)[0]
@@ -49,7 +59,7 @@ for i in range(no_z_lens_bins):
         if (i+0.5)*z_lens_step < (j+0.5)*z_source_step:
             integral += lens_hist_norm[i] * source_hist_norm[j] * Dls_over_Ds((i+0.5)*z_lens_step,(j+0.5)*z_source_step)
 
-print integral
+print(integral)
 
 #### Checking astropy for consistency (slower) ###
 #
@@ -63,7 +73,7 @@ print integral
 #        if (i+0.5)*z_lens_step < (j+0.5)*z_source_step:
 #            integral += lens_hist_norm[i] * source_hist_norm[j] * Dls_over_Ds2((i+0.5)*z_lens_step,(j+0.5)*z_source_step)
 #
-#print integral
+#print(integral)
 
 #### Checking against direct numerical integration (not working yet) ###
 #
@@ -84,4 +94,4 @@ print integral
 #def func(z1,z2):
 #    return dn_dz_lens(z1) * dn_dz_source(z2) * Dls_over_Ds(z1,z2)
 #
-#print integrate.dblquad(func, 0., 10., lambda x: 0., lambda x: 10.)
+#print(integrate.dblquad(func, 0., 10., lambda x: 0., lambda x: 10.))
