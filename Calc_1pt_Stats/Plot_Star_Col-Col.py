@@ -10,8 +10,12 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import glob
 from scipy.stats import binned_statistic_2d
 import sys
-#import os
 import time
+# The following are used to cross-match (RA,Dec)'s between
+# the sources and PSF data catalogues:
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+
 #from fitting import * # MV scripts                                                                                                
 # Some font setting
 rcParams['ps.useafm'] = True
@@ -22,11 +26,21 @@ font = {'family' : 'serif',
 plt.rc('font', **font)
 
 
-Read_Cat_Or_Pickle = "Cat" # Set to "Cat" to read data from individual fields
+Read_Cat_Or_Pickle = "Pickle" # Set to "Cat" to read data from individual fields
                            # (~890 s for the 492 North fields)
                            # Set to "Pickle" to read in pre-pickled file
                            # (~15s for the 492 North fields)
 
+
+# EDIT: 05/05/2020
+# The SG_FLAG=0 objects in the source catalogue contains ~7.5% galaxy contamination even after colour cuts.
+# (These contaminants are removed in Lensfit prior to PSF modelling).
+# But to remove them here, we need to cross-match the objects in the source catalogue
+# with those in the PSF data catalouge FOR EACH FIELD INDIVIDUALLY, BEFORE APPLYING colour-colour and SG_FLAG cuts.
+LFver = '321'
+expname = 'PSFRES_XI_glab_%s' %LFver # Needed to locate relevant PSF exposure catalogs
+
+                           
 # Define the Baldry locus
 def Baldry(gmi):
     if (gmi < 0.3):
@@ -65,44 +79,75 @@ if Read_Cat_Or_Pickle == "Cat": # READ IN DATA BY CYCLING THROUGH INDIVIDUAL FIE
     MAG_GAAP_J = np.zeros([])
     MAG_GAAP_Ks = np.zeros([])
     SG_FLAG = np.zeros([])
+    RA = np.zeros([])
+    Dec= np.zeros([])
 
     t1 = time.time()
     i = 0
     for f in Cycle_Array:
         print("Reading in field %s of %s"%(i,len(Cycle_Array)))
+
+        # ----- Loop through the 5 PSF catalogues corresponding to the 5 exposures ----- #
+        psf_exposures = glob.glob('%s/%s/checkplots/%s/*_PSFres.cat'%(data_indir,f,expname))
+        tmp_PSF_RA = np. zeros([])
+        tmp_PSF_Dec = np.zeros([])
+        for e in psf_exposures:
+            psf_fitsfile = fits.open(e)
+            tmp_PSF_RA = np.append(tmp_PSF_RA, psf_fitsfile[1].data['ALPHA_J2000'] )
+            tmp_PSF_Dec =np.append(tmp_PSF_Dec,psf_fitsfile[1].data['DELTA_J2000'] )
+        # Delete the 1st elements which are from initiliastion. 
+        tmp_PSF_RA = np.delete(tmp_PSF_RA, 0)
+        tmp_PSF_Dec = np.delete(tmp_PSF_Dec, 0)
+        # ------------------------------------------------------------------------------- #
+        
+            
+        # Now read the corresponding data from the source catalogues
         # Think there should only be one of these files per Field
         # (not one per exposure). But just in case, loop:
         exposures = glob.glob('%s/%s/r_SDSS/colourcat_V1.0.0A/KIDS_*_r_SDSS.V1.0.0A_ugriZYJHKs_photoz_SG_mask.cat'%(data_indir,f))
         for e in exposures:
             fitsfile = fits.open(e)
-
+            tmp_RA = fitsfile[1].data['RAJ2000']
+            tmp_Dec= fitsfile[1].data['DECJ2000']
+            # Cross-match the tmp_(RA,Dec)'s with the tmp_PSF_(RA,Dec)'s
+            c = SkyCoord(ra=tmp_PSF_RA*u.degree, dec=tmp_PSF_Dec*u.degree)
+            catalog = SkyCoord(ra=tmp_RA*u.degree, dec=tmp_Dec*u.degree)
+            idx_cross,_,_ = c.match_to_catalog_sky(catalog) # Returns the elems of tmp_(RA,Dec)
+                                                            # which are closest to those in tmp_PSF_(RA,Dec)
+            idx_cross = np.unique(idx_cross)                # Remove duplicates: this cross-matching cuts tmp_(RA,Dec) down by factors>100
+            
             # Selection criteria to apply
-            flag_m = fitsfile[1].data['MASK']
-            flag_g = fitsfile[1].data['FLAG_GAAP_g']
-            flag_i = fitsfile[1].data['FLAG_GAAP_i']
-            flag_J = fitsfile[1].data['FLAG_GAAP_J']
-            flag_Ks = fitsfile[1].data['FLAG_GAAP_Ks']
-            idx = ((flag_m==0) & (flag_g==0) & (flag_i==0) & (flag_J==0) & (flag_Ks==0))
+            flag_m = fitsfile[1].data['MASK'][idx_cross]
+            flag_g = fitsfile[1].data['FLAG_GAAP_g'][idx_cross]
+            flag_i = fitsfile[1].data['FLAG_GAAP_i'][idx_cross]
+            flag_J = fitsfile[1].data['FLAG_GAAP_J'][idx_cross]
+            flag_Ks = fitsfile[1].data['FLAG_GAAP_Ks'][idx_cross]
+            idx_colour = ((flag_m==0) & (flag_g==0) & (flag_i==0) & (flag_J==0) & (flag_Ks==0))
 
             # colours
-            tmp_MAG_GAAP_g = fitsfile[1].data['MAG_GAAP_g'][idx]
-            tmp_MAG_GAAP_i = fitsfile[1].data['MAG_GAAP_i'][idx]
-            tmp_MAG_GAAP_J = fitsfile[1].data['MAG_GAAP_J'][idx]
-            tmp_MAG_GAAP_Ks = fitsfile[1].data['MAG_GAAP_Ks'][idx]
-            tmp_SG_FLAG = fitsfile[1].data['SG_FLAG'][idx]
-            tmp_MAG_AUTO = fitsfile[1].data['MAG_AUTO'][idx]
+            tmp_MAG_GAAP_g = fitsfile[1].data['MAG_GAAP_g'][idx_cross][idx_colour]
+            tmp_MAG_GAAP_i = fitsfile[1].data['MAG_GAAP_i'][idx_cross][idx_colour]
+            tmp_MAG_GAAP_J = fitsfile[1].data['MAG_GAAP_J'][idx_cross][idx_colour]
+            tmp_MAG_GAAP_Ks = fitsfile[1].data['MAG_GAAP_Ks'][idx_cross][idx_colour]
+            tmp_SG_FLAG = fitsfile[1].data['SG_FLAG'][idx_cross][idx_colour]
+            tmp_MAG_AUTO = fitsfile[1].data['MAG_AUTO'][idx_cross][idx_colour]
+            # Apply the cuts to the (RA,Dec) too:
+            tmp_RA = tmp_RA[idx_cross][idx_colour]
+            tmp_Dec= tmp_Dec[idx_cross][idx_colour]
 
             # Further get rid of the mags with unphysical values of \pm 99
             # These are non-detections
-            idx2 = ((abs(tmp_MAG_GAAP_g)<99.) & (abs(tmp_MAG_GAAP_i)<99.) &
+            idx_unphys = ((abs(tmp_MAG_GAAP_g)<99.) & (abs(tmp_MAG_GAAP_i)<99.) &
                     (abs(tmp_MAG_GAAP_J)<99.) & (abs(tmp_MAG_GAAP_Ks)<99.) &
                     (tmp_MAG_AUTO>18) & (tmp_MAG_AUTO<22.5)) 
         
-            MAG_GAAP_g = np.append(MAG_GAAP_g, tmp_MAG_GAAP_g[idx2])
-            MAG_GAAP_i = np.append(MAG_GAAP_i, tmp_MAG_GAAP_i[idx2])
-            MAG_GAAP_J = np.append(MAG_GAAP_J, tmp_MAG_GAAP_J[idx2])
-            MAG_GAAP_Ks = np.append(MAG_GAAP_Ks, tmp_MAG_GAAP_Ks[idx2])
-            SG_FLAG = np.append(SG_FLAG, tmp_SG_FLAG[idx2])
+            MAG_GAAP_g = np.append(MAG_GAAP_g, tmp_MAG_GAAP_g[idx_unphys])
+            MAG_GAAP_i = np.append(MAG_GAAP_i, tmp_MAG_GAAP_i[idx_unphys])
+            MAG_GAAP_J = np.append(MAG_GAAP_J, tmp_MAG_GAAP_J[idx_unphys])
+            MAG_GAAP_Ks = np.append(MAG_GAAP_Ks, tmp_MAG_GAAP_Ks[idx_unphys])
+            SG_FLAG = np.append(SG_FLAG, tmp_SG_FLAG[idx_unphys])
+            RA = np.append(RA, tmp_RA[idx_unphys])
+            Dec = np.append(Dec, tmp_Dec[idx_unphys])
         i+=1
     
     MAG_GAAP_g = np.delete(MAG_GAAP_g, 0)
@@ -110,29 +155,33 @@ if Read_Cat_Or_Pickle == "Cat": # READ IN DATA BY CYCLING THROUGH INDIVIDUAL FIE
     MAG_GAAP_J = np.delete(MAG_GAAP_J, 0)
     MAG_GAAP_Ks = np.delete(MAG_GAAP_Ks, 0)
     SG_FLAG = np.delete(SG_FLAG, 0)
+    RA = np.delete(RA, 0)
+    Dec = np.delete(Dec, 0)
+
     t2 = time.time()
     print( "It took %.f s to read in the colour info for %s Fields" %((t2-t1),len(Cycle_Array)) )
     
     # Pickle Data
     print("Pickling the data from %s fields" %len(Cycle_Array) )
     t1 = time.time()
-    np.save('MAG_giJKs_SGFLAG_%sFields'%len(Cycle_Array),
-        np.column_stack(( MAG_GAAP_g, MAG_GAAP_i, MAG_GAAP_J, MAG_GAAP_Ks, SG_FLAG ))
-        )
+    np.save( 'MAG_giJKs_SGFLAG_%sFields_CrossMatched'%len(Cycle_Array),
+            np.column_stack(( MAG_GAAP_g, MAG_GAAP_i, MAG_GAAP_J, MAG_GAAP_Ks, SG_FLAG, RA, Dec )) )
     print("Pickling the data from %s Fields took %.1f s." %( len(Cycle_Array),(t2-t1)) )
 
 elif Read_Cat_Or_Pickle == "Pickle":
     
     print( "Reading in pre-pickled data for %s Fields." %len(Cycle_Array) )
     t1 = time.time()
-    data = np.load('MAG_giJKs_SGFLAG_%sFields.npy' %len(Cycle_Array))
+    data = np.load('MAG_giJKs_SGFLAG_%sFields_CrossMatched.npy' %len(Cycle_Array))
     MAG_GAAP_g = data[:,0]
     MAG_GAAP_i = data[:,1]
     MAG_GAAP_J = data[:,2]
     MAG_GAAP_Ks = data[:,3]
     SG_FLAG = data[:,4]
+    
     t2 = time.time()
     print( "Reading in pre-pickled data for %s Fields took %.1f s." %(len(Cycle_Array),(t2-t1)) )
+
     
 
 # Function to make a density plot in the
@@ -247,10 +296,10 @@ JmK_loc = Baldry_v(gmi_loc)
 
 # now determine the fraction of galaxies in the star sample with delta_sg_JK > 0.2                                 
 delta_sg_JK = JmK_cut_SG0 - Baldry_v(gmi_cut_SG0)
-Nstars_tot = float( len(delta_sg_JK) )
-Nstars_ingal = len(delta_sg_JK[delta_sg_JK>0.2])
+N_tot = float( len(delta_sg_JK) )
+N_contam = len(delta_sg_JK[delta_sg_JK>0.2])
 
-print ("Fraction of stars in galaxy sample:", Nstars_ingal/Nstars_tot)
+print ("Fraction of galaxies in star sample:", N_contam/N_tot)
 
 Plot_CC_Grid(cgrid/1e3, gmi_bins[:-1],JmK_bins[:-1],cgrid_contours,
              SG0_grid, SG0_gmi_bins[:-1], SG0_JmK_bins[:-1],SG0_grid_contours,
