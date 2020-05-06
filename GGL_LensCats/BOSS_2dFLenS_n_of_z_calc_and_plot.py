@@ -71,6 +71,9 @@ for ilens in range(2):
         mylabel=None
     n, bins, patches = plt.hist(bossz[ibfilter], nbins, normed=True, weights=bossweight[ibfilter], color='red',histtype=u'step',label=mylabel,linewidth=3)
 
+    #write out the mean redshift
+    print ('BOSS %d %s'%(ilens,np.average(bossz[ibfilter],weights=bossweight[ibfilter])))
+    
     #and write out to file (note reporting the left corner of the bin here)
     np.savetxt(bossnzfile,np.c_[bins[0:nbins],n],fmt=['%.3f','%.3f'],header='z_bin_left n_of_z')
 
@@ -94,6 +97,9 @@ for ilens in range(2):
     n, bins, patches = plt.hist(twodfz[itfilter], nbins, normed=True, color='green', histtype=u'step',label=mylabel,linewidth=2.5)
     np.savetxt(twodfnzfile,np.c_[bins[0:nbins],n],fmt=['%.3f','%.3f'],header='z_bin_left n_of_z')
 
+    #write out the mean redshift
+    print ('2dFLenS %d %s'%(ilens,np.average(twodfz[itfilter])))
+    
     #here we apply the gri weights
 
     if ilens==0:
@@ -117,6 +123,9 @@ for ilens in range(2):
     n, bins, patches = plt.hist(allinkids, nbins, normed=True, weights=allweight, color='orange', histtype=u'step',label=mylabel,linewidth=2.5)
     np.savetxt(allnzfile,np.c_[bins[0:nbins],n],fmt=['%.3f','%.3f'],header='z_bin_left n_of_z')
 
+    #write out the mean redshift
+    print ('All %d %s'%(ilens,np.average(allinkids,weights=allweight)))
+    
 #Lets overplot the n(z) in the original NGP data files
 
 original_datafile=DD+'/BOSS_original/galaxy_DR12v5_CMASSLOWZTOT_North.fits'
