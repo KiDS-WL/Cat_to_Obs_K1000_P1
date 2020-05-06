@@ -224,3 +224,4 @@ if __name__ == '__main__':
                 [ ls.rnom,ls.meanr, ls.meanlogr,gamma_t, gamma_x, np.sqrt(ls.varxi), ls.weight, ls.npairs,
                 ls.xi, ls.xi_im, rs.xi, rs.xi_im, np.sqrt(rs.varxi) ],
                 precision=12)
+
