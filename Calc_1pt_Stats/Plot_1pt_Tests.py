@@ -2,6 +2,7 @@
 # Just plot some stuff with the K1000 preliminary catalogues
 # CH: 10th Sept - update to metacal 'mc' and autocal 'ac' cats
 # CH: update to include alpha fit and removing metacal parts 
+# CH: update to include the SOM Flag (April 2020)
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -21,21 +22,22 @@ rcParams['pdf.use14corefonts'] = True
 
 font = {'family' : 'serif',
         'weight' : 'normal',
-        'size'   : 19}
+        'size'   : 14}
 
 plt.rc('font', **font)
 
 # Read in user input to set the patch, blind, zmin,zmax, nbootstrap
-if len(sys.argv) <7: 
-    print ("Usage: %s Patch Blind ZBmin ZBmax nbootstrap cattail" % sys.argv[0]) 
+if len(sys.argv) <8: 
+    print ("Usage: %s Patch Blind ZBmin ZBmax nbootstrap cattail Flag_SOM" % sys.argv[0]) 
     sys.exit(1)
 else:
-	NorS=sys.argv[1]  # N for North, S for South, or 'All' for both.
-	Blind=sys.argv[2] # Just put 'A' 	
-	ZBlo=np.float(sys.argv[3])  # If numbers are inputted, this Z_B cut is applied to data
-	ZBhi=np.float(sys.argv[4])  # For no ZBcut, put 'None' for both of these
-	nboot=np.int(sys.argv[5]) # this is the number of bootstrap realisations to run
-	tail=sys.argv[6] # catalogue version identifier
+    NorS=sys.argv[1]  # N for North, S for South, or 'All' for both.
+    Blind=sys.argv[2] # Just put 'A' 	
+    ZBlo=np.float(sys.argv[3])  # If numbers are inputted, this Z_B cut is applied to data
+    ZBhi=np.float(sys.argv[4])  # For no ZBcut, put 'None' for both of these
+    nboot=np.int(sys.argv[5]) # this is the number of bootstrap realisations to run
+    tail=sys.argv[6] # catalogue version identifier
+    Flag_SOM_col=sys.argv[7] # Flag SOM ID (e.g Flag_SOM_Fid)
 
 
 Read_Cat_Or_Pickle = "Cat" 
@@ -73,7 +75,9 @@ def Read_Basic_Data(Read_NorS,tail):
 	#autocal columns
 	ace1 = f[iext].data['autocal_e1_%s'%Blind]
 	ace2 = f[iext].data['autocal_e2_%s'%Blind]
-	acw = f[iext].data['recal_weight_%s'%Blind]
+        # multiply the weights by Flag_SOM to remove galaxies that don't make it
+        # into the gold sample
+	acw = f[iext].data['recal_weight_%s'%Blind] * f[iext].data['%s_%s'%(Flag_SOM_col,Blind)]
 
 	#Testing the impact of weights, you might want to do
 	#unweighted but with a weight>0 cut
@@ -311,13 +315,7 @@ def Plot_alpha_vs_ZB(eobs1, eobs2, epsf1, epsf2, weight, ZB,savename): #, labels
 	alpha_2_tomo[2], err_alpha_2_tomo[2], c_2_tomo[2], err_c_2_tomo[2] = calc_alpha(eobs2, epsf2, weight, ZB, 0.5, 0.7)
 	alpha_2_tomo[3], err_alpha_2_tomo[3], c_2_tomo[3], err_c_2_tomo[3] = calc_alpha(eobs2, epsf2, weight, ZB, 0.7, 0.9)
 	alpha_2_tomo[4], err_alpha_2_tomo[4], c_2_tomo[4], err_c_2_tomo[4] = calc_alpha(eobs2, epsf2, weight, ZB, 0.9, 1.2)
-
-	print (alpha_1, err_alpha_1,c_1, err_c_1)
-	print (alpha_1_tomo, err_alpha_1_tomo)
-
-	print (alpha_2, err_alpha_2,c_2, err_c_2)
-	print (alpha_2_tomo, err_alpha_2_tomo)
-
+        
 	ZBbin=np.zeros(5)
 	ZBbin[0]=0.2
 	ZBbin[1]=0.4
@@ -325,33 +323,49 @@ def Plot_alpha_vs_ZB(eobs1, eobs2, epsf1, epsf2, weight, ZB,savename): #, labels
 	ZBbin[3]=0.8
 	ZBbin[4]=1.05
 
+	# Write the values to file
+	outfile='%s.txt'%savename
+	wf = open(outfile, 'w')
+	wf.write('# ZBmin ZBmax alpha_1 err_alpha_1 c1 err_c_1 alpha_2 err_alpha_2 c2 err_c_2 \n')
+	for i in range (5):
+		wf.write('%5.1f %5.1f %11.3e %11.3e %11.3e %11.3e %11.3e  %11.3e %11.3e %11.3e \n'%(ZBbin[i]-0.1, ZBbin[i]+0.1, alpha_1_tomo[i], err_alpha_1_tomo[i], c_1_tomo[i], err_c_1_tomo[i], alpha_2_tomo[i], err_alpha_2_tomo[i], c_2_tomo[i], err_c_2_tomo[i]))
+
+        #also write out the full 2D values        
+	wf.write('%5.1f %5.1f %11.3e %11.3e %11.3e %11.3e %11.3e %11.3e %11.3e %11.3e \n'%(0.1, 1.2, alpha_1, err_alpha_1, c_1, err_c_1, alpha_2, err_alpha_2, c_2, err_c_2))
+                    
+	#print (alpha_1, err_alpha_1,c_1, err_c_1)
+	#print (alpha_1_tomo, err_alpha_1_tomo)
+
+	#print (alpha_2, err_alpha_2,c_2, err_c_2)
+	#print (alpha_2_tomo, err_alpha_2_tomo)
+
 	gridspec = dict(hspace=0.0, wspace=0.0)
-	f, ((ax1,ax2)) = plt.subplots(1, 2, figsize=(6,6),gridspec_kw=gridspec)
+	f, ((ax1,ax2)) = plt.subplots(2, 1, figsize=(6,6),gridspec_kw=gridspec)
 
 	# alpha panel
 
-	ax1.errorbar(ZBbin, alpha_1_tomo, yerr=err_alpha_1_tomo, fmt='o', color='magenta',label=r'$\alpha_1$')
-	ax1.axhspan(alpha_1-err_alpha_1,alpha_1+err_alpha_1, facecolor='magenta', alpha=0.25)
-	ax1.errorbar(ZBbin+0.02, alpha_2_tomo, yerr=err_alpha_2_tomo, fmt='o', color='dimgrey',label=r'$\alpha_2$')
-	ax1.axhspan(alpha_2-err_alpha_2,alpha_2+err_alpha_2, facecolor='dimgrey', alpha=0.25)
+	ax1.errorbar(ZBbin, alpha_1_tomo*1e2, yerr=err_alpha_1_tomo*1e2, fmt='o', color='magenta',label=r'$\alpha_1$')
+	ax1.axhspan((alpha_1-err_alpha_1)*1e2,(alpha_1+err_alpha_1)*1e2, facecolor='magenta', alpha=0.25)
+	ax1.errorbar(ZBbin+0.02, alpha_2_tomo*1e2, yerr=err_alpha_2_tomo*1e2, fmt='x', color='dimgrey',label=r'$\alpha_2$')
+	ax1.axhspan((alpha_2-err_alpha_2)*1e2,(alpha_2+err_alpha_2)*1e2, facecolor='dimgrey', alpha=0.25)
 
-	ax1.set_ylabel(r'$\alpha$')
-	ax1.legend(loc='best')
-	ax1.set_ylim(-0.07,0.07)
+	ax1.set_ylabel(r'$\alpha \, \, [10^{-2}]$')
+	#ax1.legend(loc='lower left',frameon=False)
+	ax1.set_ylim(-5.9,5.9)
 	
 	# c panel
-	ax2.errorbar(ZBbin, c_1_tomo, yerr=err_c_1_tomo, fmt='o', color='magenta',label=r'$c_1$')
-	ax2.axhspan(c_1-err_c_1,c_1+err_c_1, facecolor='magenta', alpha=0.25)
-	ax2.errorbar(ZBbin+0.02, c_2_tomo, yerr=err_c_2_tomo, fmt='o', color='dimgrey',label=r'$c_2$')
-	ax2.axhspan(c_2-err_c_2,c_2+err_c_2, facecolor='dimgrey', alpha=0.25)
+	ax2.errorbar(ZBbin, c_1_tomo*1e4, yerr=err_c_1_tomo*1e4, fmt='o', color='magenta',label=r'$c_1$')
+	ax2.axhspan((c_1-err_c_1)*1e4,(c_1+err_c_1)*1e4, facecolor='magenta', alpha=0.25)
+	ax2.errorbar(ZBbin+0.02, c_2_tomo*1e4, yerr=err_c_2_tomo*1e4, fmt='x', color='dimgrey',label=r'$c_2$')
+	ax2.axhspan((c_2-err_c_2)*1e4,(c_2+err_c_2)*1e4, facecolor='dimgrey', alpha=0.25)
 
-	ax2.set_ylabel(r'$c$')
-	ax2.legend(loc='best')
-	ax2.set_ylim(-1e-3,1e-3)
+	ax2.set_ylabel(r'$c \,\, [10^{-4}]$')
+	#ax2.legend(loc='lower left',frameon=False)
+	ax2.set_ylim(-7,11)
 
-	ax2.set_xlabel('ZB')
+	ax2.set_xlabel(r'$z_{B}$')
 	plt.tight_layout()
-	plt.savefig(savename)
+	plt.savefig('%s.png'%savename)
 	plt.show()
 
 	return
@@ -440,7 +454,7 @@ t1 = time.time()
 #print "Finished binning and plotting e VS TPSF" 
 
 # alpha VS ZB	
-Plot_alpha_vs_ZB(e1, e2, PSFe1, PSFe2, w, ZB, '%s/GeneralPlots/K%s.%s.Blind%s.alpha_VS_ZB.%s_%s.png' %(DIRECT,NorS,mc_or_ac,Blind,ZBlabel,tail)) #, labels, xlabel, ylabel, title,xlimits, ylimits, savename):
+Plot_alpha_vs_ZB(e1[w>0], e2[w>0], PSFe1[w>0], PSFe2[w>0], w[w>0], ZB[w>0], '%s/GeneralPlots/K%s.%s.Blind%s.alpha_VS_ZB.%s_%s' %(DIRECT,NorS,mc_or_ac,Blind,ZBlabel,tail)) #, labels, xlabel, ylabel, title,xlimits, ylimits, savename):
 
 
 
