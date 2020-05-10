@@ -17,8 +17,9 @@ import matplotlib as plt
 #rc('legend',**{'fontsize':30})
 #rc('font',**{'family':'serif','serif':['Computer Modern']})
 
-bin_type = "Linear"		# If "Linear" calculates the normal gamma_T(theta) where theta is log-spaced
+bin_type = "Linear"		# If "Linear" calculates the normal 1D gamma_T(theta)  
                                 # If "TwoD" calculates gamma_T (delta_x,delta_y) about lenses at (0,0).
+                                # Angular binning is linear [0,20] arcmin in both cases.
 
 # INPUTS FROM THE COMMAND LINE
 NorS = sys.argv[1]    # N for North, S for South
@@ -31,7 +32,7 @@ Zlo_l = sys.argv[5]  # If numbers are inputted, this Z cut is applied to lenses
 Zhi_l = sys.argv[6]  # For no Zcut, put None for both of these
 
 print("Reading in the source data...")
-inDIR = '/home/bengib/KiDS1000_NullTests/'
+inDIR = '/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/Calc_1pt_Stats'
 data = np.load('%s/Catalogues/K%s.Blind%s.ra_dec_e1_e2_w_ZB.ZBcutNone.npy'%(inDIR,NorS,Blind))
 ra_s,dec_s,e1_s,e2_s,w_s,ZB_s = data.transpose()[[0,1,2,3,4,5],:]
 
@@ -121,7 +122,7 @@ if bin_type == "Linear":
     # 1D log-spaced angular sep. bins
     nbins=21
     min_sep=min_sep_arcmin   # arcmin
-    max_sep=2*max_sep_arcmin  # arcmin
+    max_sep=max_sep_arcmin  # arcmin
     sep_units = 'arcmin' 
 
     metric='Arc'
