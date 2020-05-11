@@ -32,9 +32,22 @@ Zlo_l = sys.argv[5]  # If numbers are inputted, this Z cut is applied to lenses
 Zhi_l = sys.argv[6]  # For no Zcut, put None for both of these
 
 print("Reading in the source data...")
-inDIR = '/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/Calc_1pt_Stats'
-data = np.load('%s/Catalogues/K%s.Blind%s.ra_dec_e1_e2_w_ZB.ZBcutNone.npy'%(inDIR,NorS,Blind))
-ra_s,dec_s,e1_s,e2_s,w_s,ZB_s = data.transpose()[[0,1,2,3,4,5],:]
+# These lines accessed the catalogue made manually via Calc_1pt_Stats,
+# but the file I think is out of date, using the previous DIR n(z)...
+#inDIR = '/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/Calc_1pt_Stats'
+#data = np.load('%s/Catalogues/K%s.Blind%s.ra_dec_e1_e2_w_ZB.ZBcutNone.npy'%(inDIR,NorS,Blind))
+#ra_s,dec_s,e1_s,e2_s,w_s,ZB_s = data.transpose()[[0,1,2,3,4,5],:]
+
+# ...so instead, access the MASTER catalogue directly:
+inDIR = '/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH'
+f = fits.open('%s/K1000_%s_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_THELI_INT.cat' %(inDIR,NorS))
+ra_s = f[1].data['ALPHA_J2000']
+dec_s = f[1].data['DELTA_J2000']
+e1_s = f[1].data['autocal_e1_%s' %Blind] # NB: this doesn't have the m-/c- corrections...
+e2_s = f[1].data['autocal_e1_%s' %Blind]
+w_s = f[1].data['recal_weight_%s' %Blind]
+ZB_s = f[1].data['Z_B']
+
 
 print("Making a redshift cut on the source data, if specified to do so.")
 if str(ZBlo_s) == "None":
