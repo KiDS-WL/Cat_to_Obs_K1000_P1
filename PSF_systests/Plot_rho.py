@@ -1,10 +1,13 @@
 import numpy as np
 import pylab as plt
+from astropy.io import fits
 from matplotlib import rc
+from matplotlib import rcParams
 import matplotlib.gridspec as gridspec
 from scipy.ndimage.filters import gaussian_filter
 from scipy.stats import chi2
 from scipy.stats import multivariate_normal as multi_norm
+from scipy.stats import binned_statistic_2d
 from scipy.optimize import curve_fit
 from scipy.integrate import simps
 from scipy.stats import ks_2samp	# For KS tests
@@ -13,31 +16,178 @@ import time
 import sys
 import os 
 import glob
-rc('text',usetex=True)
-rc('font',size=24)
-rc('legend',**{'fontsize':24})
-rc('font',**{'family':'serif','serif':['Computer Modern']})
 
+# Some font setting
+rcParams['ps.useafm'] = True
+rcParams['pdf.use14corefonts'] = True
+
+font = {'family' : 'serif',
+        'weight' : 'normal',
+        'size'   : 14} # 19
+
+plt.rc('font', **font)
+
+
+# NOTE: THE FOLLOWING VARIABLES ARE USED TO SET REQUIREMENTS ON RHO-STATS FOR
+# VISUAL PURPOSES ONLY.
+# ------------------------------------------------ #
 # Set the plotted requirement on the rho stats:
 Requirement = "M18"			# "M18" for Mandelbaum+18: [p_1,2,4<xi_+/SNR, p_2,5<xi_+/(SNR*alpha)
 							# "Z18" for Zuntz+18: xi_+ / 10 
 
-Which_Data = "Data"		# "Data" for K1000 or "Theory" for HaloFit
+Which_Data = "Data"			# "Data" for K1000 or "Theory" for HaloFit
 							# goes into calculation of the requirement bands.
 
-# Define quantities needed for delta_xip
-alpha=0.03 		# worse case scenario PSF leakage is 0.03;
-			   	# but you still need to calculate this term from data
-T_ratio = 1. 	# Will ultimately get this column from Lance's updated Lensfit cats [I think?]
-
 # If using the lowest ZB bin, you might want to smooth the data vector 
-# so the Requirement band is less jaggardy. If so, use this smoothign scale:
+# so the Requirement band is less jaggardy. If so, use this smoothing scale:
 Smooth_Scale = 0.8
+# ------------------------------------------------ #
 
 
+# Define quantities needed for delta_xip
 LFver = ["321"] #["309b",  "319b", "319c", "319d", "321"] # "319",
+
+T_ratio = 0.9976 	 # average T_PSF / T_gal Ratio
+T_ratio_err = 0.0795
+deltaT_ratio= -0.0012    # average deltaT_PSF / T_PSF
+deltaT_ratio_err = 0.0263
+                         # These numbers are quite accurate, but use 'Calculate_Important_Tquantities()'
+                         # below to calc them directly from the catalogues if you want proof.
+
+
+def interpolate2D(X, Y, grid): #(It's linear)
+	# This function does simple 2D linear interpolation to find values of 'grid' at positions (X,Y)
+	# This is faster over, eg, scipy and numpy functions, which have to be performed in a loop.
+	Xi = X.astype(np.int)
+	Yi = Y.astype(np.int) # these round down to integer
+
+	VAL_XYlo = grid[Yi, Xi] + (X - Xi)*( grid[Yi, Xi+1] - grid[Yi, Xi] )
+	VAL_XYhi = grid[Yi+1,Xi] + (X - Xi)*( grid[Yi+1,Xi+1] - grid[Yi+1, Xi] )
+	VAL_XY = VAL_XYlo + (Y - Yi)*( VAL_XYhi - VAL_XYlo )  
+	
+	return VAL_XY
+
+def Select_Patch(Q, ra, dec, rlo, rhi, dlo, dhi):
+    # return the elements in Q corresponding to INSIDE the (ra,dec) range 
+    idx_ra = np.where(np.logical_and(ra<rhi, ra>rlo))[0]
+    idx_dec = np.where(np.logical_and(dec<dhi, dec>dlo))[0]
+    idx = np.intersect1d(idx_ra, idx_dec) 
+    return Q[idx]
+
+def MeanQ_VS_XY(Q, w, X,Y,num_XY_bins):
+        # we want the weighted mean of Q and also calibrated.  Calculate the sum 2D binned value of Q*w and m*w,
+        # and then divide
+        sumQw_grid, yedges, xedges, binnum = binned_statistic_2d(Y, X, Q*w, statistic='sum', bins=num_XY_bins)
+        sum_w_grid, yedges, xedges, binnum = binned_statistic_2d(Y, X, w, statistic='sum', bins=num_XY_bins)
+        AvQ_grid=sumQw_grid/sum_w_grid
+        return AvQ_grid,sum_w_grid,yedges,xedges
+
+def Calc_Important_Tquantities():
+        # Read in N and S catalogues
+        RA_N, Dec_N, e0PSF_N, e1PSF_N, delta_e0PSF_N, delta_e1PSF_N, TPSF_N, delta_TPSF_N, Xpos_N, Ypos_N = np.load('LFver%s/Catalogues/PSF_Data_N.npy'%LFver[0]).transpose()
+        RA_S, Dec_S, e0PSF_S, e1PSF_S, delta_e0PSF_S, delta_e1PSF_S, TPSF_S, delta_TPSF_S, Xpos_S, Ypos_S = np.load('LFver%s/Catalogues/PSF_Data_S.npy'%LFver[0]).transpose()
+
+        # Append them together
+        RA = np.append(RA_N, RA_S)
+        Dec = np.append(Dec_N, Dec_S)
+        delta_e0PSF = np.append( delta_e0PSF_N, delta_e0PSF_S )
+        delta_e1PSF = np.append( delta_e1PSF_N, delta_e1PSF_S )
+        TPSF = np.append( TPSF_N, TPSF_S )
+        delta_TPSF = np.append( delta_TPSF_N, delta_TPSF_S )
+
+	# Calc important quantities:
+	# First < delta T_PSF / T_PSF >
+        delta_Tratio = np.mean( delta_TPSF / TPSF )      # Comes out ~-0.0012
+        delta_Tratio_err = np.std( delta_TPSF / TPSF )   # Comes out ~0.02 (delta_Tratio consistent with zero).
+
+        # Secondly: < T_PSF / T_gal >
+        # Need to interpolate T_PSF to galaxy positions - read in (RA,Dec) of sources
+        def Read_GalData(NorS):
+                # This read the old nofz version of the catalogue.
+                #data_g = np.load('../Calc_1pt_Stats/Catalogues/K%s.BlindA.ra_dec_e1_e2_w_ZB.ZBcutNone.npy'%NorS)
+                #RA_g = data_g[:,0]
+                #Dec_g = data_g[:,1]
+                #Z_g = data_g[:,5]
+
+                # Instead use the Master catalogue:
+                data_DIR = '/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH/'
+                f = fits.open('%s/K1000_%s_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_THELI_INT.cat' %(data_DIR,NorS))
+                RA_g = f[1].data['ALPHA_J2000']
+                Dec_g= f[1].data['DELTA_J2000']
+                Z_g  = f[1].data['Z_B']
+                T_g  = f[1].data['PSF_Q11'] + f[1].data['PSF_Q22'] # Is this PSF at the galaxy coords? Or is it Tgal?
+                
+                idx = ( (Z_g>0.1) & (Z_g<2.0) ) # Redshift cut
+                return RA_g[idx], Dec_g[idx], T_g[idx]
+        RA_Ng, Dec_Ng, T_Ng = Read_GalData('N')
+	#RA_Sg, Dec_Sg = Read_GalData('S') # Haven't saved the S catalogue apparently
+
+        # To grid up the survey, decide on a suitable angular size a pixel should be:
+        # Use the dimensions of the PSF DATA, not gal data, as PSF spans wider (RA,Dec)
+        ang_pxl = 5. / 60. # 5 arcmin in degrees
+        nbins_x = int( ( RA_N.max()-RA_N.min() ) / ang_pxl )
+        nbins_y = int( ( Dec_N.max()-Dec_N.min() ) / ang_pxl )
+	# pixel coordinates of the PSF objects
+        X_N = nbins_x * (RA_N - RA_N.min()) / (RA_N.max()-RA_N.min()) 
+        Y_N = nbins_y * (Dec_N - Dec_N.min()) / (Dec_N.max()-Dec_N.min()) 
+        # Ammend the value at MAX(X,Y) which will be at edge of map and cause interp error.
+        #X_N[np.argmax(X_N)] += -0.1
+        #Y_N[np.argmax(Y_N)] += -0.1
+        # Turn TPSF into a grid:
+        TPSF_grid,count_grid, _,_ = MeanQ_VS_XY(TPSF_N, np.ones_like(TPSF_N), X_N,Y_N, [nbins_y,nbins_x])
+        TPSF_grid = np.nan_to_num( TPSF_grid, nan=0. ) # Lots of nans due to 0/0
+        # Need to append TPSF_grid with final row and column to avoid interp error
+        TPSF_grid = np.c_[ TPSF_grid, TPSF_grid[:,-1] ] 
+        TPSF_grid = np.r_[ TPSF_grid, [TPSF_grid[-1,:]] ] 
+
+        # pixel coordinates of galaxies
+        X_Ng = nbins_x * (RA_Ng - RA_N.min()) / (RA_N.max()-RA_N.min()) 
+        Y_Ng = nbins_y * (Dec_Ng - Dec_N.min()) / (Dec_N.max()-Dec_N.min()) 
+	
+        # Finally get T_PSF at the position of the galaxies
+        TPSF_gal = interpolate2D(X_Ng, Y_Ng, TPSF_grid)
+
+        T_ratio = np.mean( TPSF_gal / T_Ng )    # ~0.9976
+        T_ratio_err = np.std( TPSF_gal / T_Ng ) # ~0.0795
+        return delta_Tratio, delta_Tratio_err, T_ratio, T_ratio_err
+delta_Tratio, delta_Tratio_err, T_ratio, T_ratio_err = Calc_Important_Tquantities()
+
+
+
+# Read in the alpha values for each shear component and tomo-bin
+Use_alpha_per_bin = True                        # If True, use an alpha per bin
+num_zbins   = 5                                 # Number of source bins
+num_zbins_tot = np.sum( range(num_zbins+1) )    # Number source bins including cross-bins
+alpha = np.zeros([ len(LFver), num_zbins_tot ])
+if Use_alpha_per_bin:
+	for lfv in range(len(LFver)):
+
+		if LFver[lfv] == "321":
+			tmp = "glab_%s"%LFver[lfv]
+		elif LFver[lfv] == "309c":
+			tmp = "svn_%s"%LFver[lfv]
+		else:
+			print("Currently only have saved alpha values for 2 LF versions: 321 and 309c. EXITING")
+			sys.exit()
+
+		tmp_a1, tmp_a2 = np.loadtxt('KAll.autocal.BlindA.alpha_VS_ZB.ZBcut0.1-1.2_LF_%s_2Dbins.dat'%tmp,
+						       								usecols=(1,3), unpack=True)
+		tmp_a = (tmp_a1 + tmp_a2) / 2.    # Just taking the avg of the alpha per ellipticity component
+		                                  # Also calculate the alphas in the cross-bins as the combination of values in the auto-bins
+		k=0
+		for i in range(num_zbins):
+			for j in range(num_zbins):
+				if j>= i:
+					alpha[lfv,k] = np.sqrt( tmp_a[i]*tmp_a[j] ) 
+					#print("%s : %s %s : %s" %(k, tmp_a1[i], tmp_a1[j], alpha[lfv,k]) ) 
+					k+=1
+
+else:
+	alpha += 0.03     # worse case scenario PSF leakage is 0.03;
+
 ThBins = 9
 Res = 7
+
 
 # Find number of rho_pm contributing to cov
 NFiles = []
@@ -105,18 +255,92 @@ for lfv in range(len(LFver)):
 
 
 # To get a rough idea of size of rho stats, read in the xi+- of some data to overplot 
-data_dir = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/xi_pm/'
-data_ZBlabel = '0.7-0.9'		# '0.1-0.3' 'None'
+data_dir = 'xi_pm_Vectors_4_Overplotting/'  # '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/xi_pm/'
+data_ZBlabel = '0.7-0.9'					# ZBcut on the vector you overplot... '0.7-0.9', '0.1-0.3' '0.1-2.0'
 theta_data, xip_data = np.loadtxt('%s/KAll.BlindA.xi_pm.ZBcut%s.dat' %(data_dir, data_ZBlabel), usecols=(0,1), unpack=True)
 
 # Read in a covariance 
 Linc_Rescale = 600. / 878.83	# Linc says I should rescale his cov by approx. this factor
 								# to get the effective area right. This probs isn't 100% accurate.
-Cov_inDIR = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/Lincs_CovMat/'
-Cov_Mat_uc_Survey = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[126:135, 126:135] * Linc_Rescale		# [0:9, 0:9] This extracts xi+ Cov in lowest bin
-																											# [126:135, 126:135] for xi+ in highest bin
+Cov_inDIR = './Lincs_CovMat'
+            # eday address: '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/Lincs_CovMat/'
+Cov_Mat_uc_Survey = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[81:90, 81:90] * Linc_Rescale * 0.16		
+																	# [0:9, 0:9] This extracts xi+ Cov in lowest bin
+																	# [81:90, 81:90] This pulls out the middle bin: 3-3
 
-def Set_Mandelbaum_Constraints():
+def Read_In_Theory_Vector(hi_lo_fid):
+	# hi_lo_fid must be one of 'high', 'low' or 'fid'
+	#indir_theory = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/outputs/test_output_S8_%s_test/shear_xi_plus/' %hi_lo_fid
+	#theta_theory = np.loadtxt('%s/theta.txt' %indir_theory) * (180./np.pi) * 60.	# Convert long theta array in radians to arcmin
+
+	indir_theory = '/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/new_outputs/test_output_S8_%s_test/chain/output_test_A/shear_xi_plus_binned/' %hi_lo_fid
+        # '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/new_outputs/test_output_S8_%s_test/chain/output_test_A/shear_xi_plus_binned/' %hi_lo_fid
+	xip_theory_stack = np.zeros( [num_zbins_tot,len(theta_data)] )									# Will store all auto & cross xi_p for the 5 tomo bins
+	idx = 0
+	for i in range(1,6):
+		for j in range(1,6):
+			if i >= j:		# Only read in bins 1-1, 2-1, 2-2, 3-1, 3-2,...
+				tmp_theta_theory = np.loadtxt('%s/theta_bin_%s_%s.txt' %(indir_theory,i,j)) 
+				tmp_xip_theory = np.loadtxt('%s/bin_%s_%s.txt' %(indir_theory,i,j))
+				xip_theory_stack[idx,:] = np.interp( theta_data, tmp_theta_theory, tmp_xip_theory )		# sample at the theta values used for PSF modelling.
+				idx+=1
+	xip_theory_stack = xip_theory_stack.flatten()
+	return xip_theory_stack									# [126:135, 126:135] for xi+ in highest bin
+
+
+def Calc_delta_xip_J16(alphas, T_ratio, rho, rho_err): 		# !!! Jarvis (2016) expression for PSF systematic
+	xip_theory = Read_In_Theory_Vector('fid')	
+	xip_theory = np.reshape(xip_theory, (num_zbins_tot,len(theta))) # Reshape to be [num_zbins,ntheta]
+
+	# Calculate the additive shear bias for each lensfit version and in each tomographic bin (ie- value of alpha)
+	delta_xip = np.zeros([ len(LFver), num_zbins_tot, ThBins ])
+	err_delta_xip = np.zeros_like( delta_xip )
+	for lfv in range(len(LFver)):
+		for j in range(num_zbins_tot):
+			delta_xip[lfv,j,:] = 2*xip_theory[j,:]*T_ratio*deltaT_ratio + T_ratio**2*(rho[lfv,0,:]+rho[lfv,2,:]+rho[lfv,3,:]) - T_ratio*alphas[lfv,j]*(rho[lfv,1,:]+rho[lfv,4,:])
+			err_term1 = T_ratio**2*(rho_err[lfv,0,:]**2+rho_err[lfv,2,:]**2+rho_err[lfv,3,:]**2)
+			err_term2 = T_ratio*alphas[lfv,j]*(rho_err[lfv,1,:]**2+rho_err[lfv,4,:]**2)
+			err_delta_xip[lfv,j,:] = ( err_term1 - err_term2 )**0.5
+	return delta_xip, err_delta_xip
+
+
+def Calc_delta_xip_H20(T_ratio, rho, rho_err): 		# !!! Heymans' (2020) derivation for PSF systematic
+	xip_theory = Read_In_Theory_Vector('fid')	
+	xip_theory = np.reshape(xip_theory, (num_zbins_tot,len(theta))) # Reshape to be [num_zbins,ntheta]
+
+	# Calculate the additive shear bias for each lensfit version and in each tomographic bin (ie- value of alpha)
+	delta_xip_total = np.zeros([ len(LFver), num_zbins_tot, ThBins ])
+	delta_xip_terms = np.zeros([ len(LFver), num_zbins_tot, ThBins, 4 ]) # Store the separate ingredients of the total delta_xip
+
+	err_delta_xip = np.zeros_like( delta_xip_total )
+	for lfv in range(len(LFver)):
+		for j in range(num_zbins_tot):
+			delta_xip_terms[lfv,j,:,0] = 2*xip_theory[j,:]*T_ratio*deltaT_ratio
+			delta_xip_terms[lfv,j,:,1] = T_ratio**2 *(rho[lfv,0,:])
+			delta_xip_terms[lfv,j,:,2] = T_ratio**2 *(rho[lfv,2,:])
+			delta_xip_terms[lfv,j,:,3] = T_ratio**2 *(2*rho[lfv,3,:])
+			delta_xip_total[lfv,j,:] = delta_xip_terms[lfv,j,:,0]+delta_xip_terms[lfv,j,:,1]+delta_xip_terms[lfv,j,:,2]+delta_xip_terms[lfv,j,:,3]
+			#delta_xip[lfv,j,:] = 2*xip_theory[j,:]*T_ratio*deltaT_ratio + T_ratio**2*(rho[lfv,0,:]+rho[lfv,2,:]+2*rho[lfv,3,:]) 
+
+			err_term1 = T_ratio**2*(rho_err[lfv,0,:]**2+rho_err[lfv,2,:]**2+rho_err[lfv,3,:]**2)
+			err_term2 = 0. #T_ratio*alphas[lfv,j]*(rho_err[lfv,1,:]**2+rho_err[lfv,4,:]**2)
+			err_delta_xip[lfv,j,:] = ( err_term1 - err_term2 )**0.5
+	return delta_xip_total, err_delta_xip, delta_xip_terms
+
+def Calc_delta_xip_cterms():
+	# This reads in the <cc> correlation function, where c is the additive shear correction
+	# This was produced using the codes, PSFRES_CORRMAP/create_c12_mock.py and Calc_2pt_Stats/calc_xi_w_treecorr.py
+	# on TreeCorr.
+	delta_xip = np.zeros([ len(LFver), num_zbins_tot, ThBins ])
+	err_delta_xip = np.zeros_like( delta_xip )
+	for lfv in range(len(LFver)):
+		for j in range(num_zbins_tot):
+			delta_xip[lfv,j,:], err_delta_xip[lfv,j,:]  = np.loadtxt('LFver%s/delta_xi_sys_LFver%s.dat' %(LFver[lfv],LFver[lfv]), usecols=(3,7), unpack=True) 
+	return delta_xip, err_delta_xip
+
+
+
+def Set_Mandelbaum_Constraints(alpha):
 	NLOS_Cov = 1250
 	cosmol_Cov = 'fid'
 
@@ -145,22 +369,23 @@ def Set_Mandelbaum_Constraints():
 def Set_Heymans_Constraints(rho):
 	Cov_Mat_uc_Survey_All = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[0:135, 0:135] * Linc_Rescale
 	lfv = 0
-	delta_xip = T_ratio**2*(rho[lfv,0,:]+rho[lfv,2,:]+rho[lfv,3,:]) - T_ratio*alpha*(rho[lfv,1,:]+rho[lfv,4,:])
-	# append to itself 15 times for the 15 bins (delta_xip same for every bin).
-	delta_xip_stack = np.tile(delta_xip, 15)	
-	delta_chi2 = np.dot( np.transpose(delta_xip_stack), 
-			np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), delta_xip_stack ))		
+	delta_xip, _ = Calc_delta_xip_J16( alpha, T_ratio, rho )
+	delta_xip = delta_xip[lfv]
+
+	delta_chi2 = np.dot( np.transpose(delta_xip), 
+			np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), delta_xip ))		
 	return delta_chi2
 
 
 # Set the requirements on rho_1,2,4 and rho_2,5
 if Requirement == "M18":
-	Req_134, Req_25 = Set_Mandelbaum_Constraints()
+	Req_134, Req_25 = Set_Mandelbaum_Constraints(alpha.max())  # Just set single alpha val to 0.03 for now.
+                                						# need to edit Mandelbaum_* func to work with alpha per bin
 elif Requirement == "Z18":
 	Req_134 = gaussian_filter( xip_data, Smooth_Scale ) / 10.
 	Req_25  = gaussian_filter( xip_data, Smooth_Scale ) / 10.
 else:
-	print "Requirement must be set to M18 or Z18"
+	print("Requirement must be set to M18 or Z18")
 	sys.exit()
 
 
@@ -171,7 +396,15 @@ def Set_Scales(ax):
 	return
 
 
+
+# This function plots all 5 rho stats & \delta\xi_+ in separate panels
+# with symlog y-axes. A yellow band illustrates the Mandelbaum/Zuntz requirements
+# (whichever one is specified at the top)
 def Plot_5_Symlog(rho, rho_err, pm):
+	
+	#delta_xip, err_delta_xip = Calc_delta_xip_J16( alpha, T_ratio, rho, rho_err )
+	#delta_xip, err_delta_xip, _ = Calc_delta_xip_H20( T_ratio, rho, rho_err )
+	delta_xip, err_delta_xip = Calc_delta_xip_cterms( )
 
 	Deltaxip = True
 	if Deltaxip:
@@ -212,8 +445,9 @@ def Plot_5_Symlog(rho, rho_err, pm):
 				ax.set_ylabel(r'$\delta\xi_%s(\theta)$'%pm)
 				ax.set_xlabel(r'$\theta$ [arcmin]')
 				for lfv in range(len(LFver)):
-					delta_xip = T_ratio**2*(rho[lfv,0,:]+rho[lfv,2,:]+rho[lfv,3,:]) - T_ratio*alpha*(rho[lfv,1,:]+rho[lfv,4,:])
-					ax.errorbar(theta, delta_xip, yerr=rho_err[lfv,1,:], color=colors[lfv], linewidth=3, label=r'%s'%Plot_Labels[lfv])
+					idx_max_alpha = np.argmax(alpha[lfv])
+					ax.errorbar(theta, delta_xip[lfv,idx_max_alpha,:], yerr=err_delta_xip[lfv,idx_max_alpha,:], 
+													color=colors[lfv], linewidth=3, label=r'%s'%Plot_Labels[lfv])
 			else:
 				ax.set_ylabel(r'$\rho_{%s}(\theta)$'%(i+1))
 				if i!=3 and i!=4:
@@ -233,7 +467,18 @@ def Plot_5_Symlog(rho, rho_err, pm):
 	return
 #Plot_5_Symlog(rhop_mean, rhop_err, '+')
 
-def Plot_4Paper(rho, rho_err, pm, lfv):
+# This plots all 5 rho stats on one panel, \delta\xi_+ on a separate panel
+# with a broad band illustrating the Mandelbaum/Zuntz requirements
+# (whichever one is specified at the top).
+def Plot_2Panel(rho, rho_err, pm, lfv):
+
+	#delta_xip, err_delta_xip = Calc_delta_xip_J16( alpha, T_ratio, rho, rho_err )
+	delta_xip, err_delta_xip = Calc_delta_xip_cterms( )
+
+	# Just extract the correct LensFit version
+	delta_xip = delta_xip[lfv]
+	err_delta_xip = err_delta_xip[lfv]
+
 
 	fig = plt.figure(figsize = (10,10))
 	gs1 = gridspec.GridSpec(2, 1)
@@ -255,22 +500,72 @@ def Plot_4Paper(rho, rho_err, pm, lfv):
 		if i == 1:
 			ax.set_ylim( [1.1e-10,1e-4] )
 			ax.set_ylabel(r'$\delta\xi_%s(\theta)$'%pm)
-			delta_xip = T_ratio**2*(rho[lfv,0,:]+rho[lfv,2,:]+rho[lfv,3,:]) - T_ratio*alpha*(rho[lfv,1,:]+rho[lfv,4,:])
-			err_delta_xip = ( T_ratio**2*(rho_err[lfv,0,:]**2+rho_err[lfv,2,:]**2+rho_err[lfv,3,:]**2) - T_ratio*alpha*(rho_err[lfv,1,:]**2+rho_err[lfv,4,:]**2) )**0.5
-			ax.errorbar(theta, abs(delta_xip), yerr=abs(err_delta_xip), color='black', linewidth=3)
+			for j in range(num_zbins_tot):
+				ax.errorbar(theta, abs(delta_xip[j,:]), yerr=abs(err_delta_xip[j,:]), linewidth=3)
 			ax.set_xlabel(r'$\theta$ [arcmin]')
 
 	plt.subplots_adjust(hspace=0, wspace=0)
 	plt.savefig('LFver%s/rho1/Plot_Overall-rho%s_CovPatches%sx%s_Require%s_%sxip.png'%(LFver[lfv],pm,Res,Res, Requirement, Which_Data))
 	#plt.show()
 	return
-Plot_4Paper(rhop_mean, rhop_err, '+', -1)
+#Plot_2Panel(rhop_mean, rhop_err, '+', -1)
+
+	
+	
+
+
+# This plots the various ingredients of 
+def Plot_deltaxips_Only():
+	lfv = 0
+	zbin= -1 # Plot the delta_xip for this z-bin alone.	
+
+	delta_xip_H, err_delta_xip_H, delta_xip_terms_H = Calc_delta_xip_H20( T_ratio, rhop_mean, rhop_err )
+	delta_xip_c, err_delta_xip_c = Calc_delta_xip_cterms( )
+
+	fig = plt.figure(figsize = (10,6))
+	gs1 = gridspec.GridSpec(1, 1)
+	ax = plt.subplot(gs1[0], adjustable='box')
+	Set_Scales(ax)
+	ax.set_ylabel(r'Components of $\delta\xi_+^{\rm sys}$')
+	ax.set_xlabel(r'$\theta$ [arcmin]')
+
+	symlogscale=1e-8
+	ax.set_yscale('symlog', linthreshy=symlogscale )
+	ax.plot( [0.5,300.], [symlogscale, symlogscale],  'k-' )
+	ax.plot( [0.5,300.], [-1*symlogscale, -1*symlogscale], 'k-' )
+	ax.set_ylim([-1*1e-5, 1e-5])
+
+
+	# Plot the diagonal covariance
+	Req = np.sqrt( np.diagonal(Cov_Mat_uc_Survey) ) / 2.
+	ax.fill_between(theta_data[:], y1=abs(Req)*-1, y2=abs(Req)*1, facecolor='yellow') 
+
+	# Plot the individual ingreidents of the delta_xip in Catherine's model
+	ax.plot( theta, delta_xip_terms_H[lfv,zbin,:,0], color='blue', linewidth=2, linestyle=':', 
+			label=r'$ 2 \left[{\frac{\overline{\delta T_{\rm PSF}}}{T_{\rm gal}}}\right] \left< e_{\rm obs}^{\rm perfect} e_{\rm obs}^{\rm perfect} \right>$' )
+	ax.plot( theta, delta_xip_terms_H[lfv,zbin,:,1], color='blue', linewidth=2, linestyle='--',
+			label=r'$\overline{T_{\rm gal}^{-2}} \left< (\delta e_{\rm PSF} \, T_{\rm PSF}) \,  (\delta e_{\rm PSF} \,T_{\rm PSF}) \right>$' )
+	ax.plot( theta, delta_xip_terms_H[lfv,zbin,:,2], color='blue', linewidth=2, linestyle='-.',
+			label=r'$\overline{T_{\rm gal}^{-2}}\left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (e_{\rm PSF} \, \delta T_{\rm PSF}) \right>$' )
+	ax.plot( theta, delta_xip_terms_H[lfv,zbin,:,3], color='blue', linewidth=2, linestyle='-',
+			label=r'$2 \overline{T_{\rm gal}^{-2}} \left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (\delta e_{\rm PSF} \, T_{\rm PSF}) \right>$' )
+
+	ax.plot( theta, delta_xip_H[lfv,zbin,:], color='red', linewidth=2, label=r'$\delta\xi_+^{\rm sys}$' ) 
+	ax.plot( theta, delta_xip_c[lfv,zbin,:], color='dimgrey', linewidth=2, label=r'$\langle cc \rangle$' )
+
+	ax.legend(loc='upper right', frameon=False, ncol=2)
+	plt.subplots_adjust(hspace=0)
+	#plt.savefig('LFver%s/rho1/Plot_deltarho%s_CovPatches%sx%s.png'%(LFver[0],pm,Res,Res))
+	plt.show()
+	return
+Plot_deltaxips_Only()
 
 
 
-
-
+# This plots 1 panel showing the fractional size of the \delta\xi_+
+# relative to a noisy theoretical prediction from Marika
 def Plot_xip_Plus_rho(rho, rho_err, pm):
+	
 	fig = plt.figure(figsize = (10,7.5))
 	gs1 = gridspec.GridSpec(1, 1)
 	# Read in a noisy mock data vector from Marika
@@ -304,32 +599,26 @@ def Plot_xip_Plus_rho(rho, rho_err, pm):
 
 
 t1 = time.time()
-# This function will calculate chi^2 of null hypothesis (xi+ is just noise)...
-# ...the chi^2 of alternative - that xi+ is infected by delta-xi+, and do ...
-# ... P- value analysis to see if those hypotheses are statistically distinguishable.
+# This function will calculate chi^2 values for many noise realisations under 4 hypotheses:
+# null : the chi^2 values obtained for the correct cosmology given no systematics
+# sys: the chi^2 values obtained for the correct cosmology given the systematic bias \delta\xi_+
+# hi/lo: the chi^2 values obtained for a cosmology that is ~0.004 higher in S_8 than the truth.
+# This funcion evaluates if the shift (null-->sys) is subdominant to the shift (null-->hi/lo)
+# Turns out it is, therefor systematic is subdominant to this tiny change in cosmology.
+
 def Investigate_chi2(rho):
 	Cov_Mat_uc_Survey_All = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[0:135,0:135] * Linc_Rescale
+	# [0:135,0:135] pulls out only the xi+ elements.
 	lfv = 0
-	delta_xip = T_ratio**2*(rho[lfv,0,:]+rho[lfv,2,:]+rho[lfv,3,:]) - T_ratio*alpha*(rho[lfv,1,:]+rho[lfv,4,:])
-	# append to itself 15 times for the 15 bins (delta_xip same for every bin).
-	delta_xip_stack = np.tile(delta_xip, 15)
+	#delta_xip, _ = Calc_delta_xip_J16( alpha, T_ratio, rho, rho )
+	#delta_xip, _ = Calc_delta_xip_H20( T_ratio, rho, rho )
+	delta_xip, err_delta_xip = Calc_delta_xip_cterms( )
+
+	delta_xip = np.ndarray.flatten( delta_xip[lfv] )
+
 
 	# Assemble the theory vector - used to guage signif. of measuring genuine signal.
 	# And deviations in this signal from those with high/low values of S_8
-	def Read_In_Theory_Vector(hi_lo_fid):
-		# hi_lo_fid must be one of 'high', 'low' or 'fid'
-		indir_theory = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/outputs/test_output_S8_%s_test/shear_xi_plus/' %hi_lo_fid
-		theta_theory = np.loadtxt('%s/theta.txt' %indir_theory) * (180./np.pi) * 60.	# Convert long theta array in radians to arcmin
-		xip_theory_stack = np.zeros( [15,len(theta)] )									# Will store all auto & cross xi_p for the 5 tomo bins
-		idx = 0
-		for i in range(1,6):
-			for j in range(1,6):
-				if i >= j:		# Only read in bins 1-1, 2-1, 2-2, 3-1, 3-2,...
-					tmp_xip_theory = np.loadtxt('%s/bin_%s_%s.txt' %(indir_theory,i,j))
-					xip_theory_stack[idx,:] = np.interp( theta, theta_theory, tmp_xip_theory )		# sample at the theta values used for PSF modelling.
-					idx+=1
-		xip_theory_stack = xip_theory_stack.flatten()
-		return xip_theory_stack
 	xip_theory_stack_hi = Read_In_Theory_Vector('high')		# High S_8
 	xip_theory_stack_lo = Read_In_Theory_Vector('low')		# Low S_8
 	xip_theory_stack_fid = Read_In_Theory_Vector('fid')		# Fiducial S_8
@@ -345,8 +634,8 @@ def Investigate_chi2(rho):
 		# chi2 for null hypothesis 
 		chi2_null[i] = np.dot( np.transpose(noise), np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise ))
 		# chi2 for systematic hypothesis
-		chi2_sys[i] = np.dot( np.transpose(noise+delta_xip_stack), 
-								np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise+delta_xip_stack ))
+		chi2_sys[i] = np.dot( np.transpose(noise+delta_xip), 
+								np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise+delta_xip ))
 		# chi2 for high S_8 cosmology
 		chi2_hi[i] = np.dot( np.transpose(noise+xip_theory_stack_hi-xip_theory_stack_fid), 
 								np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise+xip_theory_stack_hi-xip_theory_stack_fid ))
@@ -355,20 +644,62 @@ def Investigate_chi2(rho):
 								np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise+xip_theory_stack_lo-xip_theory_stack_fid ))
 
 	# Histogram the chi^2
-	histo_chi2, tmp_bins = np.histogram(chi2_null, 100)
-	bins_chi2 = tmp_bins[:-1] + (tmp_bins[1] - tmp_bins[0])/2.			# get bin centres
-	histo_chi2 = histo_chi2 / simps( histo_chi2, bins_chi2)				# Normalise to a PDF
+	def Hist_n_Normalise(chi2, nbins):
+		histo_chi2, tmp_bins = np.histogram(chi2, nbins)
+		bins_chi2 = tmp_bins[:-1] + (tmp_bins[1] - tmp_bins[0])/2.			# get bin centres
+		histo_chi2 = histo_chi2 / simps( histo_chi2, bins_chi2)				# Normalise to a PDF
+		mean_chi2 = np.mean( chi2 )
+		return histo_chi2, bins_chi2, mean_chi2
+	histo_chi2_null, bins_chi2_null, mean_chi2_null = Hist_n_Normalise(chi2_null, 100)
+	histo_chi2_sys, bins_chi2_sys, mean_chi2_sys = Hist_n_Normalise(chi2_sys, 100)
+	histo_chi2_hi, bins_chi2_hi, mean_chi2_hi = Hist_n_Normalise(chi2_hi, 100)
+	histo_chi2_lo, bins_chi2_lo, mean_chi2_lo = Hist_n_Normalise(chi2_lo, 100)
+	print("Shift in the mean of the chi2 distributions between null and the following hypotheses is...:" )
+	print("sys: ", abs(mean_chi2_null-mean_chi2_sys))
+	print("high S8: ", abs(mean_chi2_null-mean_chi2_hi))
+	print("low S8: ", abs(mean_chi2_null-mean_chi2_lo))
+	
+
+
+	# Plot the chi^2 distribution
+	f, ((ax1)) = plt.subplots(1, 1, figsize=(10,9))
+	ax1.plot(bins_chi2_hi, histo_chi2_hi, color='magenta', linewidth=3)
+	ax1.plot(bins_chi2_sys, histo_chi2_sys, color='orange', linewidth=3)
+	ax1.plot(bins_chi2_null, histo_chi2_null, color='cyan', linewidth=3)
+
+	#ax1.plot( chi2_array, pdf_bf, color='blue', linestyle=':', linewidth=3, label=r'$\rm{DOF}=%.1f \pm %.1f$'%(dof_bf,np.sqrt(dof_err)) )
+
+	# Mark the mean of the chi2 distributions to see how distinguishable they are.
+	ax1.plot( [mean_chi2_hi,mean_chi2_hi], [0., histo_chi2_null.max()], 
+				color='magenta', linestyle='--', linewidth=3, label=r'$\langle \chi^2_{\Delta S_8} \rangle$' )
+	ax1.plot( [mean_chi2_sys,mean_chi2_sys], [0., histo_chi2_null.max()], 
+				color='orange', linestyle='--', linewidth=3, label=r'$\langle \chi^2_{\rm sys} \rangle$' )
+	ax1.plot( [mean_chi2_null,mean_chi2_null], [0., histo_chi2_null.max()], 
+				color='cyan', linestyle='--', linewidth=3, label=r'$\langle \chi^2_{\rm null} \rangle$' )
+
+	#ax1.set_xlim([ chi2_null.min(), chi2_null.max() ])
+	ax1.set_xlabel(r'$\chi^2$')
+	ax1.set_ylabel(r'PDF$(\chi^2)$')
+	ax1.legend(loc='best', frameon=True)
+	#plt.savefig('LFver%s/rho1/Plot_PDF-chi2.png'%(LFver[0]))
+	plt.show()
+
+
+	# The following bits of code are no longer used - they compare the chi^2 distributions
+	# via a P-value analysis. Instead of doing this, we now just look at the means of the chi^2 distributions
+	# (done above). 
+	# -------------------------------------------------------------------------------------------- #
 
 	# Fit for the effective DoF of the chi^2 distribution
 	def chi2pdf_model(chi2_array, *dof):
 		chi2_pdf = chi2.pdf( chi2_array, dof ) / simps( chi2.pdf( chi2_array, dof ), chi2_array)
 		# Interpolate the chi^2 to bins of histogram.
-		return np.interp( bins_chi2, chi2_array, chi2_pdf )	
+		return np.interp( bins_chi2_null, chi2_array, chi2_pdf )	
 
 	chi2_array = np.linspace( 0., 400., 1000 )		# Arbitrary array spanning a suitable range of chi2 values
 	p0 = [100]										# Arbitrary first guess at the DoF
 	dof_bf, dof_err = curve_fit(chi2pdf_model, 
-					chi2_array, histo_chi2, p0=p0)	# Best fit dof.
+					chi2_array, histo_chi2_null, p0=p0)	# Best fit dof.
 	pdf_bf = chi2.pdf( chi2_array, dof_bf ) / simps( chi2.pdf( chi2_array, dof_bf ), chi2_array)
 
 
@@ -378,26 +709,6 @@ def Investigate_chi2(rho):
 	P_hi = chi2.cdf( chi2_hi, dof_bf )	
 	P_lo = chi2.cdf( chi2_lo, dof_bf )	
 
-
-	# Plot the chi^2 distribution
-	f, ((ax1)) = plt.subplots(1, 1, figsize=(10,9))
-	ax1.bar(bins_chi2, histo_chi2, width=(bins_chi2[1]-bins_chi2[0]), color='red', edgecolor='red', alpha=1.)
-	ax1.plot( chi2_array, pdf_bf, color='blue', linestyle=':', linewidth=3, label=r'$\rm{DOF}=%.1f \pm %.1f$'%(dof_bf,np.sqrt(dof_err)) )
-
-	noise_idx = 0
-	# Mark the chi^2 of the 3 hypothese for a given noise realisation - 
-	# further apart these lines, the more distinguishable they are. 
-	ax1.plot( [chi2_null[noise_idx],chi2_null[noise_idx]], [0., histo_chi2.max()], 
-				color='black', linestyle='-', linewidth=3, label=r'$\chi^2_{{\rm null},%s}$'%noise_idx )
-	ax1.plot( [chi2_sys[noise_idx],chi2_sys[noise_idx]], [0., histo_chi2.max()], 
-				color='black', linestyle='--', linewidth=3, label=r'$\chi^2_{{\rm sys},%s}$'%noise_idx )
-
-	ax1.set_xlim([ chi2_null.min(), chi2_null.max() ])
-	ax1.set_xlabel(r'$\chi^2$')
-	ax1.set_ylabel(r'PDF$(\chi^2)$')
-	ax1.legend(loc='best', frameon=True)
-	plt.savefig('LFver%s/rho1/Plot_PDF-chi2.png'%(LFver[0]))
-	#plt.show()
 
 	def Plot_Pvalue_Histo(P, label):
 		# Plot the distribution of P-values for the noise-realisations
@@ -425,10 +736,13 @@ def Investigate_chi2(rho):
 		#plt.show()
 		return histo_P, cumul_P
 	P_stack = np.vstack(( P_hi, P_lo, P_sys, P_null ))
-	#histo_P_stack = P_stack = np.vstack(( P_hi-P_null, P_lo-P_null, P_sys-P_null ))
 	histo_P_stack, cumul_P_stack = Plot_Pvalue_Histo(P_stack, [r'high $S_8$', r'low $S_8$', 'sys', 'null'] )
 
-	# Do KS tests between PDFs of hi/lo/null and systematic hypotheses
+	# Do KS tests between the P-values of the chi^2's of the hi/lo/null and systematic hypotheses
+	# Could compare the PDFs or the CDFs. Turns out it makes a big difference
+	# with PDFs varying wildly with the noise realisations, and the CDFs 
+	# being completely indistinguishable due to the ~flatness of the PDFs.
+	# This is part of the reason we no longer do this P-value analysis.
 	# "-------------------PDF KS Values---------------------" 
 	KS_sys_null = ks_2samp(histo_P_stack[2,:], histo_P_stack[3,:])
 	KS_hi_null = ks_2samp(histo_P_stack[0,:], histo_P_stack[3,:])
@@ -439,11 +753,13 @@ def Investigate_chi2(rho):
 	#KS_lo_null = ks_2samp(cumul_P_stack[1,:], cumul_P_stack[3,:])
 	# "------------------------------------------------------"
 
+	# -------------------------------------------------------------------------------------------- #
+
 
 	return histo_P_stack, KS_sys_null, KS_hi_null, KS_lo_null
 histo_P_stack, KS_sys_null, KS_hi_null, KS_lo_null = Investigate_chi2(rhop_mean)
 t2 = time.time()
-print " It took %.0f seconds." %(t2-t1)
+print(" It took %.0f seconds." %(t2-t1))
 
 
 
