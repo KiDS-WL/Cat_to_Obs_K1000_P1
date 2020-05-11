@@ -13,7 +13,7 @@ import time
 from matplotlib import rc
 import pylab as plt
 import matplotlib.gridspec as gridspec
-rc('text',usetex=True)
+#rc('text',usetex=True) #cuillin is v unhappy with this command?
 rc('font',size=24)
 rc('legend',**{'fontsize':30})
 rc('font',**{'family':'serif','serif':['Computer Modern']})
@@ -81,7 +81,7 @@ for i in range(nbins):
 if dxdy.shape[0] % 2 == 0:
 	print("WARNING: Your 2D array has even dimensions, so angular values plotted on the x,y axes of following plot will not be quite right.")
 	print("It's best to recompute the array with odd dimensions.")
-nrow = dxdy.shape[0] / 2	# This will give the row on level with the origin
+nrow = np.int(dxdy.shape[0] / 2)	# This will give the row on level with the origin
 							# (i.e. row 10 for a 21x21 sized array)
 # Make the angular x/y-values array, symmetric about the origin.
 # Checked that you get identical results if you calculate them from cols instead of rows.
@@ -177,7 +177,7 @@ plt.setp(ax6.get_xticklabels(), visible=False)
 f.subplots_adjust(hspace=0, wspace=0)
 f.subplots_adjust(right=0.8)
 cbar_ax = f.add_axes([0.85, 0.15, 0.05, 0.7])
-f.colorbar(cplot, cax=cbar_ax) #, label=r'$S_8$')
+f.colorbar(cplot, cax=cbar_ax) 
 plt.savefig('Results/Plot_K%s.Blind%s.2Dgamma_tx.Ntiles%s.SourceZBcut%s.LensZcut%s.png'%(NorS,Blind,Ntiles,ZBlabel,Zlabel))
 plt.show()
 
