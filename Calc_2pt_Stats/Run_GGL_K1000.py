@@ -141,7 +141,7 @@ if bin_type == "Linear":
                         ra_units='degrees', dec_units='degrees',
                         w=w_r)
     theta, mean_theta, xi, xi_im, weight_xi = Run_GGL(cat_l, cat_s)
-    theta_r, mean_theta_r, xi_r, xi_im_r, weight_xi_r = Run_GGL(cat_l, cat_s)    
+    theta_r, mean_theta_r, xi_r, xi_im_r, weight_xi_r = Run_GGL(cat_r, cat_s)    
     np.savetxt('Results/K%s.Blind%s.gamma_tx.SourceZBcut%s.LensZcut%s.dat'%(NorS,Blind,ZBlabel,Zlabel),
                np.c_[theta, mean_theta, xi, xi_im, weight_xi],
                header='# theta [arcmin], mean theta [arcmin], gamma_t, gamma_x, weight')
