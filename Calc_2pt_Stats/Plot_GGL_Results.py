@@ -14,8 +14,8 @@ from matplotlib import rc
 import pylab as plt
 import matplotlib.gridspec as gridspec
 #rc('text',usetex=True) #cuillin is v unhappy with this command?
-rc('font',size=24)
-rc('legend',**{'fontsize':30})
+rc('font',size=14)
+rc('legend',**{'fontsize':14})
 rc('font',**{'family':'serif','serif':['Computer Modern']})
 
 
@@ -41,7 +41,7 @@ else:
 	Zlabel = "%s-%s" %(Zlo, Zhi)
 
 # Read in the 2D gamma_t, gamma_x results
-Ntiles = 476
+Ntiles = 475
 dxdy = np.load('Results/K%s.Blind%s.2Ddxdy.Ntiles%s.SourceZBcut%s.LensZcut%s.npy'%(NorS,Blind,Ntiles,ZBlabel,Zlabel))
 # with lenses
 gamma_t_2D = np.load('Results/K%s.Blind%s.2Dgamma_t.Ntiles%s.SourceZBcut%s.LensZcut%s.npy'%(NorS,Blind,Ntiles,ZBlabel,Zlabel))

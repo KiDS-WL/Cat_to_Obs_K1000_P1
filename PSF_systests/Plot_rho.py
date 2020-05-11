@@ -46,10 +46,11 @@ Smooth_Scale = 0.8
 LFver = ["321"] #["309b",  "319b", "319c", "319d", "321"] # "319",
 
 T_ratio = 1. 	         # average T_PSF / T_gal Ratio
-				         # Will ultimately get this column from Lance's updated Lensfit cats [I think?]
+                         # Will ultimately get this column from Lance's updated Lensfit cats [I think?]
 deltaT_ratio= -0.0014    # average deltaT_PSF / T_PSF
-					     # Just calculated this for LFver321, North field (South gives -0.0010)
+                         # Just calculated this for LFver321, North field (South gives -0.0010)
 
+                         
 def Calc_Important_Tquantities():
 	# Read in N and S catalogues
 	RA_N, Dec_N, e0PSF_N, e1PSF_N, delta_e0PSF_N, delta_e1PSF_N, TPSF_N, delta_TPSF_N, Xpos_N, Ypos_N = np.load('LFver%s/Catalogues/PSF_Data_N.npy'%LFver[0]).transpose()
