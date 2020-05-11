@@ -43,7 +43,6 @@ Which_Data = "Data"			# "Data" for K1000 or "Theory" for HaloFit
 Smooth_Scale = 0.8
 # ------------------------------------------------ #
 
-
 # Define quantities needed for delta_xip
 LFver = ["321"] #["309b",  "319b", "319c", "319d", "321"] # "319",
 
@@ -479,7 +478,6 @@ def Plot_2Panel(rho, rho_err, pm, lfv):
 	delta_xip = delta_xip[lfv]
 	err_delta_xip = err_delta_xip[lfv]
 
-
 	fig = plt.figure(figsize = (10,10))
 	gs1 = gridspec.GridSpec(2, 1)
 	colors = [ 'magenta', 'darkblue', 'red', 'orange', 'lawngreen', 'cyan' ] 	
@@ -508,10 +506,8 @@ def Plot_2Panel(rho, rho_err, pm, lfv):
 	plt.savefig('LFver%s/rho1/Plot_Overall-rho%s_CovPatches%sx%s_Require%s_%sxip.png'%(LFver[lfv],pm,Res,Res, Requirement, Which_Data))
 	#plt.show()
 	return
-#Plot_2Panel(rhop_mean, rhop_err, '+', -1)
 
-	
-	
+#Plot_2Panel(rhop_mean, rhop_err, '+', -1)
 
 
 # This plots the various ingredients of 
@@ -521,6 +517,7 @@ def Plot_deltaxips_Only():
 
 	delta_xip_H, err_delta_xip_H, delta_xip_terms_H = Calc_delta_xip_H20( T_ratio, rhop_mean, rhop_err )
 	delta_xip_c, err_delta_xip_c = Calc_delta_xip_cterms( )
+
 
 	fig = plt.figure(figsize = (10,6))
 	gs1 = gridspec.GridSpec(1, 1)
@@ -559,7 +556,6 @@ def Plot_deltaxips_Only():
 	plt.show()
 	return
 Plot_deltaxips_Only()
-
 
 
 # This plots 1 panel showing the fractional size of the \delta\xi_+
