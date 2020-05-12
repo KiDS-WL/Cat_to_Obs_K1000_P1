@@ -13,13 +13,15 @@ rcParams['pdf.use14corefonts'] = True
 
 font = {'family' : 'serif',
         'weight' : 'normal',
-        'size'   : 19}
+        'size'   : 16}
 
 plt.rc('font', **font)
 
 #set up the figure grid
-#tick_spacing = 2
-tick_spacing = 5
+tick_spacing_y = 0.5
+tick_spacing_x = 5
+minor_tick_spacing_x = 1
+
 fig = plt.figure(figsize=(8, 6))
 grid = ImageGrid(fig, 111,          # as in plt.subplot(111)
                  nrows_ncols=(5,3),
@@ -36,8 +38,11 @@ else:
 
 # number of tomographic bins, COSEBIS modes and the value of the modes
 ntomobin=5
+# number of modes in data file
 nmodestot=20
+# number of modes to analyse
 nmodes=20
+# value of the modes
 n=np.arange(1, nmodes+1, dtype=int)
 
 # before we read in the per tomo bin combination data, we need to read in the full covariance from the mocks
@@ -74,17 +79,19 @@ for iz in range(1,ntomobin+1):
         # calculate the null chi-sq value and associated p-value
         chisq_null = np.matmul(Bn,(np.matmul(invcov,Bn)))
         pval=chi2.sf(chisq_null,nmodes)
-        pvalchar='p=%0.3f'%(pval)
+        pvalchar='p=%0.2f'%(pval)
 
         # and plot the results with annotations of the bin combination and p-value
-        ax.errorbar(n, Bn*1e10, yerr=diagerr*1e10, fmt='o', color='magenta',label=tomochar,markerfacecolor='none')
+        ax.errorbar(n, Bn*1e9, yerr=diagerr*1e9, fmt='o', color='magenta',label=tomochar,markerfacecolor='none')
         ax.axhline(y=0, color='black', ls=':')
-        ax.set_ylim(-9,12)
+        ax.set_ylim(-1.7,2.1)
         ax.annotate(tomochar, xy=(0.2,0.9),xycoords='axes fraction',
             size=14, ha='right', va='top')
         ax.annotate(pvalchar, xy=(0.95,0.9),xycoords='axes fraction',
             size=14, ha='right', va='top')
-        ax.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
+        ax.yaxis.set_minor_locator(ticker.MultipleLocator(tick_spacing_y))
+        ax.xaxis.set_minor_locator(ticker.MultipleLocator(minor_tick_spacing_x))
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing_x))
 
         # I also want to know the significance over all bin combinations
         # to do this I need to construct a large data vector
@@ -100,18 +107,19 @@ invcov=np.linalg.inv(cov)
 chisq_null = np.matmul(Bn_all,(np.matmul(invcov,Bn_all)))
 pval=chi2.sf(chisq_null,nmodes*15)
 # write out the full p-value to the plot title truncated to 3dp
-titlechar='%s p=%0.3f'%(LFVER,pval)
-grid[1].set_title(titlechar)
+#titlechar='%s p=%0.3f'%(LFVER,pval)
+titlechar='p=%0.2f'%(pval)
+grid[2].set_title(titlechar, loc='right')
 #write out to screen the full p-value, rather than the 3dp truncated version
 print('p=%5.3e, chi-sq=%8.2f'%(pval,chisq_null))
 
 #add labels
-grid[6].set_ylabel('$B_n \, [10^{-10} rad^2]$')
+grid[6].set_ylabel('$B_n \, [10^{-9} rad^2]$')
 grid[12].set_xlabel('n')
 grid[13].set_xlabel('n')
 grid[14].set_xlabel('n')
 
-outfile='figures/COSEBIS_Bmodes_%s.png'%(LFVER)
+outfile='figures/COSEBIS_Bmodes_%s_%s.png'%(LFVER,BLIND)
 plt.savefig(outfile)
 plt.show()
 
