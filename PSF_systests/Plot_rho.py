@@ -131,9 +131,12 @@ def Calc_Important_Tquantities(zmin,zmax):
                 
                 #From 3.4.1: We estimate the average unconvolved galaxy size Tgal, by taking the lensfit- weighted average of the exponential disk scalelength (squared),
                 #as determined from each best-fit galaxy model. We note that this choice results in inconsistent definitions for PSF size and galaxy size, but
-                #argue this is an improvement on the alternative approach of setting TPSF/Tgal = 1 
+                #argue this is an improvement on the alternative approach of setting TPSF/Tgal = 1
 
-                T_g = f[1].data['bias_corrected_scalelength_pixels']**2
+                #Calculated the integrals with wolfram - turns out we need a factor of 4 to make these equivalent
+                #https://docs.google.com/document/d/1kylhRNInqzofQtZDiLrH-GH5RwhEBB04OZ0HW8pRZOo/edit?usp=sharing
+
+                T_g = 4*f[1].data['bias_corrected_scalelength_pixels']**2
                 T_PSF = f[1].data['PSF_Q11'] + f[1].data['PSF_Q22'] # The PSF size at the location of the galaxy
                 weight= f[1].data['recal_weight_A']*f[1].data['Flag_SOM_Fid_A'] #Include SOM Flag in the weight 
                 
@@ -182,7 +185,6 @@ delta_Tratio, delta_Tratio_err, T_ratio, T_ratio_err, delta_TPSF_over_Tgal, delt
 # TO DO 1 (BG) - carry through tomography-dependent ratio values through to the final result
 # Bins 2,3,4 look pretty similar, but 1 and 5 are quite different
 # TO DO 2 (BG) - add in the South - the PSF is quite different in the South - North on its own isn't fully representative
-# TO DO 3 (CH) - how much of a mismatch is Q11+Q22 vs exponetial scale length - do we need a normalisation constant?
 
 # Read in the alpha values for each shear component and tomo-bin
 Use_alpha_per_bin = True                        # If True, use an alpha per bin
@@ -349,7 +351,7 @@ def Calc_delta_xip_H20(T_ratio, rho, rho_err): 		# !!! Heymans' (2020) derivatio
                         #TO DO 4 (BG) - we need to update the rho calculation in so the prefactor is 1/T_gal^2 rather than T_ratio**2
                         #The current set-up ignores potential cross correlation between the residuals and PSF Size
                         #" we choose to keep all terms that may couple within the correlation function"
-                        delta_xip_terms[lfv,j,:,1] = T_ratio**2 *(rho[lfv,0,:])
+                        #delta_xip_terms[lfv,j,:,1] = T_ratio**2 *(rho[lfv,0,:])
 			delta_xip_terms[lfv,j,:,2] = T_ratio**2 *(rho[lfv,2,:])
 			delta_xip_terms[lfv,j,:,3] = T_ratio**2 *(2*rho[lfv,3,:])
 			delta_xip_total[lfv,j,:] = delta_xip_terms[lfv,j,:,0]+delta_xip_terms[lfv,j,:,1]+delta_xip_terms[lfv,j,:,2]+delta_xip_terms[lfv,j,:,3]
