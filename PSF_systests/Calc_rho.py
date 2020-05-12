@@ -193,6 +193,10 @@ if Calc_rhos:
                 TScaler = (tmp_delta_TPSF/tmp_TPSF)
                 print("Calculating rho statistics")
                 print("On rho1")
+                #TO DO - need to add in additional statistics that include TPSF in the cross correlation
+                #This set up currently neglects any correlations with TPSF
+                #e.g fourth term in eqn 10 should be
+                #meanr1, hrhop1, hrhom1 = Run_TreeCorr( tmp_RA, tmp_Dec, tmp_delta_e0PSF*tmp_TPSF, tmp_delta_e1PSF*tmp_TPSF, tmp_delta_e0PSF*tmp_TPSF, tmp_delta_e1PSF*tmp_TPSF )
                 meanr1, rhop1, rhom1 = Run_TreeCorr( tmp_RA, tmp_Dec, tmp_delta_e0PSF, tmp_delta_e1PSF, tmp_delta_e0PSF, tmp_delta_e1PSF )
                 print("On rho2")
                 meanr2, rhop2, rhom2 = Run_TreeCorr( tmp_RA, tmp_Dec, tmp_e0PSF, tmp_e1PSF, tmp_delta_e0PSF, tmp_delta_e1PSF )
