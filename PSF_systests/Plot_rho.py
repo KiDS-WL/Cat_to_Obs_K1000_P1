@@ -116,12 +116,6 @@ def Calc_Important_Tquantities(zmin,zmax):
         # Secondly: < T_PSF / T_gal > and < delta T_PSF / Tgal>
         # Need to interpolate delta_T_PSF to galaxy positions - read in (RA,Dec) of sources
         def Read_GalData(NorS):
-                # This read the old nofz version of the catalogue.
-                #data_g = np.load('../Calc_1pt_Stats/Catalogues/K%s.BlindA.ra_dec_e1_e2_w_ZB.ZBcutNone.npy'%NorS)
-                #RA_g = data_g[:,0]
-                #Dec_g = data_g[:,1]
-                #Z_g = data_g[:,5]
-
                 # Instead use the Master catalogue:
                 data_DIR = '/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH/'
                 f = fits.open('%s/K1000_%s_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_THELI_INT.cat' %(data_DIR,NorS))
@@ -140,11 +134,10 @@ def Calc_Important_Tquantities(zmin,zmax):
                 T_PSF = f[1].data['PSF_Q11'] + f[1].data['PSF_Q22'] # The PSF size at the location of the galaxy
                 weight= f[1].data['recal_weight_A']*f[1].data['Flag_SOM_Fid_A'] #Include SOM Flag in the weight 
                 
-                #idx = ( (Z_g>0.1) & (Z_g<1.2) ) # Redshift cut - need to calculate this for the different tomo bins
                 idx = ( (Z_g>zmin) & (Z_g<zmax) ) # Redshift cut - need to calculate this for the different tomo bins
                 return RA_g[idx], Dec_g[idx], T_g[idx], T_PSF[idx], weight[idx]
-        RA_Ng, Dec_Ng, T_Ngal, T_NPSF, weight = Read_GalData('N')
-	#RA_Sg, Dec_Sg = Read_GalData('S') # Haven't saved the S catalogue apparently
+        RA_Ng, Dec_Ng, T_Ngal, T_NPSF, weight_N = Read_GalData('N')
+	#RA_Sg, Dec_Sg, T_Sgal, T_SPSF, weight_S = Read_GalData('S') # Haven't saved the S catalogue apparently
         
         # To grid up the survey, decide on a suitable angular size a pixel should be:
         # Use the dimensions of the PSF DATA, not gal data, as PSF spans wider (RA,Dec)
@@ -154,10 +147,8 @@ def Calc_Important_Tquantities(zmin,zmax):
 	# pixel coordinates of the PSF objects
         X_N = nbins_x * (RA_N - RA_N.min()) / (RA_N.max()-RA_N.min()) 
         Y_N = nbins_y * (Dec_N - Dec_N.min()) / (Dec_N.max()-Dec_N.min()) 
-        # Ammend the value at MAX(X,Y) which will be at edge of map and cause interp error.
-        #X_N[np.argmax(X_N)] += -0.1
-        #Y_N[np.argmax(Y_N)] += -0.1
-        # Turn TPSF into a grid:
+
+        # Turn delta_TPSF into a grid:
         delta_TPSF_grid,count_grid, _,_ = MeanQ_VS_XY(delta_TPSF_N, np.ones_like(delta_TPSF_N), X_N,Y_N, [nbins_y,nbins_x])
         delta_TPSF_grid = np.nan_to_num( delta_TPSF_grid, nan=0. ) # Lots of nans due to 0/0
         # Need to append TPSF_grid with final row and column to avoid interp error
