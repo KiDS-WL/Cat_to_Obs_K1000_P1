@@ -44,7 +44,7 @@ f = fits.open('%s/K1000_%s_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_
 ra_s = f[1].data['ALPHA_J2000']
 dec_s = f[1].data['DELTA_J2000']
 e1_s = f[1].data['autocal_e1_%s' %Blind] # NB: this doesn't have the m-/c- corrections...
-e2_s = f[1].data['autocal_e1_%s' %Blind]
+e2_s = f[1].data['autocal_e2_%s' %Blind]
 w_s = f[1].data['recal_weight_%s' %Blind]
 ZB_s = f[1].data['Z_B']
 
