@@ -20,8 +20,8 @@ import matplotlib as plt
 #rc('legend',**{'fontsize':30})
 #rc('font',**{'family':'serif','serif':['Computer Modern']})
 
-#bin_type = "Linear"		# If "Linear" calculates the normal 1D gamma_T(theta)  
-bin_type = "TwoD"		# If "Linear" calculates the normal 1D gamma_T(theta)  
+bin_type = "Linear"		# If "Linear" calculates the normal 1D gamma_T(theta)  
+#bin_type = "TwoD"		# If "Linear" calculates the normal 1D gamma_T(theta)  
                                 # If "TwoD" calculates gamma_T (delta_x,delta_y) about lenses at (0,0).
                                 # Angular binning is linear [0,20] arcmin in both cases.
 

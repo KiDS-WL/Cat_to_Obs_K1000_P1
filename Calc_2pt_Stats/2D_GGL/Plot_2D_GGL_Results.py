@@ -23,7 +23,7 @@ rcParams['ps.useafm'] = True
 rcParams['pdf.use14corefonts'] = True
 font = {'family' : 'serif',
         'weight' : 'normal',
-        'size'   : 14}
+        'size'   : 16}
 plt.rc('font', **font)
 
 #This makes episilons appear as epsilons rather than varepsilons
@@ -184,9 +184,14 @@ plt.setp(ax4.get_xticklabels(), visible=False)
 plt.setp(ax5.get_xticklabels(), visible=False)
 plt.setp(ax6.get_xticklabels(), visible=False)
 
+plt.setp(ax2.get_yticklabels(), visible=False)
+plt.setp(ax4.get_yticklabels(), visible=False)
+plt.setp(ax6.get_yticklabels(), visible=False)
+plt.setp(ax8.get_yticklabels(), visible=False)
+
 f.subplots_adjust(hspace=0, wspace=0)
 f.subplots_adjust(right=0.8)
-cbar_ax = f.add_axes([0.85, 0.15, 0.05, 0.7])
+cbar_ax = f.add_axes([0.8, 0.15, 0.03, 0.7])
 clb=f.colorbar(cplot, cax=cbar_ax) 
 clb.ax.set_title('$\epsilon$')
 
