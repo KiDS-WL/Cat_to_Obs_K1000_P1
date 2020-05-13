@@ -2,6 +2,9 @@
 # Code to calculate the GGL signal about BOSS gals with K1000
 # Do this in quadrants to test if there is residual additive shear bias.
 
+#We don't understand why but this doesn't work with python3.7.6, but does with python 3.7.4
+#'/home/bengib/anaconda3/bin/ipython'
+
 import numpy as np
 import treecorr
 import sys
@@ -17,7 +20,8 @@ import matplotlib as plt
 #rc('legend',**{'fontsize':30})
 #rc('font',**{'family':'serif','serif':['Computer Modern']})
 
-bin_type = "Linear"		# If "Linear" calculates the normal 1D gamma_T(theta)  
+#bin_type = "Linear"		# If "Linear" calculates the normal 1D gamma_T(theta)  
+bin_type = "TwoD"		# If "Linear" calculates the normal 1D gamma_T(theta)  
                                 # If "TwoD" calculates gamma_T (delta_x,delta_y) about lenses at (0,0).
                                 # Angular binning is linear [0,20] arcmin in both cases.
 
@@ -125,7 +129,7 @@ def Filter_Patches(idx, Patches_tmp, ra_lo_tmp, ra_hi_tmp, dec_lo_tmp, dec_hi_tm
 # Measure out to 20 arcmin to be sure.
 # Will see freaky PSF effects down to 0 pxls --> that's okay.
 min_sep_arcmin = 0.
-max_sep_arcmin = 20
+max_sep_arcmin = 5.
 
 
 print("Setting up the catalogues")
