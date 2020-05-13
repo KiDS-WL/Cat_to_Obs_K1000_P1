@@ -43,13 +43,13 @@ Zhi = sys.argv[6]  # For no ZBcut, put None for both of these
 if str(ZBlo) == "None":
     ZBlabel = "None"
 else:
-	ZBlabel = "%s-%s" %(ZBlo, ZBhi)
+    ZBlabel = "%s-%s" %(ZBlo, ZBhi)
 
 # Lenses/randomsls 
 if str(Zlo) == "None":
     Zlabel = "None"
 else:
-	Zlabel = "%s-%s" %(Zlo, Zhi)
+    Zlabel = "%s-%s" %(Zlo, Zhi)
 
 # Read in the 2D gamma_t, gamma_x results
 Ntiles = 475
@@ -74,9 +74,7 @@ gamma_x_1D = np.zeros_like( gamma_t_2D )
 gamma_tr_1D = np.zeros_like( gamma_t_2D )
 gamma_xr_1D = np.zeros_like( gamma_t_2D )
 ps = 0.213 	# arcsec per pxl
-#max_sep = 20*60/ps		# The maximum absolute value of dx or dy to include
-						# This is 20 arcmin in pxls - Note these lines must match
-						# the max_sep set in Run_GGL_K1000.py !!!
+
 dxdy_arcmin = dxdy * ps / 60
 nbins = gamma_t_2D.shape[0]
 for i in range(nbins):
@@ -88,12 +86,12 @@ for i in range(nbins):
 
 
 # Get the angular values for plotting on the x/y axes
-# NOTE GIBLIN, THIS WILL ONLY BE EXACT IF ARRAY HAS ODD DIMENSIONS.
+# NOTE: THIS WILL ONLY BE EXACT IF ARRAY HAS AN ODD NUMBER OF BINS
 if dxdy.shape[0] % 2 == 0:
-	print("WARNING: Your 2D array has even dimensions, so angular values plotted on the x,y axes of following plot will not be quite right.")
-	print("It's best to recompute the array with odd dimensions.")
+	print("WARNING: Your 2D array has an even number of bins: %sx%s. This means angular values plotted on the x,y axes of following plot will not be quite right." %(dxdy.shape[0],dxdy.shape[1]) )
+	print("It's best to recompute the array with odd number of bins on each side.")
 nrow = np.int(dxdy.shape[0] / 2)	# This will give the row on level with the origin
-							# (i.e. row 10 for a 21x21 sized array)
+                                        # (i.e. row 10 for a 21x21 sized array)
 # Make the angular x/y-values array, symmetric about the origin.
 # Checked that you get identical results if you calculate them from cols instead of rows.
 ang_vals = np.copy(dxdy_arcmin[nrow,:])
@@ -107,9 +105,9 @@ f = plt.figure(figsize = (10,24))
 gs1 = gridspec.GridSpec(4, 2)
 
 #vmin = -0.002 	#gamma_t_2D.min()
-#vmax = 0.01 #gamma_t_2D.max()
+#vmax = 0.01    #gamma_t_2D.max()
 vmin = -0.0075 	#gamma_t_2D.min()
-vmax = 0.035 #gamma_t_2D.max()
+vmax = 0.035    #gamma_t_2D.max()
 
 
 # ----------- ROW 1 -----------
@@ -177,10 +175,6 @@ cplot = ax8.imshow(gamma_xr_2D, cmap=cmap, interpolation='none', vmin=vmin, vmax
 ax8.set_ylabel(r'randoms$_{2D}$'+'\n')
 ax8.yaxis.tick_right()
 ax8.set_xlabel(r'$\Delta\theta_x \, [\rm{arcmin}]$')
-
-
-
-
 
 
 plt.setp(ax1.get_xticklabels(), visible=False)
