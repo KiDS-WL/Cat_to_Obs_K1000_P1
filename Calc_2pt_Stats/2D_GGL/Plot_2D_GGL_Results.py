@@ -130,52 +130,58 @@ ax2.yaxis.tick_right()
 ax2.set_title(r'$\epsilon_\times^{\rm{obs}}$')
 
 
-# ----------- ROW 2 -----------
-# gamma_t^2D w/ randoms
-ax3 = plt.subplot(gs1[2], adjustable='box')
-cplot = ax3.imshow(gamma_tr_2D, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
-					origin='lower', extent=[ang_vals[0],ang_vals[-1],ang_vals[0],ang_vals[-1]]) 
-ax3.set_ylabel(r'$\Delta\theta_y \, [\rm{arcmin}]$')
-
-# gamma_x^2D w/ randoms
-ax4 = plt.subplot(gs1[3], adjustable='box')
-cplot = ax4.imshow(gamma_xr_2D, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
-					origin='lower', extent=[ang_vals[0],ang_vals[-1],ang_vals[0],ang_vals[-1]]) 
-ax4.set_ylabel(r'randoms$_{2D}$'+'\n')
-ax4.yaxis.tick_right()
-
-
-
 # ----------- ROW 3 -----------
 # gamma_t^1D w/ lenses
-ax5 = plt.subplot(gs1[4], adjustable='box')
-cplot = ax5.imshow(gamma_t_1D, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
+ax3 = plt.subplot(gs1[2], adjustable='box')
+cplot = ax3.imshow(gamma_t_1D, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
 					origin='lower', extent=[ang_vals[0],ang_vals[-1],ang_vals[0],ang_vals[-1]])
-ax5.set_ylabel(r'$\Delta\theta_y \, [\rm{arcmin}]$')
+ax3.set_ylabel(r'$\Delta\theta_y \, [\rm{arcmin}]$')
 
 # gamma_x^1D w/ lenses
-ax6 = plt.subplot(gs1[5], adjustable='box')
-cplot = ax6.imshow(gamma_x_1D, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
+ax4 = plt.subplot(gs1[3], adjustable='box')
+cplot = ax4.imshow(gamma_x_1D, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
 					origin='lower', extent=[ang_vals[0],ang_vals[-1],ang_vals[0],ang_vals[-1]]) 
-ax6.set_ylabel(r'BOSS$_{1D}$'+'\n')
+ax4.set_ylabel(r'BOSS$_{1D}$'+'\n')
+ax4.yaxis.tick_right()
+
+# ----------- ROW 3 -----------
+# Delta gamma_t
+ax5 = plt.subplot(gs1[4], adjustable='box')
+#Delta_gamma_t = gamma_t_2D - gamma_tr_2D - gamma_t_1D
+Delta_gamma_t = gamma_t_2D - gamma_t_1D
+cplot = ax5.imshow(Delta_gamma_t, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
+					origin='lower', extent=[ang_vals[0],ang_vals[-1],ang_vals[0],ang_vals[-1]]) 
+ax5.set_ylabel(r'$\Delta\theta_y \, [\rm{arcmin}]$')
+
+# Delta gamma_x
+ax6 = plt.subplot(gs1[5], adjustable='box')
+#Delta_gamma_x = gamma_x_2D - gamma_xr_2D - gamma_x_1D
+Delta_gamma_x = gamma_x_2D - gamma_x_1D
+cplot = ax6.imshow(Delta_gamma_x, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
+					origin='lower', extent=[ang_vals[0],ang_vals[-1],ang_vals[0],ang_vals[-1]]) 
+ax6.set_ylabel(r'BOSS$_{2D - 1D}$' + '\n')
 ax6.yaxis.tick_right()
 
 # ----------- ROW 4 -----------
-# Delta gamma_t
+# gamma_t^2D w/ randoms
 ax7 = plt.subplot(gs1[6], adjustable='box')
-Delta_gamma_t = gamma_t_2D - gamma_tr_2D - gamma_t_1D
-cplot = ax7.imshow(Delta_gamma_t, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
+cplot = ax7.imshow(gamma_tr_2D, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
 					origin='lower', extent=[ang_vals[0],ang_vals[-1],ang_vals[0],ang_vals[-1]]) 
 ax7.set_ylabel(r'$\Delta\theta_y \, [\rm{arcmin}]$')
 ax7.set_xlabel(r'$\Delta\theta_x \, [\rm{arcmin}]$')
-# Delta gamma_x
+
+# gamma_x^2D w/ randoms
 ax8 = plt.subplot(gs1[7], adjustable='box')
-Delta_gamma_x = gamma_x_2D - gamma_xr_2D - gamma_x_1D
-cplot = ax8.imshow(Delta_gamma_x, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
+cplot = ax8.imshow(gamma_xr_2D, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
 					origin='lower', extent=[ang_vals[0],ang_vals[-1],ang_vals[0],ang_vals[-1]]) 
-ax8.set_ylabel(r'(BOSS-randoms)$_{2D}$'+'\n'+ r'- BOSS$_{1D}$')
+ax8.set_ylabel(r'randoms$_{2D}$'+'\n')
 ax8.yaxis.tick_right()
 ax8.set_xlabel(r'$\Delta\theta_x \, [\rm{arcmin}]$')
+
+
+
+
+
 
 plt.setp(ax1.get_xticklabels(), visible=False)
 plt.setp(ax2.get_xticklabels(), visible=False)

@@ -20,8 +20,8 @@ import matplotlib as plt
 #rc('legend',**{'fontsize':30})
 #rc('font',**{'family':'serif','serif':['Computer Modern']})
 
-bin_type = "Linear"		# If "Linear" calculates the normal 1D gamma_T(theta)  
-#bin_type = "TwoD"		# If "Linear" calculates the normal 1D gamma_T(theta)  
+#bin_type = "Linear"		# If "Linear" calculates the normal 1D gamma_T(theta)  
+bin_type = "TwoD"		# If "Linear" calculates the normal 1D gamma_T(theta)  
                                 # If "TwoD" calculates gamma_T (delta_x,delta_y) about lenses at (0,0).
                                 # Angular binning is linear [0,20] arcmin in both cases.
 
@@ -47,9 +47,9 @@ inDIR = '/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH'
 f = fits.open('%s/K1000_%s_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_THELI_INT.cat' %(inDIR,NorS))
 ra_s = f[1].data['ALPHA_J2000']
 dec_s = f[1].data['DELTA_J2000']
-e1_s = f[1].data['autocal_e1_%s' %Blind] # NB: this doesn't have the m-/c- corrections...
-e2_s = f[1].data['autocal_e2_%s' %Blind]
-w_s = f[1].data['recal_weight_%s' %Blind]
+e1_in = f[1].data['autocal_e1_%s' %Blind] # NB: this doesn't have the m-/c- corrections...
+e2_in = f[1].data['autocal_e2_%s' %Blind]
+w_in = f[1].data['recal_weight_%s' %Blind]
 ZB_s = f[1].data['Z_B']
 
 
@@ -61,9 +61,10 @@ else:
     idx = np.where( np.logical_and(ZB_s>float(ZBlo_s), ZB_s<float(ZBhi_s)) )[0]
     ra_s=ra_s[idx]
     dec_s=dec_s[idx]
-    e1_s=e1_s[idx]
-    e2_s=e2_s[idx]
-    w_s=w_s[idx]
+    #apply c-correction
+    e1_s=e1_in[idx]-np.average(e1_in[idx],weights=w_in[idx])
+    e2_s=e2_in[idx]-np.average(e2_in[idx],weights=w_in[idx])
+    w_s=w_in[idx]
     ZB_s=ZB_s[idx]
 
 def Read_In_Lens_Data(fitsname):
