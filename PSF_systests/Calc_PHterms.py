@@ -1,5 +1,6 @@
-# 05/03/2019, B. M. Giblin, PhD Student, Edinburgh
-# Read in PSF residual quantities & calculate rho statistics
+# 14/05/2020, B. M. Giblin, PhD Student, Edinburgh
+# Read in PSF residual quantities & calculate the terms of 'Paulin-Henriksson' model
+# for \delta\xi_+ (Section 3.4 of Giblin, Heymans et al. 2020)
 
 import numpy as np
 from astropy.io import fits
@@ -8,8 +9,8 @@ import glob
 import os
 import sys
 
-Calc_rhos = True         # Runs TreeCorr to calc rho1-5 if True.
-PreReadCat = False       # If True, read in a pre-saved shear catalogue
+Calc_PH = True           # Runs TreeCorr to calc rho1-5 if True.
+PreReadCat = True        # If True, read in a pre-saved shear catalogue
 Splitup_Fields = True    # If True, splits sky survey into Res*Res patches
 Res = 7                  # Splits the Field into Res*Res pieces and calculates rho's for each.
                          # These are used to calculate Jackknife errors.
@@ -23,7 +24,6 @@ if LFver == "309b":
 else:
     expname = 'PSFRES_XI_glab_%s' %LFver
     
-#Fields = ["KIDS_129p0_0p5"]     # Set to this to read just one Field
 
 # DECIDE WHICH FIELDS TO USE
 #fname = '/home/cech/KiDSLenS/THELI_catalogues/KIDS_conf/G9.txt'   # JUST USE G9
@@ -36,14 +36,10 @@ for x in Fields_tmp:
 
 data_indir = "/disk09/KIDS/KIDSCOLLAB_V1.0.0/" # Contains all the KiDS Field directories
 outdir = "/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/PSF_systests/LFver%s" %LFver
-if not os.path.exists(outdir):
-    os.makedirs(outdir)
-    os.makedirs(outdir+"/rho1")
-    os.makedirs(outdir+"/rho2")
-    os.makedirs(outdir+"/rho3")
-    os.makedirs(outdir+"/rho4")
-    os.makedirs(outdir+"/rho5")
-    os.makedirs(outdir+"/Catalogues")
+if not os.path.exists(outdir+"/PHterms"):
+    #os.makedirs(outdir)
+    os.makedirs(outdir+"/PHterms")
+    #os.makedirs(outdir+"/Catalogues")
 
 
 if PreReadCat:
@@ -140,7 +136,7 @@ def Run_TreeCorr(ra,dec,y1,y2,z1,z2):
                 bin_slop=bin_slop, nbins=ThBins,
                 metric=metric, sep_units='arcmin')
     gg.process(cat1,cat2)
-    return gg.meanr, gg.xip, gg.xim
+    return gg.meanr, gg.xip, gg.xim, gg.weight
 
 
 
@@ -163,7 +159,7 @@ def Split_Fields(Q, ra, dec, rlo, rhi, dlo, dhi):
 
 
 
-if Calc_rhos:
+if Calc_PH:
 
     if Splitup_Fields:
         print("Splitting up %s Field into %s*%s patches" %(NorS,Res,Res))
@@ -191,54 +187,50 @@ if Calc_rhos:
             tmp_delta_TPSF = Split_Fields(delta_TPSF, RA, Dec, rlo, rhi, dlo, dhi)
             if len(tmp_RA) > 100: # some patches will be empty
                 TScaler = (tmp_delta_TPSF/tmp_TPSF)
-                print("Calculating rho statistics")
-                print("On rho1")
-                #TO DO - need to add in additional statistics that include TPSF in the cross correlation
-                #This set up currently neglects any correlations with TPSF
-                #e.g fourth term in eqn 10 should be
-                #meanr1, hrhop1, hrhom1 = Run_TreeCorr( tmp_RA, tmp_Dec, tmp_delta_e0PSF*tmp_TPSF, tmp_delta_e1PSF*tmp_TPSF, tmp_delta_e0PSF*tmp_TPSF, tmp_delta_e1PSF*tmp_TPSF )
-                meanr1, rhop1, rhom1 = Run_TreeCorr( tmp_RA, tmp_Dec, tmp_delta_e0PSF, tmp_delta_e1PSF, tmp_delta_e0PSF, tmp_delta_e1PSF )
-                print("On rho2")
-                meanr2, rhop2, rhom2 = Run_TreeCorr( tmp_RA, tmp_Dec, tmp_e0PSF, tmp_e1PSF, tmp_delta_e0PSF, tmp_delta_e1PSF )
+                print("Calculating PH terms")
+                print("On term 1")
+                meanr1, php1, phm1, weight1 = Run_TreeCorr( tmp_RA, tmp_Dec,
+                                                            tmp_e0PSF*tmp_delta_TPSF, tmp_e1PSF*tmp_delta_TPSF,
+                                                            tmp_e0PSF*tmp_delta_TPSF, tmp_e1PSF*tmp_delta_TPSF )
+                print("On term 2")
+                meanr2, php2, phm2, weight2 = Run_TreeCorr( tmp_RA, tmp_Dec,
+                                                            tmp_e0PSF*tmp_delta_TPSF, tmp_e1PSF*tmp_delta_TPSF,
+                                                            tmp_delta_e0PSF*tmp_TPSF, tmp_delta_e1PSF*tmp_TPSF )
                 print("On rho3")
-                meanr3, rhop3, rhom3 = Run_TreeCorr( tmp_RA, tmp_Dec, tmp_e0PSF*TScaler, tmp_e1PSF*TScaler, tmp_e0PSF*TScaler, tmp_e1PSF*TScaler )
-                print("On rho4")
-                meanr4, rhop4, rhom4 = Run_TreeCorr( tmp_RA, tmp_Dec, tmp_delta_e0PSF, tmp_delta_e1PSF, tmp_e0PSF*TScaler, tmp_e1PSF*TScaler )
-                print("On rho5")
-                meanr5, rhop5, rhom5 = Run_TreeCorr( tmp_RA, tmp_Dec, tmp_e0PSF, tmp_e1PSF, tmp_e0PSF*TScaler, tmp_e1PSF*TScaler )
-                np.savetxt('%s/rho1/rho1_KiDS_%s_%sof%sx%s.dat'%(outdir,NorS,i,Res,Res), np.c_[meanr1, rhop1, rhom1],
-                           header='# mean-theta [arcmin], rho1_p, rho1_m')
-                np.savetxt('%s/rho2/rho2_KiDS_%s_%sof%sx%s.dat'%(outdir,NorS,i,Res,Res), np.c_[meanr2, rhop2, rhom2],
-                           header='# mean-theta [arcmin], rho2_p, rho2_m')
-                np.savetxt('%s/rho3/rho3_KiDS_%s_%sof%sx%s.dat'%(outdir,NorS,i,Res,Res), np.c_[meanr3, rhop3, rhom3],
-                           header='# mean-theta [arcmin], rho3_p, rho3_m')
-                np.savetxt('%s/rho4/rho4_KiDS_%s_%sof%sx%s.dat'%(outdir,NorS,i,Res,Res), np.c_[meanr4, rhop4, rhom4],
-                           header='# mean-theta [arcmin], rho4_p, rho4_m')
-                np.savetxt('%s/rho5/rho5_KiDS_%s_%sof%sx%s.dat'%(outdir,NorS,i,Res,Res), np.c_[meanr5, rhop5, rhom5],
-                           header='# mean-theta [arcmin], rho5_p, rho5_m')
+                meanr3, php3, phm3, weight3 = Run_TreeCorr( tmp_RA, tmp_Dec,
+                                                            tmp_delta_e0PSF*tmp_TPSF, tmp_delta_e1PSF*tmp_TPSF,
+                                                            tmp_delta_e0PSF*tmp_TPSF, tmp_delta_e1PSF*tmp_TPSF )
+
+                np.savetxt('%s/PHterms/ph1_KiDS_%s_%sof%sx%s.dat'%(outdir,NorS,i,Res,Res), np.c_[meanr1, php1, phm1, weight1],
+                           header='# mean-theta [arcmin], ph1_p, ph1_m, weight')
+                np.savetxt('%s/PHterms/ph2_KiDS_%s_%sof%sx%s.dat'%(outdir,NorS,i,Res,Res), np.c_[meanr2, php2, phm2, weight2],
+                           header='# mean-theta [arcmin], ph2_p, ph2_m, weight')
+                np.savetxt('%s/PHterms/ph3_KiDS_%s_%sof%sx%s.dat'%(outdir,NorS,i,Res,Res), np.c_[meanr3, php3, phm3, weight3],
+                           header='# mean-theta [arcmin], ph3_p, ph3_m, weight')
+
 
                 
                         
     else:
-        print("Calculating rho statistics")
-        print("On rho1")
-        meanr1, rhop1, rhom1 = Run_TreeCorr( RA, Dec, delta_e0PSF, delta_e1PSF, delta_e0PSF, delta_e1PSF )
-        print("On rho2")
-        meanr2, rhop2, rhom2 = Run_TreeCorr( RA, Dec, e0PSF, e1PSF, delta_e0PSF, delta_e1PSF )
-        print("On rho3")
-        meanr3, rhop3, rhom3 = Run_TreeCorr( RA, Dec, e0PSF*(delta_TPSF/TPSF), e1PSF*(delta_TPSF/TPSF), e0PSF*(delta_TPSF/TPSF), e1PSF*(delta_TPSF/TPSF) )
-        print("On rho4")
-        meanr4, rhop4, rhom4 = Run_TreeCorr( RA, Dec, delta_e0PSF, delta_e1PSF, e0PSF*(delta_TPSF/TPSF), e1PSF*(delta_TPSF/TPSF) )
-        print("On rho5")
-        meanr5, rhop5, rhom5 = Run_TreeCorr( RA, Dec, e0PSF, e1PSF, e0PSF*(delta_TPSF/TPSF), e1PSF*(delta_TPSF/TPSF) )
+        print("Calculating PH terms")
+        print("On term 1")
+        meanr1, php1, phm1, weight1 = Run_TreeCorr( RA, Dec,
+                                                    e0PSF*delta_TPSF, e1PSF*delta_TPSF,
+                                                    e0PSF*delta_TPSF, e1PSF*delta_TPSF )
+                                             
+        print("On term 2")
+        meanr2, php2, phm2, weight2 = Run_TreeCorr( RA, Dec, 
+                                                    e0PSF*delta_TPSF, e1PSF*delta_TPSF,
+                                                    delta_e0PSF*TPSF, delta_e1PSF*TPSF )
+        print("On term 3")
+        meanr3, php3, phm3, weight3 = Run_TreeCorr( RA, Dec,
+                                                    delta_e0PSF*TPSF, delta_e1PSF*TPSF,
+                                                    delta_e0PSF*TPSF, delta_e1PSF*TPSF )
 
-        np.savetxt('%s/rho1/rho1_KiDS_%s.dat'%(outdir,NorS), np.c_[meanr1, rhop1, rhom1],
-                   header='# mean-theta [arcmin], rho1_p, rho1_m')
-        np.savetxt('%s/rho2/rho2_KiDS_%s.dat'%(outdir,NorS), np.c_[meanr2, rhop2, rhom2],
-           header='# mean-theta [arcmin], rho2_p, rho2_m')
-        np.savetxt('%s/rho3/rho3_KiDS_%s.dat'%(outdir,NorS), np.c_[meanr3, rhop3, rhom3],
-           header='# mean-theta [arcmin], rho3_p, rho3_m')
-        np.savetxt('%s/rho4/rho4_KiDS_%s.dat'%(outdir,NorS), np.c_[meanr4, rhop4, rhom4],
-           header='# mean-theta [arcmin], rho4_p, rho4_m')
-        np.savetxt('%s/rho5/rho5_KiDS_%s.dat'%(outdir,NorS), np.c_[meanr5, rhop5, rhom5],
-           header='# mean-theta [arcmin], rho5_p, rho5_m')
+        np.savetxt('%s/PHterms/ph1_KiDS_%s.dat'%(outdir,NorS), np.c_[meanr1, php1, phm1, weight1],
+                   header='# mean-theta [arcmin], ph1_p, ph1_m, weight')
+        np.savetxt('%s/PHterms/ph2_KiDS_%s.dat'%(outdir,NorS), np.c_[meanr2, php2, phm2, weight2],
+                   header='# mean-theta [arcmin], ph2_p, ph2_m, weight')
+        np.savetxt('%s/PHterms/ph3_KiDS_%s.dat'%(outdir,NorS), np.c_[meanr3, php3, phm3, weight3],
+                   header='# mean-theta [arcmin], ph3_p, ph3_m, weight')
+
