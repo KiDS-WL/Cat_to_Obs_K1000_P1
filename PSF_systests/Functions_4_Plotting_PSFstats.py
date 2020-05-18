@@ -6,6 +6,7 @@ import numpy as np
 from scipy.stats import binned_statistic_2d
 from astropy.io import fits
 import time
+import glob
 
 def interpolate2D(X, Y, grid): #(It's linear)                                                                    
     # This function does simple 2D linear interpolation to find values of 'grid' at positions (X,Y)
@@ -98,22 +99,30 @@ def Interp_deltaT(RA_g, Dec_g, RA_p, Dec_p, delta_TPSF):
 def Calc_Important_Tquantities(LFver,zbounds, nboot):
     # This functions calculates:
     # < deltaT_PSF / T_gal > & SIGMA[ deltaT_PSF / T_gal ]
-    # < T_gal^-2 > & SIGMA[ T_gal^-2  ] 
-
+    # < T_gal^-2 > & SIGMA[ T_gal^-2  ]
+    
+    num_zbins = len(zbounds)-1
+    num_zbins_tot = np.sum( range(num_zbins+1) ) # Includes cross bins
+    
     # Read in N and S PSF data catalogues
     # '_p' means at position of objects used for PSF modelling
     bgdir='/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/PSF_systests'
-    RA_Np, Dec_Np, _,_,_,_, TPSF_Np, delta_TPSF_Np, _,_ = np.load('%s/LFver%s/Catalogues/PSF_Data_N.npy'%(bgdir,LFver[0])).transpose()
-    RA_Sp, Dec_Sp, _,_,_,_, TPSF_Sp, delta_TPSF_Sp, _,_ = np.load('%s/LFver%s/Catalogues/PSF_Data_S.npy'%(bgdir,LFver[0])).transpose()
+    RA_Np, Dec_Np, _,_,_,_, TPSF_Np, delta_TPSF_Np, _,_ = np.load('%s/LFver%s/Catalogues/PSF_Data_N.npy'%(bgdir,LFver)).transpose()
+    RA_Sp, Dec_Sp, _,_,_,_, TPSF_Sp, delta_TPSF_Sp, _,_ = np.load('%s/LFver%s/Catalogues/PSF_Data_S.npy'%(bgdir,LFver)).transpose()
 
     # Read in N and S galaxy data catalogues
     RA_Ng, Dec_Ng, T_Ng, T_PSF_Ng, weight_Ng, z_Ng = Read_GalData('N')
     RA_Sg, Dec_Sg, T_Sg, T_PSF_Sg, weight_Sg, z_Sg = Read_GalData('S')
 
+    # The fact that the S RA data crosses zero causes issues interpolating onto a grid.
+    # So shift rescale all S RA's in [300,360] to be negative, making the field continuous.
+    RA_Sg[ ((RA_Sg<360) & (RA_Sg>300)) ] += -360.
+    RA_Sp[ ((RA_Sp<360) & (RA_Sp>300)) ] += -360.
+    
     # Now scroll through the z-bins, calculating the T-quantities in each.
-    deltaT_ratio = np.zeros([ 2, len(zbounds)-1 ]) # 1st-row = mean, 2nd-row = error
+    deltaT_ratio = np.zeros([ 2, num_zbins ])      # 1st-row = mean, 2nd-row = error
     Tg_invsq = np.zeros_like( deltaT_ratio )       # Same
-    for i in range(len(zbounds)-1):
+    for i in range(num_zbins):
         t1 = time.time()
         print('On tomo bin %s-%s' %(zbounds[i],zbounds[i+1]))
         # Redshift cut:
@@ -124,23 +133,189 @@ def Calc_Important_Tquantities(LFver,zbounds, nboot):
 
         # 1. < deltaT_PSF / T_gal > & SIGMA[ deltaT_PSF / T_gal ]
         # NOTE: T_g is on the DENOMINATOR here, so don't think weights shoulf be weight_g !
-        weight_g = np.append(weight_Ng[idx_N], weight_Sg[idx_S]) 
-        dT_p = np.append(delta_TPSF_Ng, delta_TPSF_Sg)
         T_g = np.append(T_Ng[idx_N], T_Sg[idx_S])
-        deltaT_ratio[0,i] = np.average( dT_p/T_g, weights=weight_g )
+        dT_p = np.append(delta_TPSF_Ng, delta_TPSF_Sg)
+        weight_g = np.append(weight_Ng[idx_N], weight_Sg[idx_S])
+        weight_q1 = np.ones_like(T_g) #(T_g**2 * weight_g ) / dT_p
+        # ^ that weight computed with error propagation: y=a/x, sigma_y^2=(dy/dx)sigma_x^2, sigma_x^2=1/weight_x
+        # then x=T_g, a=dT_p, y=dT_p/T_g
+        
+        deltaT_ratio[0,i] = np.average( dT_p/T_g, weights=weight_q1 )
         # This is a weighted mean, so lets use a bootstrap estimate for the error on the mean
         print("Bootstrapping deltaT-ratio with nboot=%s" %nboot)
-        deltaT_ratio[1,i] = Bootstrap_Error(nboot, dT_p/T_g, weights=weight_g)
+        deltaT_ratio[1,i] = Bootstrap_Error(nboot, dT_p/T_g, weights=weight_q1)
 
-        # Query, what should the weights be here?
-        # 2. < T_gal^-2 > & SIGMA[ T_gal^-2  ] 
-        Tg_invsq[0,i] = np.average( 1./T_g**2., weights=weight_g )
+        # 2. < T_gal^-2 > & SIGMA[ T_gal^-2  ]
+        weight_q2 = np.ones_like(T_g) #T_g**2 * weight_g
+        # ^ computed with error prop: y=1/x, sigma_y^2=(dy/dx)sigma_x^2, sigma_x^2=1/weight_x
+        # with x=T_g, weight_x=weight_g
+        Tg_inv = np.average( 1./T_g, weights=weight_q2 )
+        Tg_invsq[0,i] = Tg_inv**2
         print("Bootstrapping Tgal_invsq with nboot=%s" %nboot)
-        Tg_invsq[1,i] = Bootstrap_Error(nboot, 1/T_g**2., weights=weight_g )
+        Tg_inverr = Bootstrap_Error(nboot, 1/T_g, weights=weight_q2 )
+        # Need to convert ^this error on 1/T_g to an error on 1/T_g^2
+        # do error propagation again:
+        # z=y^2, sigma_z=2y*sigma_y^2, sigma_y^2=1/mean(weight_y)
+        Tg_invsq[1,i] = np.sqrt(2 * Tg_inv) * Tg_inverr
 
         t2 = time.time()
         print('For tomo bin %s-%s, got the following T-quantities (took %0.f s)' %(zbounds[i],zbounds[i+1],(t2-t1)) )
         print ('%8.3e,%8.3e,%8.3e,%8.3e'%(deltaT_ratio[0,i], deltaT_ratio[1,i], Tg_invsq[0,i], Tg_invsq[1,i]))
 
-    return deltaT_ratio, Tg_invsq
+    # For the cross-bins, for now just average the T-quantities in the individual bins
+    deltaT_ratio_tot = np.zeros([ 2, num_zbins_tot ])      # 1st-row = mean, 2nd-row = error
+    Tg_invsq_tot = np.zeros_like( deltaT_ratio_tot )           # Same
+    k=0
+    for i in range(num_zbins):
+        for j in range(num_zbins):
+            if j>= i:
+                deltaT_ratio_tot[0,k] = (deltaT_ratio[0,i]+deltaT_ratio[0,j])/2
+                deltaT_ratio_tot[1,k] = np.sqrt( deltaT_ratio[1,i]**2 + deltaT_ratio[1,j]**2 )
+                Tg_invsq_tot[0,k] = (Tg_invsq[0,i] + Tg_invsq[0,j])/2
+                Tg_invsq_tot[1,k] = np.sqrt(Tg_invsq[0,i]**2 + Tg_invsq[0,j]**2)
+                k+=1
+                
+    return deltaT_ratio, Tg_invsq, deltaT_ratio_tot, Tg_invsq_tot
 
+
+
+def Read_rho_Or_PH(LFver, keyword, ThBins, Res):
+    # This either reads in and returns the rho stats or the Paulin-Henriksson terms
+    # depending on what keyword is set to.
+    # Note the unfortunate variable naming here 'ph' (Paulin-Henriksson)
+    # even in the case of rho stats being read in.
+    
+    if keyword == 'rho':
+        print("Reading in the rho stats")
+        num_stat = 5
+        DIR=['rho1','rho2','rho3','rho4','rho5']
+        stat='rho'
+    else:
+        print("Reading in the Paulin-Henriksson terms")
+        num_stat = 3
+        DIR=['PHterms','PHterms','PHterms','PHterms','PHterms']
+        stat='ph'
+
+    NFiles = []
+    numN = []
+    SFiles = []
+    numS = []
+    Plot_Labels = []
+    for lfv in range(len(LFver)):
+        NFiles.append( glob.glob('LFver%s/%s/%s1_KiDS_N_*of%sx%s.dat'%(LFver[lfv],DIR[0],stat,Res,Res)) )
+        numN.append(len( NFiles[lfv] ))
+        SFiles.append( glob.glob('LFver%s/%s/%s1_KiDS_S_*of%sx%s.dat'%(LFver[lfv],DIR[0],stat,Res,Res)) )
+        numS.append(len( SFiles[lfv] ))
+        if LFver[lfv] == "309b":
+            Plot_Labels.append(" 3:1")
+        elif LFver[lfv] == "319":
+            Plot_Labels.append(LFver[lfv] + " 3:1")
+        elif LFver[lfv] == "319b":
+            Plot_Labels.append(" 4:1")
+        elif LFver[lfv] == "319c":
+            Plot_Labels.append(" 3:2")
+        elif LFver[lfv] == "319d":
+            Plot_Labels.append(" 5:1")
+        elif LFver[lfv] == "321":
+            Plot_Labels.append("New 4:1")
+
+        
+    php_mean = np.zeros([len(LFver),num_stat,ThBins])
+    php_err = np.zeros_like(php_mean)
+
+    for lfv in range(len(LFver)):
+
+        php_split = np.zeros([ numN[lfv]+numS[lfv], 5, ThBins ])
+
+        for i in range(num_stat):
+            try:
+                theta, phpN = np.loadtxt('LFver%s/%s/%s%s_KiDS_N.dat'%(LFver[lfv],DIR[i],stat,i+1), usecols=(0,1), unpack=True)
+                # If the above exists, try to read in the weight (only saved this for LFver321 of the rho stats)
+                try:
+                    weightN = np.loadtxt('LFver%s/%s/%s%s_KiDS_N.dat'%(LFver[lfv],DIR[i],stat,i+1), usecols=(3,), unpack=True)
+                except IndexError:
+                    weightN = 1.
+            except IOError:
+                weightN = 1.
+                phpN = 0.
+                
+            try:
+                theta, phpS = np.loadtxt('LFver%s/%s/%s%s_KiDS_S.dat'%(LFver[lfv],DIR[i],stat,i+1), usecols=(0,1), unpack=True)
+                # If the above exists, try to read in the weight (only saved this for LFver321 of the rho stats)
+                try:
+                    weightS = np.loadtxt('LFver%s/%s/%s%s_KiDS_S.dat'%(LFver[lfv],DIR[i],stat,i+1), usecols=(3,), unpack=True)
+                except IndexError:
+                    weightS = 1.
+            except IOError:
+                weightS = 1.
+                phpS = 0.
+
+            # Weighted average of rho-North & rho-South
+            php_mean[lfv,i,:] = (weightN*phpN + weightS*phpS) / (weightN+weightS)
+            for j in range(numN[lfv]):
+                php_split[j,i,:] = np.loadtxt(NFiles[lfv][j], usecols=(1,), unpack=True)
+            for j in range(numS[lfv]):
+                php_split[numN[lfv]+j,i,:] = np.loadtxt(SFiles[lfv][j], usecols=(1,), unpack=True)
+
+            php_err[lfv,i,:] = np.sqrt( np.diag( np.cov(php_split[:,i,:], rowvar = False) ) / (numN[lfv]+numS[lfv]) )
+
+    return Plot_Labels, php_mean, php_err
+
+
+
+
+def Read_alpha_per_bin(LFver):
+    # This functions reads in the alpha (PSF leakage) values for the 5 tomo bins
+    # and avg's to estimate values for the cross-bins,
+
+    num_zbins = 5
+    num_zbins_tot = np.sum( range(num_zbins+1) )    # Number source bins including cross-bins
+    alpha = np.zeros([ len(LFver), num_zbins_tot ])
+    for lfv in range(len(LFver)):
+
+        if LFver[lfv] == "321":
+            tmp = "glab_%s"%LFver[lfv]
+        elif LFver[lfv] == "309c":
+            tmp = "svn_%s"%LFver[lfv]
+        else:
+            print("Currently only have saved alpha values for 2 LF versions: 321 and 309c. EXITING")
+            sys.exit()
+
+        tmp_a1, tmp_a2 = np.loadtxt('KAll.autocal.BlindA.alpha_VS_ZB.ZBcut0.1-1.2_LF_%s_2Dbins.dat'%tmp,
+                                    usecols=(1,3), unpack=True)
+        tmp_a = (tmp_a1 + tmp_a2) / 2.    # Just taking the avg of the alpha per ellipticity component                                 
+                                          # Also calculate the alphas in the cross-bins as the combination of values in the auto-bins  
+        k=0
+        for i in range(num_zbins):
+            for j in range(num_zbins):
+                if j>= i:
+                    alpha[lfv,k] = np.sqrt( tmp_a[i]*tmp_a[j] )
+                    #print("%s : %s %s : %s" %(k, tmp_a1[i], tmp_a1[j], alpha[lfv,k]) )                                    
+                    k+=1
+
+    return alpha
+
+
+def Read_In_Theory_Vector(hi_lo_fid):
+    # This function returns the theoretical xi+ predictions with either a fiducial, high or low S8 value
+    # hi_lo_fid must be one of 'high', 'low' or 'fid'
+
+    # THESE LINES PULL FROM THE OLD THEORY PREDICTIONS (KV450 nofz)                                                                        
+    #indir_theory = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/outputs/test_output_S8_%s_test/shear_xi_plus/' %hi_lo_fid                                                                                                                                          
+    #theta_theory = np.loadtxt('%s/theta.txt' %indir_theory) * (180./np.pi) * 60.   # Convert long theta array in radians to arcmin        
+
+    indir_theory = '/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/new_outputs/test_output_S8_%s_test/chain/output_test_A/she\
+ar_xi_plus_binned/' %hi_lo_fid
+    xip_theory_stack = np.zeros( [num_zbins_tot,len(theta_data)] )
+    # ^This will store all auto & cross xi_p for the 5 tomo bins                                                                           
+    idx = 0
+    for i in range(1,6):
+        for j in range(1,6):
+            if i >= j:              # Only read in bins 1-1, 2-1, 2-2, 3-1, 3-2,...                                                
+                tmp_theta_theory = np.loadtxt('%s/theta_bin_%s_%s.txt' %(indir_theory,i,j))
+                tmp_xip_theory = np.loadtxt('%s/bin_%s_%s.txt' %(indir_theory,i,j))
+                xip_theory_stack[idx,:] = np.interp( theta_data, tmp_theta_theory, tmp_xip_theory )
+                # sample at the theta values used for PSF modelling.                                                           
+                idx+=1
+    xip_theory_stack = xip_theory_stack.flatten()
+    return xip_theory_stack  

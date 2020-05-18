@@ -4,7 +4,7 @@
 
 #import sys
 #sys.path.insert(0, './')
-from Functions_4_Plotting_PSFstats import Calc_Important_Tquantities, Select_Patch
+from Functions_4_Plotting_PSFstats import Calc_Important_Tquantities, Read_rho_Or_PH, Select_Patch, Read_In_Theory_Vector
 
 import numpy as np
 import pylab as plt
@@ -38,128 +38,53 @@ plt.rc('font', **font)
 LFver = ["321"] #["309b",  "319b", "319c", "319d", "321"] # "319",
 
 Read_Tvalues = False # If True, read in pre-saved values of gal & PSF size quantities
+zbounds = [0.1, 0.3, 0.5, 0.7, 0.9, 1.2 ]
+num_zbins = len(zbounds)-1
+num_zbins_tot = np.sum( range(num_zbins+1) )    # Number source bins including cross-bins
 
-if Read_Tvalues == True:
+# Arrays to store T-quantities (2nd dimensions is len 2,                                                                               
+# where 0=mean, 1=error                                                                                                                
+deltaT_ratio = np.zeros([ len(LFver), 2, num_zbins ])
+Tg_invsq = np.zeros_like(deltaT_ratio)
+deltaT_ratio_tot = np.zeros([ len(LFver), 2, num_zbins_tot ])
+Tg_invsq_tot = np.zeros_like(deltaT_ratio_tot)
+
+if Read_Tvalues:
         print('Reading in pre-saved T-quantities for each ZB bin.')
-        # Read these quantities
-        #Tgal_invsq =              # < T_gal^-2 > ; scales PHterms 1-3
-        #Tgal_invsq_err =          # error on mean of above quantity
-        #deltaT_ratio= -0.0012      # < deltaT_PSF / T_gal >
-        #deltaT_ratio_err = 0.0263
+        for lfv in range(len(LFver)):
+                deltaT_ratio_tot[lfv,0,:], deltaT_ratio_tot[lfv,1,:],Tg_invsq_tot[lfv,0,:], Tg_invsq_tot[lfv,1,:] = np.loadtxt('LFver%s/PHterms/deltaTratio_TgInvSq_MeansAndErrors_%stomobins.dat' %(LFver[lfv],num_zbins_tot), usecols=(0,1,2,3), unpack=True)
+                
 else:
         # Calculate them
         print('Calculating T-quantities for each ZB bin')
         nboot = 30
-        zbounds = [0.1, 0.3] #, 0.5, 0.7, 0.9, 1.2 ]
-        deltaT_ratio, Tg_invsq = Calc_Important_Tquantities(LFver, zbounds, nboot)
-
-# Note (15/05/2020): Haven't fixed the rest of the code after this
+        for lfv in range(len(LFver)):
+                deltaT_ratio[lfv], Tg_invsq[lfv], deltaT_ratio_tot[lfv], Tg_invsq_tot[lfv] = Calc_Important_Tquantities(LFver[lfv],
+                                                                                                                        zbounds, nboot)
+                np.savetxt('LFver%s/PHterms/deltaTratio_TgInvSq_MeansAndErrors_%stomobins.dat' %(LFver[lfv],num_zbins_tot),
+                           np.c_[ deltaT_ratio_tot[lfv,0,:], deltaT_ratio_tot[lfv,1,:],
+                                  Tg_invsq_tot[lfv,0,:], Tg_invsq_tot[lfv,1,:] ],
+                           header='# < deltaT_PSF / T_gal >, SIGMA[ deltaT_PSF / T_gal ], < T_gal^-2 > , SIGMA[ T_gal^-2  ]')
+        
 sys.exit()
-
-
-
 # TO DO 1 (BG) - carry through tomography-dependent ratio values through to the final result
 # Bins 2,3,4 look pretty similar, but 1 and 5 are quite different
 # TO DO 2 (BG) - add in the South - the PSF is quite different in the South - North on its own isn't fully representative
 
 # Read in the alpha values for each shear component and tomo-bin
-Use_alpha_per_bin = True                        # If True, use an alpha per bin
-num_zbins   = 5                                 # Number of source bins
-num_zbins_tot = np.sum( range(num_zbins+1) )    # Number source bins including cross-bins
+Use_alpha_per_bin = True
 alpha = np.zeros([ len(LFver), num_zbins_tot ])
 if Use_alpha_per_bin:
-	for lfv in range(len(LFver)):
-
-		if LFver[lfv] == "321":
-			tmp = "glab_%s"%LFver[lfv]
-		elif LFver[lfv] == "309c":
-			tmp = "svn_%s"%LFver[lfv]
-		else:
-			print("Currently only have saved alpha values for 2 LF versions: 321 and 309c. EXITING")
-			sys.exit()
-
-		tmp_a1, tmp_a2 = np.loadtxt('KAll.autocal.BlindA.alpha_VS_ZB.ZBcut0.1-1.2_LF_%s_2Dbins.dat'%tmp,
-						       								usecols=(1,3), unpack=True)
-		tmp_a = (tmp_a1 + tmp_a2) / 2.    # Just taking the avg of the alpha per ellipticity component
-		                                  # Also calculate the alphas in the cross-bins as the combination of values in the auto-bins
-		k=0
-		for i in range(num_zbins):
-			for j in range(num_zbins):
-				if j>= i:
-					alpha[lfv,k] = np.sqrt( tmp_a[i]*tmp_a[j] ) 
-					#print("%s : %s %s : %s" %(k, tmp_a1[i], tmp_a1[j], alpha[lfv,k]) ) 
-					k+=1
-
+        from Functions_4_Plotting_PSFstats import Read_alpha_per_bin
+        Read_alpha_per_bin(LFver)
 else:
 	alpha += 0.03     # worse case scenario PSF leakage is 0.03;
 
+
 ThBins = 9
 Res = 7
-
-
-# Find number of rho_pm contributing to cov
-NFiles = []
-numN = []
-SFiles = []
-numS = []
-Plot_Labels = []
-for lfv in range(len(LFver)):
-	NFiles.append( glob.glob('LFver%s/rho1/rho1_KiDS_N_*of%sx%s.dat'%(LFver[lfv],Res,Res)) )
-	numN.append(len( NFiles[lfv] ))
-	SFiles.append( glob.glob('LFver%s/rho1/rho1_KiDS_S_*of%sx%s.dat'%(LFver[lfv],Res,Res)) )
-	numS.append(len( SFiles[lfv] ))
-	if LFver[lfv] == "309b":
-		Plot_Labels.append(" 3:1") 
-	elif LFver[lfv] == "319":
-		Plot_Labels.append(LFver[lfv] + " 3:1")
-	elif LFver[lfv] == "319b":
-		Plot_Labels.append(" 4:1")
-	elif LFver[lfv] == "319c":
-		Plot_Labels.append(" 3:2")
-	elif LFver[lfv] == "319d":
-		Plot_Labels.append(" 5:1")
-	elif LFver[lfv] == "321":
-		Plot_Labels.append("New 4:1")
-
-# Read in avg rho's and those used to calc cov
-rhop_mean = np.zeros([len(LFver),5,ThBins])
-rhop_err = np.zeros_like(rhop_mean)
-
-
-for lfv in range(len(LFver)):
-
-	rhop_split = np.zeros([ numN[lfv]+numS[lfv], 5, ThBins ]) 
-	#meanfactor = 2. # Divide by this, unless no N or S Field, in which case set to 1.
-	for i in range(5):
-		try:
-			theta, rhopN = np.loadtxt('LFver%s/rho%s/rho%s_KiDS_N.dat'%(LFver[lfv],i+1,i+1), usecols=(0,1), unpack=True)
-			# If the above exists, try to read in the weight (only saved this for LFver321)
-			try:
-				weightN = np.loadtxt('LFver%s/rho%s/rho%s_KiDS_N.dat'%(LFver[lfv],i+1,i+1), usecols=(3,), unpack=True)
-			except IndexError:
-				weightN = 1.
-		except IOError:
-			weightN = 1.
-			rhopN = 0.
-		try:
-			theta, rhopS = np.loadtxt('LFver%s/rho%s/rho%s_KiDS_S.dat'%(LFver[lfv],i+1,i+1), usecols=(0,1), unpack=True)
-			# If the above exists, try to read in the weight (only saved this for LFver321)
-			try:
-				weightS = np.loadtxt('LFver%s/rho%s/rho%s_KiDS_S.dat'%(LFver[lfv],i+1,i+1), usecols=(3,), unpack=True)
-			except IndexError:
-				weightS = 1.
-		except IOError:
-			weightS = 1.
-			rhopS = 0.
-	
-		# Weighted average of rho-North & rho-South
-		rhop_mean[lfv,i,:] = (weightN*rhopN + weightS*rhopS) / (weightN+weightS)
-		for j in range(numN[lfv]):
-			rhop_split[j,i,:] = np.loadtxt(NFiles[lfv][j], usecols=(1,), unpack=True)
-		for j in range(numS[lfv]):
-			rhop_split[numN[lfv]+j,i,:] = np.loadtxt(SFiles[lfv][j], usecols=(1,), unpack=True)
-
-		rhop_err[lfv,i,:] = np.sqrt( np.diag( np.cov(rhop_split[:,i,:], rowvar = False) ) / (numN[lfv]+numS[lfv]) ) 
+# Read in the mean and error on the PH stats + the labels for plotting.
+Plot_Labels, php_mean, php_err = Read_rho_Or_PH(LFver, 'ph', ThBins, Res) 
 
 
 # To get a rough idea of size of rho stats, read in the xi+- of some data to overplot 
@@ -169,33 +94,16 @@ theta_data, xip_data = np.loadtxt('%s/KAll.BlindA.xi_pm.ZBcut%s.dat' %(data_dir,
 
 # Read in a covariance 
 Linc_Rescale = 600. / 878.83	# Linc says I should rescale his cov by approx. this factor
-								# to get the effective area right. This probs isn't 100% accurate.
+                                # to get the effective area right. This probs isn't 100% accurate.
 Cov_inDIR = './Lincs_CovMat'
             # eday address: '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/Lincs_CovMat/'
 Cov_Mat_uc_Survey = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[81:90, 81:90] * Linc_Rescale * 0.16		
-																	# [0:9, 0:9] This extracts xi+ Cov in lowest bin
-																	# [81:90, 81:90] This pulls out the middle bin: 3-3
-
-def Read_In_Theory_Vector(hi_lo_fid):
-	# hi_lo_fid must be one of 'high', 'low' or 'fid'
-	#indir_theory = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/outputs/test_output_S8_%s_test/shear_xi_plus/' %hi_lo_fid
-	#theta_theory = np.loadtxt('%s/theta.txt' %indir_theory) * (180./np.pi) * 60.	# Convert long theta array in radians to arcmin
-
-	indir_theory = '/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/new_outputs/test_output_S8_%s_test/chain/output_test_A/shear_xi_plus_binned/' %hi_lo_fid
-        # '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/new_outputs/test_output_S8_%s_test/chain/output_test_A/shear_xi_plus_binned/' %hi_lo_fid
-	xip_theory_stack = np.zeros( [num_zbins_tot,len(theta_data)] )									# Will store all auto & cross xi_p for the 5 tomo bins
-	idx = 0
-	for i in range(1,6):
-		for j in range(1,6):
-			if i >= j:		# Only read in bins 1-1, 2-1, 2-2, 3-1, 3-2,...
-				tmp_theta_theory = np.loadtxt('%s/theta_bin_%s_%s.txt' %(indir_theory,i,j)) 
-				tmp_xip_theory = np.loadtxt('%s/bin_%s_%s.txt' %(indir_theory,i,j))
-				xip_theory_stack[idx,:] = np.interp( theta_data, tmp_theta_theory, tmp_xip_theory )		# sample at the theta values used for PSF modelling.
-				idx+=1
-	xip_theory_stack = xip_theory_stack.flatten()
-	return xip_theory_stack									# [126:135, 126:135] for xi+ in highest bin
+							# [0:9, 0:9] This extracts xi+ Cov in lowest bin
+							# [81:90, 81:90] This pulls out the middle bin: 3-3
 
 
+
+                                                        
 def Calc_delta_xip_J16(alphas, T_ratio, rho, rho_err): 		# !!! Jarvis (2016) expression for PSF systematic
 	xip_theory = Read_In_Theory_Vector('fid')	
 	xip_theory = np.reshape(xip_theory, (num_zbins_tot,len(theta))) # Reshape to be [num_zbins,ntheta]
@@ -212,7 +120,8 @@ def Calc_delta_xip_J16(alphas, T_ratio, rho, rho_err): 		# !!! Jarvis (2016) exp
 	return delta_xip, err_delta_xip
 
 
-def Calc_delta_xip_H20(T_ratio, rho, rho_err): 		# !!! Heymans' (2020) derivation for PSF systematic
+
+def Calc_delta_xip_H20(T_ratio, ph, ph_err): 		# !!! Heymans' (2020) derivation for PSF systematic
 	xip_theory = Read_In_Theory_Vector('fid')	
 	xip_theory = np.reshape(xip_theory, (num_zbins_tot,len(theta))) # Reshape to be [num_zbins,ntheta]
 
@@ -223,20 +132,19 @@ def Calc_delta_xip_H20(T_ratio, rho, rho_err): 		# !!! Heymans' (2020) derivatio
 	err_delta_xip = np.zeros_like( delta_xip_total )
 	for lfv in range(len(LFver)):
 		for j in range(num_zbins_tot):
-			delta_xip_terms[lfv,j,:,0] = 2*xip_theory[j,:]*delta_TPSF_over_Tgal
-                        #TO DO 4 (BG) - we need to update the rho calculation in so the prefactor is 1/T_gal^2 rather than T_ratio**2
-                        #The current set-up ignores potential cross correlation between the residuals and PSF Size
-                        #" we choose to keep all terms that may couple within the correlation function"
-                        #delta_xip_terms[lfv,j,:,1] = T_ratio**2 *(rho[lfv,0,:])
-			delta_xip_terms[lfv,j,:,2] = T_ratio**2 *(rho[lfv,2,:])
-			delta_xip_terms[lfv,j,:,3] = T_ratio**2 *(2*rho[lfv,3,:])
+                        # The 4 individual terms in \delta\xi+ (eqn 10. Giblin et al. 2020)
+			delta_xip_terms[lfv,j,:,0] = 2*xip_theory[j,:]*deltaT_ratio_tot[lfv,0,j]
+			delta_xip_terms[lfv,j,:,1] =   Tg_invsq_tot[lfv,0,j] *(ph[lfv,0,:])
+			delta_xip_terms[lfv,j,:,2] = 2*Tg_invsq_tot[lfv,0,j] *(ph[lfv,1,:])
+                        delta_xip_terms[lfv,j,:,3] = 2*Tg_invsq_tot[lfv,0,j] *(ph[lfv,2,:])
+                        # The total
 			delta_xip_total[lfv,j,:] = delta_xip_terms[lfv,j,:,0]+delta_xip_terms[lfv,j,:,1]+delta_xip_terms[lfv,j,:,2]+delta_xip_terms[lfv,j,:,3]
-			#delta_xip[lfv,j,:] = 2*xip_theory[j,:]*T_ratio*deltaT_ratio + T_ratio**2*(rho[lfv,0,:]+rho[lfv,2,:]+2*rho[lfv,3,:]) 
 
 			err_term1 = T_ratio**2*(rho_err[lfv,0,:]**2+rho_err[lfv,2,:]**2+rho_err[lfv,3,:]**2)
 			err_term2 = 0. #T_ratio*alphas[lfv,j]*(rho_err[lfv,1,:]**2+rho_err[lfv,4,:]**2)
 			err_delta_xip[lfv,j,:] = ( err_term1 - err_term2 )**0.5
 	return delta_xip_total, err_delta_xip, delta_xip_terms
+
 
 def Calc_delta_xip_cterms():
 	# This reads in the <cc> correlation function, where c is the additive shear correction
@@ -248,33 +156,6 @@ def Calc_delta_xip_cterms():
 		for j in range(num_zbins_tot):
 			delta_xip[lfv,j,:], err_delta_xip[lfv,j,:]  = np.loadtxt('LFver%s/delta_xi_sys_LFver%s.dat' %(LFver[lfv],LFver[lfv]), usecols=(3,7), unpack=True) 
 	return delta_xip, err_delta_xip
-
-
-
-def Set_Mandelbaum_Constraints(alpha):
-	NLOS_Cov = 1250
-	cosmol_Cov = 'fid'
-
-	scale = np.where(theta_data < 72)[0]
-	SNR = np.dot( np.transpose(xip_data[scale]), 
-			np.dot( np.linalg.inv(Cov_Mat_uc_Survey[scale[0]:scale[-1]+1,scale[0]:scale[-1]+1]), xip_data[scale] ))		
-
-	# ! EITHER USE A THEORY VECTOR FOR REQUIREMENTS, OR USE SMOOTHED DATA VECTOR !
-	if Which_Data == 'Data':
-		# Lowest Z_B bin has a wee bit of noise in it. 
-		# Smoothing it a wee bit for plotting purposes.
-		Sm_xip = gaussian_filter( xip_data, Smooth_Scale )
-	elif Which_Data == 'Theory':
-		theta_theory, xip_theory_tmp = np.loadtxt('%s/xi_p_smith03revised_zKV450_ZBcut%s' %(data_dir, data_ZBlabel), usecols=(0,1), unpack=True)
-		xip_theory = np.interp( theta_data, theta_theory, xip_theory_tmp )
-		Sm_xip = np.copy( xip_theory )
-
-	# IF YOU USE 0.1-0.3 DATA/COV THE REQ IS LARGER ON SMALL SCALES AND SMALLER ON LARGE SCALES RELATIVE TO IF WE USED (0.7-0.9)
-	# HERE'S THE RATIO: array([ 3.74749516,  2.30591263,  3.22123142,  2.4665902 ,  0.55896293, -0.41969508,  0.39032223,  0.07134366,  0.79189828])
-	# SO IN SHORT. NOT OBVIOUS WHICH ONE ZB TO USE. SO GO WITH EITHER. 
-	Requirement_134 = T_ratio**(-2) * Sm_xip / (2*SNR)
-	Requirement_25  = T_ratio**(-1) * Sm_xip / (2*SNR*alpha)
-	return Requirement_134, Requirement_25
 
 
 def Set_Heymans_Constraints(rho):
@@ -427,7 +308,7 @@ def Plot_deltaxips_Only():
 	lfv = 0
 	zbin= -1 # Plot the delta_xip for this z-bin alone.	
 
-	delta_xip_H, err_delta_xip_H, delta_xip_terms_H = Calc_delta_xip_H20( T_ratio, rhop_mean, rhop_err )
+	delta_xip_H, err_delta_xip_H, delta_xip_terms_H = Calc_delta_xip_H20( T_ratio, php_mean, php_err )
 	delta_xip_c, err_delta_xip_c = Calc_delta_xip_cterms( )
 
 
