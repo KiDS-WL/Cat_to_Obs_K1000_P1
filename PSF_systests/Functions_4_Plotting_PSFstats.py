@@ -136,8 +136,8 @@ def Calc_Important_Tquantities(LFver,zbounds, nboot):
         T_g = np.append(T_Ng[idx_N], T_Sg[idx_S])
         dT_p = np.append(delta_TPSF_Ng, delta_TPSF_Sg)
         weight_g = np.append(weight_Ng[idx_N], weight_Sg[idx_S])
-        weight_q1 = (T_g**2 * weight_g ) / dT_p #weight_g #np.ones_like(T_g) #(T_g**2 * weight_g ) / dT_p
-        weight_q1 = np.nan_to_num( weight_q1, nan=0., posinf=0. ) # get rid of nan/inf weights from where dT_p=0
+        weight_q1 = weight_g #(T_g**2 * weight_g ) / dT_p
+        #weight_q1 = np.nan_to_num( weight_q1, nan=0., posinf=0. ) # get rid of nan/inf weights from where dT_p=0
         # ^ that weight computed with error propagation:
         # if y=a/x, sigma_y^2=(-a/x^2)sigma_x^2, sigma_(x/y)^2=1/weight_(x/y)
         # then x=T_g, a=dT_p, y=dT_p/T_g
@@ -148,7 +148,7 @@ def Calc_Important_Tquantities(LFver,zbounds, nboot):
         deltaT_ratio[1,i] = Bootstrap_Error(nboot, dT_p/T_g, weights=weight_q1)
 
         # 2. < T_gal^-2 > & SIGMA[ T_gal^-2  ]
-        weight_q2 = T_g**2 * weight_g #weight_g #np.ones_like(T_g) #T_g**2 * weight_g
+        weight_q2 = weight_g  #weight_g #T_g**2 * weight_g
         # ^ computed with error prop: y=1/x, sigma_y^2=(dy/dx)sigma_x^2, sigma_x^2=1/weight_x
         # with x=T_g, weight_x=weight_g
         Tg_inv = np.average( 1./T_g, weights=weight_q2 )
