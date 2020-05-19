@@ -37,42 +37,36 @@ plt.rc('font', **font)
 
 LFver = ["321"] #["309b",  "319b", "319c", "319d", "321"] # "319",
 
-Read_Tvalues = False # If True, read in pre-saved values of gal & PSF size quantities
 zbounds = [0.1, 0.3, 0.5, 0.7, 0.9, 1.2 ]
 num_zbins = len(zbounds)-1
 num_zbins_tot = np.sum( range(num_zbins+1) )    # Number source bins including cross-bins
 
-# Arrays to store T-quantities (2nd dimensions is len 2,                                                                               
-# where 0=mean, 1=error                                                                                                                
+# Arrays to store T-quantities (2nd dimensions is len 2,
+# where 0=mean, 1=error
 deltaT_ratio = np.zeros([ len(LFver), 2, num_zbins ])
 Tg_invsq = np.zeros_like(deltaT_ratio)
 deltaT_ratio_tot = np.zeros([ len(LFver), 2, num_zbins_tot ])
 Tg_invsq_tot = np.zeros_like(deltaT_ratio_tot)
 
+Read_Tvalues = True # If True, read in pre-saved values of gal & PSF size quantities 
 if Read_Tvalues:
         print('Reading in pre-saved T-quantities for each ZB bin.')
         for lfv in range(len(LFver)):
-                deltaT_ratio_tot[lfv,0,:], deltaT_ratio_tot[lfv,1,:],Tg_invsq_tot[lfv,0,:], Tg_invsq_tot[lfv,1,:] = np.loadtxt('LFver%s/PHterms/deltaTratio_TgInvSq_MeansAndErrors_%stomobins.dat' %(LFver[lfv],num_zbins_tot), usecols=(0,1,2,3), unpack=True)
+                deltaT_ratio_tot[lfv,0,:], deltaT_ratio_tot[lfv,1,:],Tg_invsq_tot[lfv,0,:], Tg_invsq_tot[lfv,1,:] = np.loadtxt('LFver%s/PHterms/deltaTratio_TgInvSq_MeansAndErrors_%stomobins.dat' %(LFver[lfv],num_zbins_tot),usecols=(0,1,2,3), unpack=True)
                 
 else:
         # Calculate them
         print('Calculating T-quantities for each ZB bin')
         nboot = 30
         for lfv in range(len(LFver)):
-                deltaT_ratio[lfv], Tg_invsq[lfv], deltaT_ratio_tot[lfv], Tg_invsq_tot[lfv] = Calc_Important_Tquantities(LFver[lfv],
-                                                                                                                        zbounds, nboot)
+                deltaT_ratio[lfv], Tg_invsq[lfv], deltaT_ratio_tot[lfv], Tg_invsq_tot[lfv] = Calc_Important_Tquantities(LFver[lfv],zbounds, nboot)
                 np.savetxt('LFver%s/PHterms/deltaTratio_TgInvSq_MeansAndErrors_%stomobins.dat' %(LFver[lfv],num_zbins_tot),
                            np.c_[ deltaT_ratio_tot[lfv,0,:], deltaT_ratio_tot[lfv,1,:],
                                   Tg_invsq_tot[lfv,0,:], Tg_invsq_tot[lfv,1,:] ],
                            header='# < deltaT_PSF / T_gal >, SIGMA[ deltaT_PSF / T_gal ], < T_gal^-2 > , SIGMA[ T_gal^-2  ]')
         
-sys.exit()
-# TO DO 1 (BG) - carry through tomography-dependent ratio values through to the final result
-# Bins 2,3,4 look pretty similar, but 1 and 5 are quite different
-# TO DO 2 (BG) - add in the South - the PSF is quite different in the South - North on its own isn't fully representative
-
 # Read in the alpha values for each shear component and tomo-bin
-Use_alpha_per_bin = True
+Use_alpha_per_bin = False
 alpha = np.zeros([ len(LFver), num_zbins_tot ])
 if Use_alpha_per_bin:
         from Functions_4_Plotting_PSFstats import Read_alpha_per_bin
@@ -85,7 +79,7 @@ ThBins = 9
 Res = 7
 # Read in the mean and error on the PH stats + the labels for plotting.
 Plot_Labels, php_mean, php_err = Read_rho_Or_PH(LFver, 'ph', ThBins, Res) 
-
+#sys.exit()
 
 # To get a rough idea of size of rho stats, read in the xi+- of some data to overplot 
 data_dir = 'xi_pm_Vectors_4_Overplotting/'  # '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/xi_pm/'
@@ -102,10 +96,9 @@ Cov_Mat_uc_Survey = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[81:90, 81
 							# [81:90, 81:90] This pulls out the middle bin: 3-3
 
 
-
                                                         
 def Calc_delta_xip_J16(alphas, T_ratio, rho, rho_err): 		# !!! Jarvis (2016) expression for PSF systematic
-	xip_theory = Read_In_Theory_Vector('fid')	
+	xip_theory = Read_In_Theory_Vector('fid', theta_data)	
 	xip_theory = np.reshape(xip_theory, (num_zbins_tot,len(theta))) # Reshape to be [num_zbins,ntheta]
 
 	# Calculate the additive shear bias for each lensfit version and in each tomographic bin (ie- value of alpha)
@@ -121,29 +114,31 @@ def Calc_delta_xip_J16(alphas, T_ratio, rho, rho_err): 		# !!! Jarvis (2016) exp
 
 
 
-def Calc_delta_xip_H20(T_ratio, ph, ph_err): 		# !!! Heymans' (2020) derivation for PSF systematic
-	xip_theory = Read_In_Theory_Vector('fid')	
-	xip_theory = np.reshape(xip_theory, (num_zbins_tot,len(theta))) # Reshape to be [num_zbins,ntheta]
+def Calc_delta_xip_H20(ph, ph_err): 		# !!! Heymans' (2020) derivation for PSF systematic
+        xip_theory = Read_In_Theory_Vector('fid', theta_data)	
+        xip_theory = np.reshape(xip_theory, (num_zbins_tot,len(theta))) # Reshape to be [num_zbins,ntheta]
 
-	# Calculate the additive shear bias for each lensfit version and in each tomographic bin (ie- value of alpha)
-	delta_xip_total = np.zeros([ len(LFver), num_zbins_tot, ThBins ])
-	delta_xip_terms = np.zeros([ len(LFver), num_zbins_tot, ThBins, 4 ]) # Store the separate ingredients of the total delta_xip
+        # Calculate the additive shear bias for each lensfit version and in each tomographic bin (ie- value of alpha)
+        delta_xip_total = np.zeros([ len(LFver), num_zbins_tot, ThBins ])
+        delta_xip_terms = np.zeros([ len(LFver), num_zbins_tot, ThBins, 4 ]) # Store the separate ingredients of the total delta_xip
 
-	err_delta_xip = np.zeros_like( delta_xip_total )
-	for lfv in range(len(LFver)):
-		for j in range(num_zbins_tot):
+        err_delta_xip = np.zeros_like( delta_xip_total )
+        for lfv in range(len(LFver)):
+                for j in range(num_zbins_tot):
                         # The 4 individual terms in \delta\xi+ (eqn 10. Giblin et al. 2020)
-			delta_xip_terms[lfv,j,:,0] = 2*xip_theory[j,:]*deltaT_ratio_tot[lfv,0,j]
-			delta_xip_terms[lfv,j,:,1] =   Tg_invsq_tot[lfv,0,j] *(ph[lfv,0,:])
-			delta_xip_terms[lfv,j,:,2] = 2*Tg_invsq_tot[lfv,0,j] *(ph[lfv,1,:])
+                        delta_xip_terms[lfv,j,:,0] = 2*xip_theory[j,:]*deltaT_ratio_tot[lfv,0,j]
+                        delta_xip_terms[lfv,j,:,1] =   Tg_invsq_tot[lfv,0,j] *(ph[lfv,0,:])
+                        delta_xip_terms[lfv,j,:,2] = 2*Tg_invsq_tot[lfv,0,j] *(ph[lfv,1,:])
                         delta_xip_terms[lfv,j,:,3] = 2*Tg_invsq_tot[lfv,0,j] *(ph[lfv,2,:])
                         # The total
-			delta_xip_total[lfv,j,:] = delta_xip_terms[lfv,j,:,0]+delta_xip_terms[lfv,j,:,1]+delta_xip_terms[lfv,j,:,2]+delta_xip_terms[lfv,j,:,3]
-
-			err_term1 = T_ratio**2*(rho_err[lfv,0,:]**2+rho_err[lfv,2,:]**2+rho_err[lfv,3,:]**2)
-			err_term2 = 0. #T_ratio*alphas[lfv,j]*(rho_err[lfv,1,:]**2+rho_err[lfv,4,:]**2)
-			err_delta_xip[lfv,j,:] = ( err_term1 - err_term2 )**0.5
-	return delta_xip_total, err_delta_xip, delta_xip_terms
+                        delta_xip_total[lfv,j,:] = delta_xip_terms[lfv,j,:,0]+delta_xip_terms[lfv,j,:,1]+delta_xip_terms[lfv,j,:,2]+delta_xip_terms[lfv,j,:,3]
+                        # Following terms come from error propagation of eqn 10. (Giblin, Heymans et al. 2020)
+                        err_term1 = (2 * xip_theory[j,:] * deltaT_ratio_tot[lfv,1,j])**2
+                        err_term2 = Tg_invsq_tot[lfv,1,j]**2 * (ph[lfv,0,:]**2 + ph[lfv,1,:]**2 + ph[lfv,2,:]**2)
+                        err_term3 = Tg_invsq_tot[lfv,0,j]**2 * (ph_err[lfv,0,:]**2 + ph_err[lfv,1,:]**2 + ph_err[lfv,2,:]**2)
+			
+                        err_delta_xip[lfv,j,:] = ( err_term1 + err_term2 + err_term3 )**0.5
+        return delta_xip_total, err_delta_xip, delta_xip_terms
 
 
 def Calc_delta_xip_cterms():
@@ -170,6 +165,7 @@ def Set_Heymans_Constraints(rho):
 
 
 # Set the requirements on rho_1,2,4 and rho_2,5
+Requirement = None
 if Requirement == "M18":
 	Req_134, Req_25 = Set_Mandelbaum_Constraints(alpha.max())  # Just set single alpha val to 0.03 for now.
                                 						# need to edit Mandelbaum_* func to work with alpha per bin
@@ -178,7 +174,7 @@ elif Requirement == "Z18":
 	Req_25  = gaussian_filter( xip_data, Smooth_Scale ) / 10.
 else:
 	print("Requirement must be set to M18 or Z18")
-	sys.exit()
+	#sys.exit()
 
 
 def Set_Scales(ax):
@@ -308,7 +304,7 @@ def Plot_deltaxips_Only():
 	lfv = 0
 	zbin= -1 # Plot the delta_xip for this z-bin alone.	
 
-	delta_xip_H, err_delta_xip_H, delta_xip_terms_H = Calc_delta_xip_H20( T_ratio, php_mean, php_err )
+	delta_xip_H, err_delta_xip_H, delta_xip_terms_H = Calc_delta_xip_H20( php_mean, php_err )
 	delta_xip_c, err_delta_xip_c = Calc_delta_xip_cterms( )
 
 
@@ -408,9 +404,9 @@ def Investigate_chi2(rho):
 
 	# Assemble the theory vector - used to guage signif. of measuring genuine signal.
 	# And deviations in this signal from those with high/low values of S_8
-	xip_theory_stack_hi = Read_In_Theory_Vector('high')		# High S_8
-	xip_theory_stack_lo = Read_In_Theory_Vector('low')		# Low S_8
-	xip_theory_stack_fid = Read_In_Theory_Vector('fid')		# Fiducial S_8
+	xip_theory_stack_hi = Read_In_Theory_Vector('high', theta_data)		# High S_8
+	xip_theory_stack_lo = Read_In_Theory_Vector('low', theta_data)		# Low S_8
+	xip_theory_stack_fid = Read_In_Theory_Vector('fid', theta_data)		# Fiducial S_8
 
 
 	n_noise = 5000
@@ -546,7 +542,7 @@ def Investigate_chi2(rho):
 
 
 	return histo_P_stack, KS_sys_null, KS_hi_null, KS_lo_null
-histo_P_stack, KS_sys_null, KS_hi_null, KS_lo_null = Investigate_chi2(rhop_mean)
+#histo_P_stack, KS_sys_null, KS_hi_null, KS_lo_null = Investigate_chi2(rhop_mean)
 t2 = time.time()
 print(" It took %.0f seconds." %(t2-t1))
 
