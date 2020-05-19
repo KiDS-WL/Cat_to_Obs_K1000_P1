@@ -136,8 +136,10 @@ def Calc_Important_Tquantities(LFver,zbounds, nboot):
         T_g = np.append(T_Ng[idx_N], T_Sg[idx_S])
         dT_p = np.append(delta_TPSF_Ng, delta_TPSF_Sg)
         weight_g = np.append(weight_Ng[idx_N], weight_Sg[idx_S])
-        weight_q1 = np.ones_like(T_g) #(T_g**2 * weight_g ) / dT_p
-        # ^ that weight computed with error propagation: y=a/x, sigma_y^2=(dy/dx)sigma_x^2, sigma_x^2=1/weight_x
+        weight_q1 = (T_g**2 * weight_g ) / dT_p #weight_g #np.ones_like(T_g) #(T_g**2 * weight_g ) / dT_p
+        weight_q1 = np.nan_to_num( weight_q1, nan=0., posinf=0. ) # get rid of nan/inf weights from where dT_p=0
+        # ^ that weight computed with error propagation:
+        # if y=a/x, sigma_y^2=(-a/x^2)sigma_x^2, sigma_(x/y)^2=1/weight_(x/y)
         # then x=T_g, a=dT_p, y=dT_p/T_g
         
         deltaT_ratio[0,i] = np.average( dT_p/T_g, weights=weight_q1 )
@@ -146,7 +148,7 @@ def Calc_Important_Tquantities(LFver,zbounds, nboot):
         deltaT_ratio[1,i] = Bootstrap_Error(nboot, dT_p/T_g, weights=weight_q1)
 
         # 2. < T_gal^-2 > & SIGMA[ T_gal^-2  ]
-        weight_q2 = np.ones_like(T_g) #T_g**2 * weight_g
+        weight_q2 = T_g**2 * weight_g #weight_g #np.ones_like(T_g) #T_g**2 * weight_g
         # ^ computed with error prop: y=1/x, sigma_y^2=(dy/dx)sigma_x^2, sigma_x^2=1/weight_x
         # with x=T_g, weight_x=weight_g
         Tg_inv = np.average( 1./T_g, weights=weight_q2 )
@@ -155,7 +157,7 @@ def Calc_Important_Tquantities(LFver,zbounds, nboot):
         Tg_inverr = Bootstrap_Error(nboot, 1/T_g, weights=weight_q2 )
         # Need to convert ^this error on 1/T_g to an error on 1/T_g^2
         # do error propagation again:
-        # z=y^2, sigma_z=2y*sigma_y^2, sigma_y^2=1/mean(weight_y)
+        # z=y^2, sigma_z=2y*sigma_y^2
         Tg_invsq[1,i] = np.sqrt(2 * Tg_inv) * Tg_inverr
 
         t2 = time.time()
@@ -259,7 +261,7 @@ def Read_rho_Or_PH(LFver, keyword, ThBins, Res):
 
             php_err[lfv,i,:] = np.sqrt( np.diag( np.cov(php_split[:,i,:], rowvar = False) ) / (numN[lfv]+numS[lfv]) )
 
-    return Plot_Labels, php_mean, php_err
+    return Plot_Labels, theta, php_mean, php_err
 
 
 

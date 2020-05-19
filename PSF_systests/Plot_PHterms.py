@@ -52,7 +52,7 @@ Read_Tvalues = True # If True, read in pre-saved values of gal & PSF size quanti
 if Read_Tvalues:
         print('Reading in pre-saved T-quantities for each ZB bin.')
         for lfv in range(len(LFver)):
-                deltaT_ratio_tot[lfv,0,:], deltaT_ratio_tot[lfv,1,:],Tg_invsq_tot[lfv,0,:], Tg_invsq_tot[lfv,1,:] = np.loadtxt('LFver%s/PHterms/deltaTratio_TgInvSq_MeansAndErrors_%stomobins.dat' %(LFver[lfv],num_zbins_tot),usecols=(0,1,2,3), unpack=True)
+                deltaT_ratio_tot[lfv,0,:], deltaT_ratio_tot[lfv,1,:],Tg_invsq_tot[lfv,0,:], Tg_invsq_tot[lfv,1,:] = np.loadtxt('LFver%s/PHterms/deltaTratio_TgInvSq_MeansAndErrors_%stomobins_wgweights.dat' %(LFver[lfv],num_zbins_tot),usecols=(0,1,2,3), unpack=True)
                 
 else:
         # Calculate them
@@ -78,7 +78,7 @@ else:
 ThBins = 9
 Res = 7
 # Read in the mean and error on the PH stats + the labels for plotting.
-Plot_Labels, php_mean, php_err = Read_rho_Or_PH(LFver, 'ph', ThBins, Res) 
+Plot_Labels, theta, php_mean, php_err = Read_rho_Or_PH(LFver, 'ph', ThBins, Res) 
 #sys.exit()
 
 # To get a rough idea of size of rho stats, read in the xi+- of some data to overplot 
@@ -123,22 +123,25 @@ def Calc_delta_xip_H20(ph, ph_err): 		# !!! Heymans' (2020) derivation for PSF s
         delta_xip_terms = np.zeros([ len(LFver), num_zbins_tot, ThBins, 4 ]) # Store the separate ingredients of the total delta_xip
 
         err_delta_xip = np.zeros_like( delta_xip_total )
+        err_delta_xip_terms = np.zeros_like( delta_xip_terms )
         for lfv in range(len(LFver)):
                 for j in range(num_zbins_tot):
                         # The 4 individual terms in \delta\xi+ (eqn 10. Giblin et al. 2020)
                         delta_xip_terms[lfv,j,:,0] = 2*xip_theory[j,:]*deltaT_ratio_tot[lfv,0,j]
                         delta_xip_terms[lfv,j,:,1] =   Tg_invsq_tot[lfv,0,j] *(ph[lfv,0,:])
                         delta_xip_terms[lfv,j,:,2] = 2*Tg_invsq_tot[lfv,0,j] *(ph[lfv,1,:])
-                        delta_xip_terms[lfv,j,:,3] = 2*Tg_invsq_tot[lfv,0,j] *(ph[lfv,2,:])
+                        delta_xip_terms[lfv,j,:,3] =   Tg_invsq_tot[lfv,0,j] *(ph[lfv,2,:])
                         # The total
                         delta_xip_total[lfv,j,:] = delta_xip_terms[lfv,j,:,0]+delta_xip_terms[lfv,j,:,1]+delta_xip_terms[lfv,j,:,2]+delta_xip_terms[lfv,j,:,3]
                         # Following terms come from error propagation of eqn 10. (Giblin, Heymans et al. 2020)
-                        err_term1 = (2 * xip_theory[j,:] * deltaT_ratio_tot[lfv,1,j])**2
-                        err_term2 = Tg_invsq_tot[lfv,1,j]**2 * (ph[lfv,0,:]**2 + ph[lfv,1,:]**2 + ph[lfv,2,:]**2)
-                        err_term3 = Tg_invsq_tot[lfv,0,j]**2 * (ph_err[lfv,0,:]**2 + ph_err[lfv,1,:]**2 + ph_err[lfv,2,:]**2)
-			
-                        err_delta_xip[lfv,j,:] = ( err_term1 + err_term2 + err_term3 )**0.5
-        return delta_xip_total, err_delta_xip, delta_xip_terms
+                        err_delta_xip_terms[lfv,j,:,0] = (2 * xip_theory[j,:] * deltaT_ratio_tot[lfv,1,j])**2
+                        for t in range(3): # cycle through 3 ph terms - same error form
+                                part1 = Tg_invsq_tot[lfv,1,j]**2 * ph[lfv,t,:]**2 
+                                part2 = Tg_invsq_tot[lfv,0,j]**2 * ph_err[lfv,0,:]**2
+                                err_delta_xip_terms[lfv,j,:,t] = part1 + part2
+                        			
+                        err_delta_xip[lfv,j,:] = ( err_delta_xip_terms[lfv,j,:,0]+ err_delta_xip_terms[lfv,j,:,1] + err_delta_xip_terms[lfv,j,:,2] + err_delta_xip_terms[lfv,j,:,3] )**0.5
+        return delta_xip_total, err_delta_xip, delta_xip_terms, err_delta_xip_terms
 
 
 def Calc_delta_xip_cterms():
@@ -304,7 +307,7 @@ def Plot_deltaxips_Only():
 	lfv = 0
 	zbin= -1 # Plot the delta_xip for this z-bin alone.	
 
-	delta_xip_H, err_delta_xip_H, delta_xip_terms_H = Calc_delta_xip_H20( php_mean, php_err )
+	delta_xip_H, err_delta_xip_H, delta_xip_terms_H, err_delta_xip_terms_H = Calc_delta_xip_H20( php_mean, php_err )
 	delta_xip_c, err_delta_xip_c = Calc_delta_xip_cterms( )
 
 
@@ -315,11 +318,11 @@ def Plot_deltaxips_Only():
 	ax.set_ylabel(r'Components of $\delta\xi_+^{\rm sys}$')
 	ax.set_xlabel(r'$\theta$ [arcmin]')
 
-	symlogscale=1e-8
+	symlogscale=1e-10
 	ax.set_yscale('symlog', linthreshy=symlogscale )
 	ax.plot( [0.5,300.], [symlogscale, symlogscale],  'k-' )
 	ax.plot( [0.5,300.], [-1*symlogscale, -1*symlogscale], 'k-' )
-	ax.set_ylim([-1*1e-5, 1e-5])
+	ax.set_ylim([-1*1e-5, 1e-3])
 
 
 	# Plot the diagonal covariance
@@ -327,21 +330,26 @@ def Plot_deltaxips_Only():
 	ax.fill_between(theta_data[:], y1=abs(Req)*-1, y2=abs(Req)*1, facecolor='yellow') 
 
 	# Plot the individual ingreidents of the delta_xip in Catherine's model
-	ax.plot( theta, delta_xip_terms_H[lfv,zbin,:,0], color='blue', linewidth=2, linestyle=':', 
-			label=r'$ 2 \left[{\frac{\overline{\delta T_{\rm PSF}}}{T_{\rm gal}}}\right] \left< e_{\rm obs}^{\rm perfect} e_{\rm obs}^{\rm perfect} \right>$' )
-	ax.plot( theta, delta_xip_terms_H[lfv,zbin,:,1], color='blue', linewidth=2, linestyle='--',
-			label=r'$\overline{T_{\rm gal}^{-2}} \left< (\delta e_{\rm PSF} \, T_{\rm PSF}) \,  (\delta e_{\rm PSF} \,T_{\rm PSF}) \right>$' )
-	ax.plot( theta, delta_xip_terms_H[lfv,zbin,:,2], color='blue', linewidth=2, linestyle='-.',
-			label=r'$\overline{T_{\rm gal}^{-2}}\left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (e_{\rm PSF} \, \delta T_{\rm PSF}) \right>$' )
-	ax.plot( theta, delta_xip_terms_H[lfv,zbin,:,3], color='blue', linewidth=2, linestyle='-',
-			label=r'$2 \overline{T_{\rm gal}^{-2}} \left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (\delta e_{\rm PSF} \, T_{\rm PSF}) \right>$' )
+	ax.errorbar( theta, delta_xip_terms_H[lfv,zbin,:,0], yerr=err_delta_xip_terms_H[lfv,zbin,:,0],
+                 color='blue', linewidth=2, linestyle=':', 
+		 label=r'$ 2 \left[{\frac{\overline{\delta T_{\rm PSF}}}{T_{\rm gal}}}\right] \left< e_{\rm obs}^{\rm perfect} e_{\rm obs}^{\rm perfect} \right>$' )
+	ax.errorbar( theta, delta_xip_terms_H[lfv,zbin,:,1], yerr=err_delta_xip_terms_H[lfv,zbin,:,1],
+                 color='blue', linewidth=2, linestyle='--',
+		 label=r'$\overline{T_{\rm gal}^{-2}} \left< (\delta e_{\rm PSF} \, T_{\rm PSF}) \,  (\delta e_{\rm PSF} \,T_{\rm PSF}) \right>$' )
+	ax.errorbar( theta, delta_xip_terms_H[lfv,zbin,:,2], yerr=err_delta_xip_terms_H[lfv,zbin,:,2],
+                 color='blue', linewidth=2, linestyle='-.',
+		 label=r'$\overline{T_{\rm gal}^{-2}}\left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (e_{\rm PSF} \, \delta T_{\rm PSF}) \right>$' )
+	ax.errorbar( theta, delta_xip_terms_H[lfv,zbin,:,3], yerr=err_delta_xip_terms_H[lfv,zbin,:,3],
+                 color='blue', linewidth=2, linestyle='-',
+		 label=r'$2 \overline{T_{\rm gal}^{-2}} \left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (\delta e_{\rm PSF} \, T_{\rm PSF}) \right>$' )
 
-	ax.plot( theta, delta_xip_H[lfv,zbin,:], color='red', linewidth=2, label=r'$\delta\xi_+^{\rm sys}$' ) 
+	ax.errorbar( theta, delta_xip_H[lfv,zbin,:], yerr=err_delta_xip_H[lfv,zbin,:], color='red',
+                     linewidth=2, label=r'$\delta\xi_+^{\rm sys}$' ) 
 	ax.plot( theta, delta_xip_c[lfv,zbin,:], color='dimgrey', linewidth=2, label=r'$\langle cc \rangle$' )
 
 	ax.legend(loc='upper right', frameon=False, ncol=2)
 	plt.subplots_adjust(hspace=0)
-	#plt.savefig('LFver%s/rho1/Plot_deltarho%s_CovPatches%sx%s.png'%(LFver[0],pm,Res,Res))
+	plt.savefig('LFver%s/PHterms/Plot_deltaxip_CovPatches%sx%s.png'%(LFver[0],Res,Res))
 	plt.show()
 	return
 Plot_deltaxips_Only()
