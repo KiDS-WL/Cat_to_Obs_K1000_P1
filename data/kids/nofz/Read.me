@@ -1,0 +1,6 @@
+The covariance matrix for nofz shifts is calculated from 100 MICE2 LOS. That covariance is then multiplied by 4 to take the uncertainity in the mocks into account. The results are in SOM_cov_multiplied2.asc (2 because the error bars are doubled)
+
+deltaz.asc has deltaz values taken from SOM KV450 paper: https://arxiv.org/pdf/1909.09632.pdf table 3. These are based on a 5sigma criteria.
+The SOM_cov_old was with this criteria: |<Z_B>-<z_spec>|<=0.4. 
+
+delta_z_correlated_to_uncorrelated.py  takes the covariance from SOM_cov_multiplied2.asc and the delta_z from delta_z.asc and makes delta_z_unccorelated values through a cholesky decomposition of the covariance. We need delta_z_unccorelated values to be able to use the correlated_prior module in kcap. The same is done in som_cov_multiply.py but there we also multiply the covariance by 4 or 9.
