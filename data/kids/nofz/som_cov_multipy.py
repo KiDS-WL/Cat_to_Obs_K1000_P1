@@ -4,13 +4,16 @@ filename='deltaz.asc'
 file=open(filename)
 delta_z=np.loadtxt(file,comments='#')
 
+
 filename='SOM_cov_multiplied_old.asc'
+
 file=open(filename)
 cov_z_in=np.loadtxt(file,comments='#')
 
 cov_z = cov_z_in/4.*9.
 
 filename='SOM_cov_multiplied3_old.asc'
+
 np.savetxt(filename,cov_z,fmt='%.4e')
 
 
@@ -24,10 +27,12 @@ print(delta_x)
 
 
 filename='SOM_cov.asc'
+
 file=open(filename)
 cov_z_in=np.loadtxt(file,comments='#')
 
 cov_z = cov_z_in*4.
+
 
 
 filename='SOM_cov_multiplied2.asc'
