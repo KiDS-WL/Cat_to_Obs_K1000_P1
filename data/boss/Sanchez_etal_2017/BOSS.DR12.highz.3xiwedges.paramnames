@@ -1,0 +1,6 @@
+b1h		b_1                  #linear bias parameter
+b2h		b_2                  #quadratic bias parameter
+gamma2h		\gamma_2             #non-logal bias parameter
+gamma3h		\gamma_3^-           #non-local bias parameters
+a_virh		a_{\rm vir}          #RSD parameter
+gamma		\gamma               #fsigma8 or gamma
