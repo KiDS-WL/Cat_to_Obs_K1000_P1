@@ -5,9 +5,7 @@ file=open(filename)
 delta_z=np.loadtxt(file,comments='#')
 
 
-
-filename='SOM_cov_multiplied2.asc'
-
+filename='SOM_cov_multiplied.asc'
 file=open(filename)
 cov_z=np.loadtxt(file,comments='#')
 
