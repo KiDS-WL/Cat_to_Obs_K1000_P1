@@ -136,9 +136,9 @@ def Plot_SingleBin_Params():
     colors=[ 'red', 'blue', 'orange', 'green', 'magenta' ]
     for i in range(nz_source):
         ax1 = plt.subplot(gs[i])
-        ax1.fill_between( np.arange(6)+0.5 , (params_sl[i,0]-params_sl_err[i,0]),
-                          (params_sl[i,0]+params_sl_err[i,0]), color='dimgrey', alpha=0.5 )
-        ax1.errorbar( range(1,nz_lens+1), params_sl[i,:], yerr=params_sl_err[i,:], fmt='o',
+        ax1.fill_between( np.arange(6)+0.5 , (params_sl[-1,i]-params_sl_err[-1,i]),
+                          (params_sl[-1,i]+params_sl_err[-1,i]), color='dimgrey', alpha=0.5 )
+        ax1.errorbar( range(1,nz_lens+1), params_sl[:,0], yerr=params_sl_err[:,0], fmt='o',
                       color=colors[i], edgecolor=None )
         if i==(nz_source-1):
             ax1.set_xlabel('Tomo bin number')
@@ -148,10 +148,11 @@ def Plot_SingleBin_Params():
 
         if i==2:
             ax1.set_ylabel('Amplitude')
-        
-        ax1.set_ylim([ ylimits[i][0] , ylimits[i][1] ])
-        #ax1.set_ylim([ 0.5*(params_sl[i,0]-params_sl_err[i,0]).min(),
-        #               2.0*(params_sl[i,0]+params_sl_err[i,0]).max() ])
+
+        ax1.set_ylim([ -0.01, 0.039])
+        #ax1.set_ylim([ ylimits[i][0] , ylimits[i][1] ])
+        #ax1.set_ylim([ 0.5*(params_sl[0,i]-params_sl_err[0,i]).min(),
+        #               2.0*(params_sl[0,i]+params_sl_err[0,i]).max() ])
         ax1.text(0.95,0.95, 'sp%s'%(i+1), ha="right", va="top", transform=plt.gca().transAxes)
         
     plt.subplots_adjust(wspace=0, hspace=0)
