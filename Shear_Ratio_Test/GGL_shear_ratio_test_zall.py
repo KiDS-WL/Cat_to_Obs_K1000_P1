@@ -24,7 +24,8 @@ import string
 import matplotlib.ticker as ticker
 import string
 import numpy.ma as ma
-from astropy.io import ascii 
+from astropy.io import ascii
+from scipy.optimize import curve_fit
 
 plt.rc('font', size=10)
 # ----- Load Input ----- #
@@ -301,7 +302,9 @@ else:
 
 ndof = (ntomo * nspecz * ntheta) - nfreeparams
 result = minimize(chi2, params_initial, args=(gt, cov_inv), options={'maxiter': 200000}, method='BFGS')
-    
+# Try scipy.optimize.curve_fit here?
+#result = 
+
 chi2_red = result['fun']/ndof
 p_value = 1 - stats.chi2.cdf(result['fun'], ndof)
 

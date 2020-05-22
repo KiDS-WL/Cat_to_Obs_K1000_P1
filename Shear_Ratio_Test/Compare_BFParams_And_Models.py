@@ -153,8 +153,8 @@ def Plot_SingleBin_Params():
     tomobin_array = np.arange(nz_source+1)+0.5
     for i in range(nz_source):
         ax1 = plt.subplot(gs[i])
-        mean = np.average( params_sl[1:,i], weights=(1./params_sl_err[1:,i]**2) )
-        error = np.sqrt( np.sum( params_sl_err[1:,i]**2 ) / nz_lens )
+        mean = np.average( params_sl[:,i], weights=(1./params_sl_err[:,i]**2) )
+        error = np.sqrt( np.sum( params_sl_err[:,i]**2 ) / nz_source )
         #print( mean, mean-error, mean+error )
         
         if MixLog:
@@ -265,7 +265,7 @@ def Plot_SingleBin_Data_And_Model():
     return
 
 if Compare_Single_Bin:
-    #Plot_SingleBin_Params()
-    Plot_SingleBin_Data_And_Model()
+    Plot_SingleBin_Params()
+    #Plot_SingleBin_Data_And_Model()
 
 # ------------------------------------- ^^^FUNCTIONS FOR COMPARE SINGLE BIN ANALYSIS^^^ -------------------------------------
