@@ -138,9 +138,10 @@ def Calc_delta_xip_H20(ph, ph_err): 		# !!! Heymans' (2020) derivation for PSF s
                         delta_xip_total[lfv,j,:] = delta_xip_terms[lfv,j,:,0]+delta_xip_terms[lfv,j,:,1]+delta_xip_terms[lfv,j,:,2]+delta_xip_terms[lfv,j,:,3]
                         # Following terms come from error propagation of eqn 10. (Giblin, Heymans et al. 2020)
                         err_delta_xip_terms[lfv,j,:,0] = 2 * xip_theory[j,:] * deltaT_ratio_tot[lfv,1,j]
+                        scale = [1,2,1] # PH term 2 has a factor 2 in it, others factor 1.
                         for t in range(1,4): # cycle through 3 ph terms - same error form
-                                part1 = Tg_invsq_tot[lfv,1,j]**2 * ph[lfv,t-1,:]**2  
-                                part2 = Tg_invsq_tot[lfv,0,j]**2 * ph_err[lfv,t-1,:]**2
+                                part1 = scale[t-1] * Tg_invsq_tot[lfv,1,j]**2 * ph[lfv,t-1,:]**2  
+                                part2 = scale[t-1] * Tg_invsq_tot[lfv,0,j]**2 * ph_err[lfv,t-1,:]**2
                                 err_delta_xip_terms[lfv,j,:,t] = (part1 + part2)**0.5
                         			
                         err_delta_xip[lfv,j,:] = ( err_delta_xip_terms[lfv,j,:,0]**2 + err_delta_xip_terms[lfv,j,:,1]**2 + err_delta_xip_terms[lfv,j,:,2]**2 + err_delta_xip_terms[lfv,j,:,3]**2 )**0.5
@@ -181,68 +182,68 @@ def Set_Scales(ax):
 
 # This plots the various ingredients of 
 def Plot_deltaxips_Only(zbin):
-	lfv = 0
-	#zbin= -1 # Plot the delta_xip for this z-bin alone.	
-
-	delta_xip_H, err_delta_xip_H, delta_xip_terms_H, err_delta_xip_terms_H = Calc_delta_xip_H20( php_mean, php_err )
-	delta_xip_c, err_delta_xip_c = Calc_delta_xip_cterms( )
-
-
-	fig = plt.figure(figsize = (10,6))
-	gs1 = gridspec.GridSpec(1, 1)
-	ax = plt.subplot(gs1[0], adjustable='box')
-	Set_Scales(ax)
-	ax.set_ylabel(r'Components of $\delta\xi_+^{\rm sys}$')
-	ax.set_xlabel(r'$\theta$ [arcmin]')
-
-	symlogscale=1e-10
-	ax.set_yscale('symlog', linthreshy=symlogscale )
-	ax.plot( [0.5,300.], [symlogscale, symlogscale],  'k-' )
-	ax.plot( [0.5,300.], [-1*symlogscale, -1*symlogscale], 'k-' )
-	ax.set_ylim([-1*1e-5, 1e-1])
+        lfv = 0
+        #zbin= -1 # Plot the delta_xip for this z-bin alone.	
+        
+        delta_xip_H, err_delta_xip_H, delta_xip_terms_H, err_delta_xip_terms_H = Calc_delta_xip_H20( php_mean, php_err )
+        delta_xip_c, err_delta_xip_c = Calc_delta_xip_cterms( )
 
 
-	# Plot the diagonal covariance
-	Req = np.sqrt( np.diagonal(Cov_Mat_uc_Survey) ) / 2.
-	ax.fill_between(theta_data, y1=abs(Req)*-1, y2=abs(Req)*1, facecolor='yellow') 
+        fig = plt.figure(figsize = (10,6))
+        gs1 = gridspec.GridSpec(1, 1)
+        ax = plt.subplot(gs1[0], adjustable='box')
+        Set_Scales(ax)
+        ax.set_ylabel(r'Components of $\delta\xi_+^{\rm sys}$')
+        ax.set_xlabel(r'$\theta$ [arcmin]')
+
+        symlogscale=1e-10
+        ax.set_yscale('symlog', linthreshy=symlogscale )
+        ax.plot( [0.5,400.], [symlogscale, symlogscale],  'k-' )
+        ax.plot( [0.5,400.], [-1*symlogscale, -1*symlogscale], 'k-' )
+        ax.set_ylim([-1*1e-5, 1e-1])
+
+
+        # Plot the diagonal covariance
+        Req = np.sqrt( np.diagonal(Cov_Mat_uc_Survey) ) / 2.
+        ax.fill_between(theta_data, y1=abs(Req)*-1, y2=abs(Req)*1, facecolor='yellow') 
 
 	# Plot the individual ingreidents of the delta_xip in Catherine's model
-	ax.errorbar( 10**(np.log10(theta)-0.05), delta_xip_terms_H[lfv,zbin,:,0],
+        ax.errorbar( 10**(np.log10(theta)-0.05), delta_xip_terms_H[lfv,zbin,:,0],
                      yerr=err_delta_xip_terms_H[lfv,zbin,:,0],
-                 color='cyan', linewidth=2, linestyle=':', 
-		 label=r'$ 2 \left[{\frac{\overline{\delta T_{\rm PSF}}}{T_{\rm gal}}}\right] \left< e_{\rm obs}^{\rm perfect} e_{\rm obs}^{\rm perfect} \right>$' )
+                     color='lime', linewidth=2, linestyle=':', 
+		     label=r'$ 2 \left[{\frac{\overline{\delta T_{\rm PSF}}}{T_{\rm gal}}}\right] \left< e_{\rm obs}^{\rm perfect} e_{\rm obs}^{\rm perfect} \right>$' )
         
-	ax.errorbar( 10**(np.log10(theta)-0.025), delta_xip_terms_H[lfv,zbin,:,1],
+        ax.errorbar( theta, delta_xip_terms_H[lfv,zbin,:,1],
                      yerr=err_delta_xip_terms_H[lfv,zbin,:,1],
-                 color='lightskyblue', linewidth=2, linestyle='--',
-		 label=r'$\left\langle \frac{1}{T_{\rm gal}} \right\rangle^2 \left< (\delta e_{\rm PSF} \, T_{\rm PSF}) \,  (\delta e_{\rm PSF} \,T_{\rm PSF}) \right>$' )
+                     color='green', linewidth=2, linestyle='-.',
+		     label=r'$\left[ \,\overline{\frac{1}{T_{\rm gal}}}\,\right]^2 \left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (e_{\rm PSF} \, \delta T_{\rm PSF}) \right>$' )
         
-	ax.errorbar( theta, delta_xip_terms_H[lfv,zbin,:,2],
+        ax.errorbar( 10**(np.log10(theta)+0.025), delta_xip_terms_H[lfv,zbin,:,2],
                      yerr=err_delta_xip_terms_H[lfv,zbin,:,2],
-                 color='blue', linewidth=2, linestyle='-.',
-		 label=r'$\left\langle \frac{1}{T_{\rm gal}} \right\rangle^2 \left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (e_{\rm PSF} \, \delta T_{\rm PSF}) \right>$' )
-        
-	ax.errorbar( 10**(np.log10(theta)+0.025), delta_xip_terms_H[lfv,zbin,:,3],
-                     yerr=err_delta_xip_terms_H[lfv,zbin,:,3],
-                 color='darkblue', linewidth=2, linestyle='-',
-		 label=r'$2 \left\langle \frac{1}{T_{\rm gal}} \right\rangle^2 \left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (\delta e_{\rm PSF} \, T_{\rm PSF}) \right>$' )
+                     color='cyan', linewidth=2, linestyle='-',
+		     label=r'$2 \left[ \,\overline{\frac{1}{T_{\rm gal}}}\,\right]^2  \left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (\delta e_{\rm PSF} \, T_{\rm PSF}) \right>$' )
 
-	ax.errorbar( 10**(np.log10(theta)+0.05), delta_xip_H[lfv,zbin,:],
+        ax.errorbar( 10**(np.log10(theta)-0.025), delta_xip_terms_H[lfv,zbin,:,3],
+                     yerr=err_delta_xip_terms_H[lfv,zbin,:,3],
+                     color='blue', linewidth=2, linestyle='--',
+                     label=r'$\left[ \,\overline{\frac{1}{T_{\rm gal}}}\,\right]^2 \left< (\delta e_{\rm PSF} \, T_{\rm PSF}) \,  (\delta e_{\rm PSF} \,T_{\rm PSF}) \right>$' )
+
+        ax.errorbar( 10**(np.log10(theta)+0.05), delta_xip_H[lfv,zbin,:],
                      yerr=err_delta_xip_H[lfv,zbin,:], color='red',
                      linewidth=2, label=r'$\delta\xi_+^{\rm sys}$' )
         
-	ax.errorbar( theta, delta_xip_c[lfv,zbin,:], yerr=err_delta_xip_c[lfv,zbin,:],
+        ax.errorbar( theta, delta_xip_c[lfv,zbin,:], yerr=err_delta_xip_c[lfv,zbin,:],
                      color='magenta', linewidth=2,
-                 label=r'$\langle \delta\epsilon^{\rm PSF}(x,y) \, \delta\epsilon^{\rm PSF}(x,y) \rangle$' )
+                     label=r'$\langle \delta\epsilon^{\rm PSF}(x,y) \, \delta\epsilon^{\rm PSF}(x,y) \rangle$' )
 
-	ax.legend(loc='upper right', frameon=False, ncol=2)
-	plt.subplots_adjust(hspace=0)
-	plt.savefig('LFver%s/PHterms/Plot_deltaxip_CovPatches%sx%s_zbin%s.png'%(LFver[0],Res,Res,zbin))
-	plt.show()
-	return
+        ax.legend(loc='upper right', frameon=False, ncol=2)
+        plt.subplots_adjust(hspace=0)
+        plt.savefig('LFver%s/PHterms/Plot_deltaxip_CovPatches%sx%s_zbin%s.png'%(LFver[0],Res,Res,zbin))
+        plt.show()
+        return
 #for i in range(num_zbins_tot):
 #        Plot_deltaxips_Only(i)
-#Plot_deltaxips_Only(num_zbins_tot-1)
+Plot_deltaxips_Only(num_zbins_tot-1)
 
 
 t1 = time.time()
@@ -406,7 +407,7 @@ def Investigate_chi2(rho):
 
 
 	return histo_P_stack, KS_sys_null, KS_hi_null, KS_lo_null
-histo_P_stack, KS_sys_null, KS_hi_null, KS_lo_null = Investigate_chi2(php_mean)
+#histo_P_stack, KS_sys_null, KS_hi_null, KS_lo_null = Investigate_chi2(php_mean)
 t2 = time.time()
 print(" It took %.0f seconds." %(t2-t1))
 
