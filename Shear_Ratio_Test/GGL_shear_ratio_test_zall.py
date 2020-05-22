@@ -32,7 +32,7 @@ DFLAG = ''                    # Data Flag. Set to '' for Fiducial MICE. '_Octant
 Include_mCov = True           # Include the uncertainty due to the m-correction
 Include_Hartlap = False        # Hartlap correction
 Include_Magnification = False   # If True, include extra param in gamma_t model: strength of magnifcation effect on gt.
-Single_Bin = False             # If True, fit for only a single lens-source bin, specified by user on the command line.
+Single_Bin = True             # If True, fit for only a single lens-source bin, specified by user on the command line.
                                # Else fit for all bins simultaneously.
 
 from Get_Input import Get_Input
@@ -213,7 +213,12 @@ plt.imshow(Corr, interpolation='None')
 plt.colorbar()
 plt.axis('off')
 #plt.show()
-plt.savefig(OUTDIR+'/%sx%s_Shear_ratio_correlation_matrix%s.png'%(SOURCE_TYPE,LENS_TYPE,save_tag))
+#plt.savefig(OUTDIR+'/%sx%s_Shear_ratio_correlation_matrix%s.png'%(SOURCE_TYPE,LENS_TYPE,save_tag))
+
+if Single_Bin == False:
+    # Save the full covariance matrix, so it can easily be read in by
+    # Compare_BFParams_And_Models.py and errors easily extracted
+    np.save(OUTDIR+'/GTCovMat_%sx%s_6Z_source_5Z_lens_mCov%s'%(SOURCE_TYPE,LENS_TYPE,Include_mCov), cov)
 
 #cov_inv=np.linalg.inv(cov)
 # Catherine reckons these two lines are a more stable way of inverting
@@ -308,13 +313,15 @@ f.close()
 
 params_0=result['x']
 # Based on the following stackoverflow page, it looks like
-# the sqrt of Hessian matrx diag is the error on the fitted parameters
+# the sqrt of the inverse Hessian matrix diag is the error on the fitted parameters
 # https://stackoverflow.com/questions/43593592/errors-to-fit-parameters-of-scipy-optimize
 params_0err=np.sqrt( np.diag(result['hess_inv']) )
 np.savetxt(OUTDIR+'/%sx%s_FitParams_Mag%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,Include_Magnification,save_tag), params_0)
 np.savetxt(OUTDIR+'/%sx%s_FitParamsErr_Mag%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,Include_Magnification,save_tag), params_0err)
 np.savetxt(OUTDIR+'/%sx%s_FitModel_Mag%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,Include_Magnification, save_tag),
            np.transpose(np.vstack(( thetas,func(params_0) )) ) )
+# Save the p-value to be read in and plotted by the code Compare_BFParams_And_Models.py
+np.savetxt(OUTDIR+'/%sx%s_pvalue_Mag%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,Include_Magnification,save_tag),np.c_[p_value])
 
 ######### plots ###
 
@@ -377,6 +384,7 @@ else:
     for i in range(nspecz):
         axs[-1,i].set_xlabel(r"$\theta$ [arcmin]")
         
-fig.suptitle(str(LENS_TYPE)+ " lenses, " + str(SOURCE_TYPE) +" sources,  $\chi^2/$dof={:1.2f}".format(chi2_red)+",  $p$={:2.1f}%".format(p_value*100.) + save_tag)
+fig.suptitle(str(LENS_TYPE)+ " lenses, " + str(SOURCE_TYPE) +" sources,  $\chi^2/$dof={:1.2f}".format(chi2_red)+",  $p$={:2.1f}%".format(p_value*100.) )
 plt.savefig(OUTDIR+'/%sx%s_Shear_ratio%s%s.png'%(SOURCE_TYPE,LENS_TYPE,DFLAG,save_tag))
-plt.show()
+#plt.show()
+
