@@ -37,7 +37,7 @@ start_rp = n_r_pair_ggl+n_r_pair_clustering
 index = 0 
 for z1 in range(nBins_source):
 	for z2 in range(z1, nBins_source):
-		filename='../xipm/XI_K1000_ALL_BlIND_'+blind+'_'+cat_version+'_4000_theta_0.5_300.0'+'_nBins_5_Bin'+str(z1+1)+'_Bin'+str(z2+1)+'.ascii'
+		filename='../xipm/XI_K1000_ALL_BlIND_'+blind+'_'+cat_version+'_nbins_4000_theta_0.5_300.0'+'_nBins_5_Bin'+str(z1+1)+'_Bin'+str(z2+1)+'.ascii'
 		xipm=np.loadtxt(filename,comments='#')
 		theta_all = xipm[:,0]
 		npair_all=xipm[:,-1]
