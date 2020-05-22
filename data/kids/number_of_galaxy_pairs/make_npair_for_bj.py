@@ -29,7 +29,7 @@ npair_mat = np.ones((nTheta,n_redshift_pairs))
 
 cat_version = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid'
 
-blind = 'A'
+blind = 'C'
 
 # We are going to only put values for the cosmic shear columns, the rest are set to one
 

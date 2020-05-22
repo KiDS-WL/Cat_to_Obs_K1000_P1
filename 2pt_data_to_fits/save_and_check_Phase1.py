@@ -216,7 +216,7 @@ def mkdir_mine(dirName):
 
 
 # Folder and file names for nofZ, for the sources it will depend on the blind
-blind = 'A'
+blind = 'B'
 cat_version = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid'
 name_tag    = 'with_m_bias' # with_m_bias # no_m_bias
 
@@ -597,9 +597,10 @@ def unitaryTest(name1, name2):
 ############################################################
 # plot things here
 
-saveFitsBP_list_KIDS1000()
 saveFitsCOSEBIs_KIDS1000()
-saveFitsXIPM_list_KIDS1000()
+
+# saveFitsBP_list_KIDS1000()
+# saveFitsXIPM_list_KIDS1000()
 
 filename=FolderNameInputs+"/kids/fits/bp_KIDS1000_Blind"+blind+"_"+name_tag+"_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
 title= 'KiDS1000-BOSS'
