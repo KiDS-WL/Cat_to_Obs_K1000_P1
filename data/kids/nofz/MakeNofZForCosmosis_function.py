@@ -93,11 +93,13 @@ def MakeNofz_fits(input_files,outputfileName,OneBin_nofzFileName,neff=[],single_
 		outputfileName=OneBin_nofzFileName
 		hdulist_new.writeto(outputfileName)
 
-
+cat_version_out = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid'
+cat_version_in  = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_DIRcols_Fid'
 for blind in 'A','B','C':
-	name_in='K1000_NS_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_DIRcols_Fid_blind'+blind
-	OutputFileName='SOM_N_of_Z/'+name_in+'.fits'
-	OneBin_nofzFileName='SOM_N_of_Z/'+name_in+'_single_bin.fits'
+	name_in='K1000_NS_'+cat_version_in+'_blind'+blind
+	name_out = 'K1000_NS_'+cat_version_out+'_blind'+blind
+	OutputFileName='SOM_N_of_Z/'+name_out+'.fits'
+	OneBin_nofzFileName='SOM_N_of_Z/'+name_out+'_single_bin.fits'
 	input_files=[]
 	for bin1 in range(nBins_KIDS):
 		fileNameInput='SOM_N_of_Z/'+name_in+'_TOMO'+str(bin1+1)+'_Nz.asc'
