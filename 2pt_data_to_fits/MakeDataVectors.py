@@ -46,14 +46,14 @@ def rebin(x,signal,weight,x_min,x_max,nbins):
 ##################################################################################
 ### Making data vectors for Phase-1 real data
 
-blind = 'A'
+blind = 'B'
 cat_version = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid'
 
 # This is were the raw data is saved on cuillin
 FolderNameData = '/disk09/KIDS/K1000_TWO_PT_STATS/OUTSTATS/'
-outputFolder  = "../data/kids/"
-nBins_lens   = 2
-nBins_source = 5
+outputFolder   = "../data/kids/"
+nBins_lens     = 2
+nBins_source   = 5
 
 # fiducial values
 filename="../data/kids/multiplicative_bias/Summary_multiplicative_Fid_unblinded.npy"
