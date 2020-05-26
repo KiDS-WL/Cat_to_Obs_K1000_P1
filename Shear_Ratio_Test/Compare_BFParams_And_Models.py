@@ -50,24 +50,39 @@ if Compare_Mag:
 
     
 if Compare_Single_Bin:
+    nofz_shift=["_nofzDown", "_nofzUp"]      # Use the SRT results for when the Dls/Ds values were calculated from an nofz
+                                             # which has been shifted up ('_nofzUp'), down ('_nofzDown') by (delta_z+delta_z_err)
+
     # Compare the fit params obtained for each l+s bin, across lens bins...
     params_sl = np.zeros([nz_source, nz_lens])
-    params_sl_err = np.zeros([nz_source, nz_lens])
+    params_sl_err = np.zeros_like( params_sl )
+    params_sl_shift = np.zeros([len(nofz_shift), nz_source, nz_lens])
+    params_sl_shift_err = np.zeros_like( params_sl_shift )
+
     # ...and compare the best-fit models to the data...
     model_sl = np.zeros([ nz_source, nz_lens, ntheta ])
+    model_sl_shift = np.zeros([ len(nofz_shift), nz_source, nz_lens, ntheta ])
     data_sl = np.zeros_like( model_sl )
     # ...including also the p-values and data-point error bars:
     p_values = np.zeros([nz_source, nz_lens])
+    p_values_shift = np.zeros([len(nofz_shift), nz_source, nz_lens])
     cov = np.load(OUTDIR+'/GTCovMat_%sx%s_6Z_source_5Z_lens_mCovTrue.npy'%(SOURCE_TYPE,LENS_TYPE))
     
     for i in range(nz_source):
         for j in range(nz_lens):
-            params_sl[i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParams_MagFalse_t%ss%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j))
-            params_sl_err[i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParamsErr_MagFalse_t%ss%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j))
-            theta, model_sl[i,j,:] = np.loadtxt(OUTDIR+'/%sx%s_FitModel_MagFalse_t%ss%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j),
-                                                usecols=(0,1), unpack=True)
             data_sl[i,j,:] = np.loadtxt('%s/GT_6Z_source_%s_5Z_lens_%s.asc' %(INDIR,(i+1),(j+1)), usecols=(3,), unpack=True)
+            params_sl[i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParamsCF_MagFalse_t%ss%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j))
+            params_sl_err[i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParamsErrCF_MagFalse_t%ss%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j))
+            theta, model_sl[i,j,:] = np.loadtxt(OUTDIR+'/%sx%s_FitModelCF_MagFalse_t%ss%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j),
+                                                usecols=(0,1), unpack=True)
             p_values[i,j] = np.loadtxt(OUTDIR+'/%sx%s_pvalue_MagFalse_t%ss%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j))
+            # Read in the shifted results:
+            for k in range(len(nofz_shift)):
+                params_sl_shift[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParamsCF_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]))
+                params_sl_shift_err[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParamsErrCF_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]))
+                model_sl_shift[k,i,j,:] = np.loadtxt(OUTDIR+'/%sx%s_FitModelCF_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]),
+                                                usecols=(1,), unpack=True)
+                p_values_shift[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_pvalue_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]))
             
     # Read in the magnification model to overplot
     Magnif_Shape = np.load('/home/bengib/kcap_NewInst/kcap/examples/output_magnification_alpha1.0/SRTparam_Bij.npy').flatten()
@@ -138,25 +153,29 @@ if Compare_Mag:
 
 
 # ------------------------------------- FUNCTIONS FOR COMPARE SINGLE BIN ANALYSIS -------------------------------------
+DlsDIR='Dls_over_Ds_data/SOURCE-%s_LENS-%s' %(SOURCE_TYPE, LENS_TYPE)
+def Model(amplitude, amplitude_err, i, j):
+    Dls_over_Ds_file = '%s/Dls_over_Ds_DIR_6Z_source_%s_5Z_lens_%s.asc' %(DlsDIR, i+1, j+1)
+    Dls_over_Ds = np.loadtxt(Dls_over_Ds_file)
+    model = Dls_over_Ds * amplitude / theta
+    model_err = Dls_over_Ds * amplitude_err / theta
+    return model, model_err
+
 def Plot_SingleBin_Params():
     MixLog = False # Make some panels with a log scale, some with a lin scale
     log_panels = [2,3,4]
     
     # Define y-limits for each lens bin panel
-    lin_ylimits = [ [ -0.005, 0.029], [ 0.01, 0.049], [ -0.75, 0.79], [ -0.75, 0.79], [ -0.75, 0.79] ]
+    lin_ylimits = [ [ -0.005, 0.029], [ -0.029, 0.059], [ -0.029, 0.15], [ -0.29, 0.29], [ -0.75, 0.79] ]
     mix_ylimits = [ [ -0.005, 0.029], [ 0.01, 0.049], [ 0.001, 2.], [ 0.001, 2.], [ 0.001, 2.] ]
     
     # Plot the Mag On/Off best-fit models
     fig = plt.figure(figsize = (8,6)) #figsize = (20,14)
     gs = gridspec.GridSpec(nz_source, 1)
     colors=[ 'red', 'blue', 'orange', 'green', 'magenta' ]
-    tomobin_array = np.arange(nz_source+1)+0.5
+    tomobin_array = np.linspace(0.5, 5.5, 5) #np.arange(nz_source+1)+0.5
     for i in range(nz_source):
         ax1 = plt.subplot(gs[i])
-        mean = np.average( params_sl[:,i], weights=(1./params_sl_err[:,i]**2) )
-        error = np.sqrt( np.sum( params_sl_err[:,i]**2 ) / nz_source )
-        #print( mean, mean-error, mean+error )
-        
         if MixLog:
             if i in log_panels:
                 ax1.set_yscale('log') #, linthreshy=symlogscales[i] )
@@ -167,15 +186,32 @@ def Plot_SingleBin_Params():
             save_tag = ''
 
         # Plot the weighted mean and error per lens bin...
-        ax1.fill_between( tomobin_array , (mean-error),
-                          (mean+error), color='dimgrey', alpha=0.5 )
+        mean = np.average( params_sl[:,i], weights=(1./params_sl_err[:,i]**2) )
+        error = np.sqrt( np.sum( params_sl_err[:,i]**2 ) / nz_source )
+        ax1.fill_between( tomobin_array , (mean-error), (mean+error), color='dimgrey', alpha=0.5 )
+        #print( mean, mean-error, mean+error )
+
+        # Use the shifts instead to define the error: shift in mean plus errors in quadrature;
+        shift_sys = abs(params_sl_shift[0,:,i] - params_sl_shift[1,:,i] ) # the "systematic" shift in the params due to delta-z, per t-bin
+        shift_sys_err = np.sqrt( params_sl_shift_err[0,:,i]**2 + params_sl_shift_err[1,:,i]**2 ) # statistical error on the sys. shift per bin
+        overall_shift_err = shift_sys+shift_sys_err
+        # Or just try overall MAX range of params:
+        max_shift_range = abs(params_sl_shift[0,:,i]+params_sl_shift_err[0,:,i]-params_sl[:,i]) + abs(params_sl_shift[1,:,i]+params_sl_shift_err[1,:,i]-params_sl[:,i])
+        shift_mean = np.average( params_sl[:,i], weights=(1./max_shift_range**2) )
+        shift_mean_err = np.sqrt( np.sum( max_shift_range**2 ) / nz_source)
+        ax1.fill_between( tomobin_array , (shift_mean-shift_mean_err), (shift_mean+shift_mean_err), color='yellow', alpha=0.5 )
+        #print( error, shift_mean_err )
+        
+        ax1.errorbar( np.arange(1,nz_source+1)-0.1, params_sl_shift[0,:,i], yerr=params_sl_shift_err[0,:,i], fmt='v', color=colors[i], edgecolor=None )
+        ax1.errorbar( np.arange(1,nz_source+1)+0.1, params_sl_shift[1,:,i], yerr=params_sl_shift_err[1,:,i], fmt='^', color=colors[i], edgecolor=None )
+        
         ax1.plot( tomobin_array , (np.zeros_like(tomobin_array)+mean), color='black', linewidth=1 )
         # ...OR plot the smallest error bar for the bin
         #binmin = np.argmin(params_sl_err[:,i])
         #ax1.fill_between( tomobin_array , (params_sl[binmin,i]-params_sl_err[binmin,i]),
         #                  (params_sl[binmin,i]+params_sl_err[binmin,i]), color='dimgrey', alpha=0.5 )
         
-        ax1.errorbar( range(1,nz_lens+1), params_sl[:,i], yerr=params_sl_err[:,i], fmt='o',
+        ax1.errorbar( range(1,nz_source+1), params_sl[:,i], yerr=params_sl_err[:,i], fmt='o',
                       color=colors[i], edgecolor=None )
 
         if i==(nz_source-1):
@@ -214,6 +250,8 @@ def Plot_SingleBin_Data_And_Model():
             
             # PLOTTING STUFF
             # Best-fit model
+            tmp_model, tmp_model_err = Model(params_sl[i,j], params_sl_err[i,j], i, j)
+            plt.errorbar( theta, theta*tmp_model, yerr=tmp_model_err, color='orange', fmt='o')
             plt.plot( theta, theta*model_sl[i,j,:], color='orange', linewidth=2, label=r'Model')
 
             # Magnification model

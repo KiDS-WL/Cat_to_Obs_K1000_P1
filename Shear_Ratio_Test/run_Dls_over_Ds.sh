@@ -11,7 +11,12 @@ Mag_OnOff="on"                       # only used if SOURCE_TYPE is MICE2_KV450
 Pz="Estimated"                       # only used if SOURCE_TYPE is MICE2_KV450
 
                                      # ONLY USED FOR ANALYSIS WITH K1000
-SOMFLAGNAME="noDEEP2"                # The type of SOM used TO ESTIMATE n(Z)
+SOMFLAGNAME="Fid"                    # The type of SOM used TO ESTIMATE n(Z)
+
+nofz_shift="_nofzUp"           # Shift the nofz by the delta-z param?
+                                     # Blank for no shift, "_nofzUp" for shift up, "_nofzDown" for shift down
+                                     # SHOULD ONLY BE SET FOR K1000 SOURCES.
+
 BLIND="A"                            # Which Blind to use
 
 
@@ -42,7 +47,7 @@ do
 	# This is the old DIR-Estimated n(z)
 	#source_nofz=/home/cech/public_html/KiDS/KiDS-VIKING-450/BLINDED_NZ/KiDS_2018-07-26_deepspecz_photoz_10th_BLIND_specweight_1000_4_ZB${tomochar}_blind${BLIND}_Nz.asc
 	# This is the new SOM-Estimated n(z)
-	source_nofz=/disk09/KIDS/K1000_TWO_PT_STATS/SOM_NofZ/K1000_NS_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_DIRcols_${SOMFLAGNAME}_blind${BLIND}_TOMO${JZBIN}_Nz.fits
+	source_nofz=/disk09/KIDS/K1000_TWO_PT_STATS/SOM_NofZ/K1000_NS_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_DIRcols_${SOMFLAGNAME}_blind${BLIND}_TOMO${JZBIN}_Nz.fits
 	LENS_DIR=LENSCATS/${LENS_TYPE}/
 	
     elif [ "$SOURCE_TYPE" == "MICE2_KV450" ]; then
@@ -62,8 +67,8 @@ do
     do
 	echo "----- Running Dls_over_Ds.py with Source bin $JZBIN, Lens bin $IZBIN -----"
 	specz_fitsfile=${LENS_DIR}/lens_cat_${nlens}Z_${IZBIN}.fits
-        outfile=${OUTDIR}/Dls_over_Ds_DIR_6Z_source_${JZBIN}_${nlens}Z_lens_${IZBIN}.asc
-        python Dls_over_Ds.py $specz_fitsfile $source_nofz > $outfile
+        outfile=${OUTDIR}/Dls_over_Ds_DIR_6Z_source_${JZBIN}_${nlens}Z_lens_${IZBIN}${nofz_shift}.asc
+        python Dls_over_Ds.py $specz_fitsfile $source_nofz $nofz_shift > $outfile
     done
     JZBIN=$[$JZBIN +1]
 done

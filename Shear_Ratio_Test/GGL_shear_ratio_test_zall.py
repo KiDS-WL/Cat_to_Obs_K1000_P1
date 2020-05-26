@@ -29,13 +29,16 @@ from scipy.optimize import curve_fit
 
 plt.rc('font', size=10)
 # ----- Load Input ----- #
-DFLAG = ''                    # Data Flag. Set to '' for Fiducial MICE. '_Octant' for MICE Octant.
-Include_mCov = True           # Include the uncertainty due to the m-correction
+DFLAG = ''                     # Data Flag. Set to '' for Fiducial MICE. '_Octant' for MICE Octant.
+Include_mCov = True            # Include the uncertainty due to the m-correction
 Include_Hartlap = False        # Hartlap correction
-Include_Magnification = False   # If True, include extra param in gamma_t model: strength of magnifcation effect on gt.
-Single_Bin = True             # If True, fit for only a single lens-source bin, specified by user on the command line.
+Include_Magnification = False  # If True, include extra param in gamma_t model: strength of magnifcation effect on gt.
+Single_Bin = False              # If True, fit for only a single lens-source bin, specified by user on the command line.
                                # Else fit for all bins simultaneously.
-
+nofz_shift=""         # Only for K1000: use the Dls/Ds values for the nofz which has been
+                               # shifted up ('_nofzUp'), down ('_nofzDown') by (delta_z+delta_z_err)
+                               # For no shift, set to ''
+                               
 from Get_Input import Get_Input
 paramfile = sys.argv[1]   # e.g. params_KiDSdata.dat
 GI = Get_Input(paramfile)
@@ -134,7 +137,7 @@ for tomobin in tomo_bins:
         speczbin_list.append(speczbin*np.ones((ntheta),dtype=np.int16))
 
         # Read in the Dls_over_Ds data created with Dls_over_Ds.py
-        Dls_over_Ds_file = '%s/Dls_over_Ds_DIR_6Z_source_%s_%sZ_lens_%s.asc' %(DlsDIR, (tomobin+1), numz_tag,(speczbin+1))
+        Dls_over_Ds_file = '%s/Dls_over_Ds_DIR_6Z_source_%s_%sZ_lens_%s%s.asc' %(DlsDIR, (tomobin+1), numz_tag,(speczbin+1),nofz_shift)
         Dls_over_Ds_tmp = np.loadtxt(Dls_over_Ds_file)
         measurements['Dls_over_Ds_'+str(speczbin)+"_"+str(tomobin)] = np.repeat(Dls_over_Ds_tmp,ntheta)
         Dls_over_Ds_list.append(measurements['Dls_over_Ds_'+str(speczbin)+"_"+str(tomobin)])
@@ -151,7 +154,6 @@ nmatrix = nspecz*ntomo*ntheta
 gtlens=np.zeros([ntheta,ncycle])
 diag=np.zeros(nmatrix)
 covdiag=np.zeros([nmatrix,nmatrix])
-
 for tomobin in tomo_bins:
     for speczbin in spec_bins:
         for icycle in range(ncycle):
@@ -252,6 +254,7 @@ def func(params):
         model = model + 2.*(alpha-1.) * Magnif_Shape
     return model
 
+
 ######## including covariance ###
 
 def chi2(params, data, cov_inv):
@@ -302,9 +305,26 @@ else:
 
 ndof = (ntomo * nspecz * ntheta) - nfreeparams
 result = minimize(chi2, params_initial, args=(gt, cov_inv), options={'maxiter': 200000}, method='BFGS')
-# Try scipy.optimize.curve_fit here?
-#result = 
 
+
+
+Use_Curve_Fit = True # Try using curve_fit instead of chi^2 optimize
+                     # This is ONLY for Single_Bin=True
+def model_curve_fit(x, amplitude):
+    return Dls_over_Ds * amplitude / x
+
+if Use_Curve_Fit and Single_Bin:
+    params_0_cf, params_0_cferr = curve_fit(model_curve_fit, thetas, gt, p0=params_initial, sigma=cov )  
+    # Save the outputs
+    np.savetxt(OUTDIR+'/%sx%s_FitParamsCF_Mag%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+                                                          Include_Magnification,save_tag,nofz_shift), params_0_cf)
+    np.savetxt(OUTDIR+'/%sx%s_FitParamsErrCF_Mag%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+                                                             Include_Magnification,save_tag,nofz_shift), params_0_cferr)
+    np.savetxt(OUTDIR+'/%sx%s_FitModelCF_Mag%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,Include_Magnification, save_tag,nofz_shift),
+           np.transpose(np.vstack(( thetas,func(params_0_cf) )) ) )
+
+
+    
 chi2_red = result['fun']/ndof
 p_value = 1 - stats.chi2.cdf(result['fun'], ndof)
 
@@ -319,12 +339,15 @@ params_0=result['x']
 # the sqrt of the inverse Hessian matrix diag is the error on the fitted parameters
 # https://stackoverflow.com/questions/43593592/errors-to-fit-parameters-of-scipy-optimize
 params_0err=np.sqrt( np.diag(result['hess_inv']) )
-np.savetxt(OUTDIR+'/%sx%s_FitParams_Mag%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,Include_Magnification,save_tag), params_0)
-np.savetxt(OUTDIR+'/%sx%s_FitParamsErr_Mag%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,Include_Magnification,save_tag), params_0err)
-np.savetxt(OUTDIR+'/%sx%s_FitModel_Mag%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,Include_Magnification, save_tag),
+np.savetxt(OUTDIR+'/%sx%s_FitParams_Mag%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+                                                    Include_Magnification,save_tag,nofz_shift), params_0)
+np.savetxt(OUTDIR+'/%sx%s_FitParamsErr_Mag%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+                                                       Include_Magnification,save_tag,nofz_shift), params_0err)
+np.savetxt(OUTDIR+'/%sx%s_FitModel_Mag%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,Include_Magnification, save_tag,nofz_shift),
            np.transpose(np.vstack(( thetas,func(params_0) )) ) )
 # Save the p-value to be read in and plotted by the code Compare_BFParams_And_Models.py
-np.savetxt(OUTDIR+'/%sx%s_pvalue_Mag%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,Include_Magnification,save_tag),np.c_[p_value])
+np.savetxt(OUTDIR+'/%sx%s_pvalue_Mag%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,Include_Magnification,
+                                                 save_tag,nofz_shift), np.c_[p_value])
 
 ######### plots ###
 
@@ -388,6 +411,6 @@ else:
         axs[-1,i].set_xlabel(r"$\theta$ [arcmin]")
         
 fig.suptitle(str(LENS_TYPE)+ " lenses, " + str(SOURCE_TYPE) +" sources,  $\chi^2/$dof={:1.2f}".format(chi2_red)+",  $p$={:2.1f}%".format(p_value*100.) )
-plt.savefig(OUTDIR+'/%sx%s_Shear_ratio%s%s.png'%(SOURCE_TYPE,LENS_TYPE,DFLAG,save_tag))
-#plt.show()
+plt.savefig(OUTDIR+'/%sx%s_Shear_ratio%s%s%s.png'%(SOURCE_TYPE,LENS_TYPE,DFLAG,save_tag,nofz_shift))
+plt.show()
 

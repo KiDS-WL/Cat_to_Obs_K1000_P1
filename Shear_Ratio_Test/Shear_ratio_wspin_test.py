@@ -20,9 +20,10 @@ Cov_Method = "Spin"  # The method for calculating the gamma_t realisations for u
                      # "Spin" means do many spin realisations of the source ellipticities (ie - shape noise only)
                      # "Patch" means read in the other MICE realisations (1/8 of the sky)
                      # divide them into patches and calcute the gamma_t from each patch.
-if Cov_Method != "Spin" and Cov_Method != "Patch":
-    print("Cov_Method must be set to Spin or Patch. Currently it's set to %s. EXITING." %Cov_Method)
+if Cov_Method != "Spin" and Cov_Method != "Patch" and Cov_Method != "None":
+    print("Cov_Method must be set to Spin, Patch or None. Currently it's set to %s. EXITING." %Cov_Method)
     sys.exit()
+    
 nPatch = 16           # If Cov_Method is Patch, the MICE octant is split into nPatch RA
                      # and nPatch Dec slices (nPatch^2 patches in total). gamma_t is
                      # calculated from each patch.
@@ -61,8 +62,8 @@ if SOURCE_TYPE == "K1000":
     #fitscat=CATDIR+'/K1000_N_BLIND_%s_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_goldclasses_5Z_%s.fits' %(Blind,JZBIN)
 
     # These are the new catalogues binned using the SOM-redshift estimates
-    SOMFLAGNAME='noDEEP2'
-    fitscat=CATDIR+'K1000_N_BLIND_%s_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_goldclasses_Flag_SOM_%s_5Z_%s.fits' %(Blind,SOMFLAGNAME,JZBIN)
+    SOMFLAGNAME='Fid' #'noDEEP2'
+    fitscat=CATDIR+'K1000_N_BLIND_%s_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_%s_5Z_%s.fits' %(Blind,SOMFLAGNAME,JZBIN)
     
     # Fits extension and keywords depend on data source:
     iext=1     # File extension
@@ -310,7 +311,7 @@ for IZBIN in range (izin,izin+1):   #1,2,3,4,5
             #del sourcespin, gamma_t, gamma_x, outfile_spin
 
 
-    else:
+    elif Cov_Method == "Patch":
         # WE ARE CALCULATING THE COVARIANCE BY
         # Reading in the MICE octant, dividing it up and calculating gamma_t
         # from the segments.
