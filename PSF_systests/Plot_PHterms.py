@@ -243,10 +243,10 @@ def Plot_deltaxips_Only(zbin):
         return
 #for i in range(num_zbins_tot):
 #        Plot_deltaxips_Only(i)
-Plot_deltaxips_Only(num_zbins_tot-1)
+#Plot_deltaxips_Only(num_zbins_tot-1)
 
 
-t1 = time.time()
+
 # This function will calculate chi^2 values for many noise realisations under 4 hypotheses:
 # null : the chi^2 values obtained for the correct cosmology given no systematics
 # sys: the chi^2 values obtained for the correct cosmology given the systematic bias \delta\xi_+
@@ -255,62 +255,81 @@ t1 = time.time()
 # Turns out it is, therefor systematic is subdominant to this tiny change in cosmology.
 
 def Investigate_chi2(rho):
-	Cov_Mat_uc_Survey_All = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[0:135,0:135] * Linc_Rescale
+        Cov_Mat_uc_Survey_All = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[0:135,0:135] * Linc_Rescale
 	# [0:135,0:135] pulls out only the xi+ elements.
-	lfv = 0
-	#delta_xip, _ = Calc_delta_xip_J16( alpha, T_ratio, rho, rho )
-	delta_xip,_,_,_ = Calc_delta_xip_H20( rho, rho )
-	#delta_xip, err_delta_xip = Calc_delta_xip_cterms( )
+        lfv = 0
+        #delta_xip, _ = Calc_delta_xip_J16( alpha, T_ratio, rho, rho )
+        #delta_xip,_,_,_ = Calc_delta_xip_H20( rho, rho )
+        delta_xip, err_delta_xip = Calc_delta_xip_cterms( )
+        delta_xip = np.ndarray.flatten( delta_xip[lfv] )
 
-	delta_xip = np.ndarray.flatten( delta_xip[lfv] )
 
-
-	# Assemble the theory vector - used to guage signif. of measuring genuine signal.
-	# And deviations in this signal from those with high/low values of S_8
+        # Assemble the theory vector - used to guage signif. of measuring genuine signal.
+        # And deviations in this signal from those with high/low values of S_8
+        # 'higher/lower' are a 0.004 change in S_8 (0.2 sigma_k1000)
         # 'high/low' are a 0.002 change in S_8 (0.1 sigma_k1000),
         # 'midhigh/midlow' are a 0.001 change in S_8 (0.05 sigma_k1000) 
-	xip_theory_stack_hi = Read_In_Theory_Vector('midhigh', theta_data)		# High S_8
-	xip_theory_stack_lo = Read_In_Theory_Vector('midlow', theta_data)		# Low S_8
-	xip_theory_stack_fid = Read_In_Theory_Vector('fid', theta_data)		# Fiducial S_8
+        xip_theory_stack_hi = Read_In_Theory_Vector('higher', theta_data)		# High S_8
+        xip_theory_stack_lo = Read_In_Theory_Vector('lower', theta_data)		# Low S_8
+        xip_theory_stack_fid = Read_In_Theory_Vector('fid', theta_data)		# Fiducial S_8
 
 
-	n_noise = 5000
-	chi2_null = np.empty( n_noise )		# chi^2 of the null hypothesis (measurement is all noise) for each noise realisation
-	chi2_sys = np.empty( n_noise )		# same for the hypothesis that measurement is contaminated by systematic
-	chi2_hi = np.empty( n_noise )		# same for the hypothesis that measurement is high S_8
-	chi2_lo = np.empty( n_noise )		# same for the hypothesis that measurement is low S_8
-	for i in range(n_noise):
-		noise = multi_norm.rvs(mean=np.zeros(135), cov=Cov_Mat_uc_Survey_All)
-		# chi2 for null hypothesis 
-		chi2_null[i] = np.dot( np.transpose(noise), np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise ))
-		# chi2 for systematic hypothesis
-		chi2_sys[i] = np.dot( np.transpose(noise+delta_xip), 
-								np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise+delta_xip ))
-		# chi2 for high S_8 cosmology
-		chi2_hi[i] = np.dot( np.transpose(noise+xip_theory_stack_hi-xip_theory_stack_fid), 
-								np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise+xip_theory_stack_hi-xip_theory_stack_fid ))
-		# chi2 for low S_8 cosmology
-		chi2_lo[i] = np.dot( np.transpose(noise+xip_theory_stack_lo-xip_theory_stack_fid), 
-								np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise+xip_theory_stack_lo-xip_theory_stack_fid ))
+        n_noise = 5000
+        chi2_null = np.empty( n_noise )		# chi^2 of the null hypothesis (measurement is all noise) for each noise realisation
+        chi2_sys = np.empty( n_noise )		# same for the hypothesis that measurement is contaminated by systematic
+        chi2_hi = np.empty( n_noise )		# same for the hypothesis that measurement is high S_8
+        chi2_lo = np.empty( n_noise )		# same for the hypothesis that measurement is low S_8
+        for i in range(n_noise):
+                noise = multi_norm.rvs(mean=np.zeros(135), cov=Cov_Mat_uc_Survey_All)
+                # chi2 for null hypothesis 
+                chi2_null[i] = np.dot( np.transpose(noise), np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise ))
+                # chi2 for systematic hypothesis
+                chi2_sys[i] = np.dot( np.transpose(noise+delta_xip), 
+				      np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise+delta_xip ))
+                # chi2 for high S_8 cosmology
+                chi2_hi[i] = np.dot( np.transpose(noise+xip_theory_stack_hi-xip_theory_stack_fid), 
+				     np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise+xip_theory_stack_hi-xip_theory_stack_fid ))
+                # chi2 for low S_8 cosmology
+                chi2_lo[i] = np.dot( np.transpose(noise+xip_theory_stack_lo-xip_theory_stack_fid), 
+				     np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise+xip_theory_stack_lo-xip_theory_stack_fid ))
 
-	# Histogram the chi^2
-	def Hist_n_Normalise(chi2, nbins):
-		histo_chi2, tmp_bins = np.histogram(chi2, nbins)
-		bins_chi2 = tmp_bins[:-1] + (tmp_bins[1] - tmp_bins[0])/2.			# get bin centres
-		histo_chi2 = histo_chi2 / simps( histo_chi2, bins_chi2)				# Normalise to a PDF
-		mean_chi2 = np.mean( chi2 )
-		return histo_chi2, bins_chi2, mean_chi2
-	histo_chi2_null, bins_chi2_null, mean_chi2_null = Hist_n_Normalise(chi2_null, 100)
-	histo_chi2_sys, bins_chi2_sys, mean_chi2_sys = Hist_n_Normalise(chi2_sys, 100)
-	histo_chi2_hi, bins_chi2_hi, mean_chi2_hi = Hist_n_Normalise(chi2_hi, 100)
-	histo_chi2_lo, bins_chi2_lo, mean_chi2_lo = Hist_n_Normalise(chi2_lo, 100)
-	print("Shift in the mean of the chi2 distributions between null and the following hypotheses is...:" )
-	print("sys: ", abs(mean_chi2_null-mean_chi2_sys))
-	print("high S8: ", abs(mean_chi2_null-mean_chi2_hi))
-	print("low S8: ", abs(mean_chi2_null-mean_chi2_lo))
-	
+        # Histogram the chi^2
+        def Hist_n_Normalise(chi2, nbins):
+                histo_chi2, tmp_bins = np.histogram(chi2, nbins)
+                bins_chi2 = tmp_bins[:-1] + (tmp_bins[1] - tmp_bins[0])/2.			# get bin centres
+                histo_chi2 = histo_chi2 / simps( histo_chi2, bins_chi2)				# Normalise to a PDF
+                mean_chi2 = np.mean( chi2 )
+                return histo_chi2, bins_chi2, mean_chi2
+        histo_chi2_null, bins_chi2_null, mean_chi2_null = Hist_n_Normalise(chi2_null, 100)
+        histo_chi2_sys, bins_chi2_sys, mean_chi2_sys = Hist_n_Normalise(chi2_sys, 100)
+        histo_chi2_hi, bins_chi2_hi, mean_chi2_hi = Hist_n_Normalise(chi2_hi, 100)
+        histo_chi2_lo, bins_chi2_lo, mean_chi2_lo = Hist_n_Normalise(chi2_lo, 100)
+        print("Shift in the mean of the chi2 distributions between null and the following hypotheses is...:" )
+        print("sys: ", abs(mean_chi2_null-mean_chi2_sys))
+        print("high S8: ", abs(mean_chi2_null-mean_chi2_hi))
+        print("low S8: ", abs(mean_chi2_null-mean_chi2_lo))
+        return abs(mean_chi2_null-mean_chi2_sys), abs(mean_chi2_null-mean_chi2_hi), abs(mean_chi2_null-mean_chi2_lo)
+t1 = time.time()
+ntrials = 5
+delta_chi2_sys = np.zeros(ntrials)
+delta_chi2_hi = np.zeros_like(delta_chi2_sys)
+delta_chi2_lo =	np.zeros_like(delta_chi2_sys)
+for i in range(ntrials):
+        delta_chi2_sys[i], delta_chi2_hi[i], delta_chi2_lo[i] = Investigate_chi2(php_mean)
+t2 = time.time()
+print(" It took %.0f seconds." %(t2-t1))
 
 
+sys.exit()
+
+
+
+
+
+# The rest of this function is unnecessary - converting the chi2 distr.'s
+# into CDFs and doing a KS test of the similarities.
+# All we care about is the shift in the mean of the chi^2 distr.'s.
+def Investigate_chi2_2ndHalf_Unneccessary():
 	# Plot the chi^2 distribution
 	f, ((ax1)) = plt.subplots(1, 1, figsize=(10,9))
 	ax1.plot(bins_chi2_hi, histo_chi2_hi, color='magenta', linewidth=3)
@@ -408,8 +427,8 @@ def Investigate_chi2(rho):
 
 	return histo_P_stack, KS_sys_null, KS_hi_null, KS_lo_null
 #histo_P_stack, KS_sys_null, KS_hi_null, KS_lo_null = Investigate_chi2(php_mean)
-t2 = time.time()
-print(" It took %.0f seconds." %(t2-t1))
+#t2 = time.time()
+#print(" It took %.0f seconds." %(t2-t1))
 
 
 
