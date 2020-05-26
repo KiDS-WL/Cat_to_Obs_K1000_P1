@@ -139,10 +139,12 @@ if __name__ == '__main__':
 
         npairs_weighted = (gg.weight)*(gg.weight)/gg_wsq.weight
 
-        #Use treecorr to write out the output file updating the npairs column and praise-be for Jarvis and his well documented code                                                   
+        #Use treecorr to write out the output file updating the npairs column and praise-be for Jarvis and his well documented code
+        #as sigma_xip = sigma_xim, I've replaced sigma_xim with the raw npairs so we can store it in case useful at any point
+        
         treecorr.util.gen_write(outfile,
-                ['r_nom','meanr','meanlogr','xip','xim','xip_pm','xim_im','sigma_xip', 'sigma_xim', 'weight','npairs_weighted' ],
-                [ gg.rnom,gg.meanr, gg.meanlogr,gg.xip, gg.xim, gg.xip_im, gg.xim_im, np.sqrt(gg.varxip), np.sqrt(gg.varxim), 
+                ['r_nom','meanr','meanlogr','xip','xim','xip_pm','xim_im','sigma_xip', 'npairs', 'weight','npairs_weighted' ],
+                [ gg.rnom,gg.meanr, gg.meanlogr,gg.xip, gg.xim, gg.xip_im, gg.xim_im, np.sqrt(gg.varxip), gg.npairs, 
                 gg.weight, npairs_weighted], precision=12)
     else:
 
