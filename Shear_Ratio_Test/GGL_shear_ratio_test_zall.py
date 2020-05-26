@@ -108,7 +108,7 @@ nspin=500
 if Cov_Method == "Spin":
     ncycle = nspin
     OUTDIR = INDIR + "/SPIN/"
-    Area_Scale = 1.
+    Area_Scale = 1.    # 341./750. # Approx. scaling KV450-->K1000     #1.
 elif Cov_Method == "Patch":
     ncycle = nPatch*nPatch
     OUTDIR = INDIR + "/PATCH/"
@@ -154,14 +154,16 @@ nmatrix = nspecz*ntomo*ntheta
 gtlens=np.zeros([ntheta,ncycle])
 diag=np.zeros(nmatrix)
 covdiag=np.zeros([nmatrix,nmatrix])
+#INDIRcov='Output/SOURCE-MICE2_KV450_LENS-MICE2_BOSS_PzEstimated_SNTrue_magoff/'
+INDIRcov=INDIR
 for tomobin in tomo_bins:
     for speczbin in spec_bins:
         for icycle in range(ncycle):
             if Cov_Method == "Spin":
-                gtfile='%s/SPIN/GT_SPIN_%s_6Z_source_%s_%sZ_lens_%s.asc' %(INDIR,icycle,
+                gtfile='%s/SPIN/GT_SPIN_%s_6Z_source_%s_%sZ_lens_%s.asc' %(INDIRcov,icycle,
                                                                            tomobin+1,numz_tag,speczbin+1)
             elif Cov_Method == "Patch":
-                gtfile='%s/PATCH/GT_PATCH_%sof%s_6Z_source_%s_%sZ_lens_%s.asc' %(INDIR,icycle,nPatch*nPatch,
+                gtfile='%s/PATCH/GT_PATCH_%sof%s_6Z_source_%s_%sZ_lens_%s.asc' %(INDIRcov,icycle,nPatch*nPatch,
                                                                                  tomobin+1,num_ztag,speczbin+1)
                 
             gtcycledat=ascii.read(gtfile)
