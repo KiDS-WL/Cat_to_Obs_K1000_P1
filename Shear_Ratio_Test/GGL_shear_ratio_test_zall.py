@@ -33,9 +33,9 @@ DFLAG = ''                     # Data Flag. Set to '' for Fiducial MICE. '_Octan
 Include_mCov = True            # Include the uncertainty due to the m-correction
 Include_Hartlap = False        # Hartlap correction
 Include_Magnification = False  # If True, include extra param in gamma_t model: strength of magnifcation effect on gt.
-Single_Bin = False              # If True, fit for only a single lens-source bin, specified by user on the command line.
+Single_Bin = True              # If True, fit for only a single lens-source bin, specified by user on the command line.
                                # Else fit for all bins simultaneously.
-nofz_shift=""         # Only for K1000: use the Dls/Ds values for the nofz which has been
+nofz_shift="_nofzDown"         # Only for K1000: use the Dls/Ds values for the nofz which has been
                                # shifted up ('_nofzUp'), down ('_nofzDown') by (delta_z+delta_z_err)
                                # For no shift, set to ''
                                
@@ -414,5 +414,5 @@ else:
         
 fig.suptitle(str(LENS_TYPE)+ " lenses, " + str(SOURCE_TYPE) +" sources,  $\chi^2/$dof={:1.2f}".format(chi2_red)+",  $p$={:2.1f}%".format(p_value*100.) )
 plt.savefig(OUTDIR+'/%sx%s_Shear_ratio%s%s%s.png'%(SOURCE_TYPE,LENS_TYPE,DFLAG,save_tag,nofz_shift))
-plt.show()
+#plt.show()
 

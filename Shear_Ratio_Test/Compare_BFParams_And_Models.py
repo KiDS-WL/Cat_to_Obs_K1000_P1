@@ -166,7 +166,7 @@ def Plot_SingleBin_Params():
     log_panels = [2,3,4]
     
     # Define y-limits for each lens bin panel
-    lin_ylimits = [ [ -0.005, 0.029], [ -0.029, 0.059], [ -0.029, 0.15], [ -0.29, 0.29], [ -0.75, 0.79] ]
+    lin_ylimits = [ [ -0.005, 0.029], [ -0.029, 0.059], [ -0.029, 0.18], [ -0.29, 0.29], [ -0.75, 0.79] ]
     mix_ylimits = [ [ -0.005, 0.029], [ 0.01, 0.049], [ 0.001, 2.], [ 0.001, 2.], [ 0.001, 2.] ]
     
     # Plot the Mag On/Off best-fit models
@@ -191,7 +191,8 @@ def Plot_SingleBin_Params():
         ax1.fill_between( tomobin_array , (mean-error), (mean+error), color='dimgrey', alpha=0.5 )
         #print( mean, mean-error, mean+error )
 
-        # Use the shifts instead to define the error: shift in mean plus errors in quadrature;
+        # ------ vvv USE THE SRT RESULTS w/ UP/DOWN SHIFTS IN THE n(z) TO DEFINE AN ERROR ON THE FITTED PARAMS vvv ------
+
         shift_sys = abs(params_sl_shift[0,:,i] - params_sl_shift[1,:,i] ) # the "systematic" shift in the params due to delta-z, per t-bin
         shift_sys_err = np.sqrt( params_sl_shift_err[0,:,i]**2 + params_sl_shift_err[1,:,i]**2 ) # statistical error on the sys. shift per bin
         overall_shift_err = shift_sys+shift_sys_err
@@ -204,6 +205,8 @@ def Plot_SingleBin_Params():
         
         ax1.errorbar( np.arange(1,nz_source+1)-0.1, params_sl_shift[0,:,i], yerr=params_sl_shift_err[0,:,i], fmt='v', color=colors[i], edgecolor=None )
         ax1.errorbar( np.arange(1,nz_source+1)+0.1, params_sl_shift[1,:,i], yerr=params_sl_shift_err[1,:,i], fmt='^', color=colors[i], edgecolor=None )
+
+        # ------ ^^^ USE THE SRT RESULTS w/ UP/DOWN SHIFTS IN THE n(z) TO DEFINE AN ERROR ON THE FITTED PARAMS ^^^ ------ 
         
         ax1.plot( tomobin_array , (np.zeros_like(tomobin_array)+mean), color='black', linewidth=1 )
         # ...OR plot the smallest error bar for the bin
@@ -304,6 +307,6 @@ def Plot_SingleBin_Data_And_Model():
 
 if Compare_Single_Bin:
     Plot_SingleBin_Params()
-    #Plot_SingleBin_Data_And_Model()
+    Plot_SingleBin_Data_And_Model()
 
 # ------------------------------------- ^^^FUNCTIONS FOR COMPARE SINGLE BIN ANALYSIS^^^ -------------------------------------
