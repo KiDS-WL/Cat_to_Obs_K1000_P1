@@ -269,8 +269,8 @@ def Investigate_chi2(rho):
         # 'higher/lower' are a 0.004 change in S_8 (0.2 sigma_k1000)
         # 'high/low' are a 0.002 change in S_8 (0.1 sigma_k1000),
         # 'midhigh/midlow' are a 0.001 change in S_8 (0.05 sigma_k1000) 
-        xip_theory_stack_hi = Read_In_Theory_Vector('higher', theta_data)		# High S_8
-        xip_theory_stack_lo = Read_In_Theory_Vector('lower', theta_data)		# Low S_8
+        xip_theory_stack_hi = Read_In_Theory_Vector('high', theta_data)		# High S_8
+        xip_theory_stack_lo = Read_In_Theory_Vector('low', theta_data)		# Low S_8
         xip_theory_stack_fid = Read_In_Theory_Vector('fid', theta_data)		# Fiducial S_8
 
 
