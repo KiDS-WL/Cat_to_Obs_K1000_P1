@@ -224,40 +224,52 @@ def Read_rho_Or_PH(LFver, keyword, ThBins, Res):
         
     php_mean = np.zeros([len(LFver),num_stat,ThBins])
     php_err = np.zeros_like(php_mean)
-
+    # Fix theta to the values saved for the very first statistic:
+    theta = np.loadtxt('LFver%s/%s/%s%s_KiDS_N.dat'%(LFver[0],DIR[0],stat,1), usecols=(0,), unpack=True)
+    
     for lfv in range(len(LFver)):
 
         php_split = np.zeros([ numN[lfv]+numS[lfv], 5, ThBins ])
 
         for i in range(num_stat):
             try:
-                theta, phpN = np.loadtxt('LFver%s/%s/%s%s_KiDS_N.dat'%(LFver[lfv],DIR[i],stat,i+1), usecols=(0,1), unpack=True)
+                tmp_theta, phpN = np.loadtxt('LFver%s/%s/%s%s_KiDS_N.dat'%(LFver[lfv],DIR[i],stat,i+1), usecols=(0,1), unpack=True)
                 # If the above exists, try to read in the weight (only saved this for LFver321 of the rho stats)
                 try:
                     weightN = np.loadtxt('LFver%s/%s/%s%s_KiDS_N.dat'%(LFver[lfv],DIR[i],stat,i+1), usecols=(3,), unpack=True)
                 except IndexError:
                     weightN = 1.
             except IOError:
-                weightN = 1.
-                phpN = 0.
+                weightN = np.ones(len(ThBins))
+                phpN = np.zeros(len(ThBins))
+
+            # Interp to the fixed_theta scale
+            phpN = np.interp( theta, tmp_theta, phpN )
+            # keep the weights as they are - don't interp.
                 
             try:
-                theta, phpS = np.loadtxt('LFver%s/%s/%s%s_KiDS_S.dat'%(LFver[lfv],DIR[i],stat,i+1), usecols=(0,1), unpack=True)
+                tmp_theta, phpS = np.loadtxt('LFver%s/%s/%s%s_KiDS_S.dat'%(LFver[lfv],DIR[i],stat,i+1), usecols=(0,1), unpack=True)
                 # If the above exists, try to read in the weight (only saved this for LFver321 of the rho stats)
                 try:
                     weightS = np.loadtxt('LFver%s/%s/%s%s_KiDS_S.dat'%(LFver[lfv],DIR[i],stat,i+1), usecols=(3,), unpack=True)
                 except IndexError:
                     weightS = 1.
             except IOError:
-                weightS = 1.
-                phpS = 0.
+                weightS = np.ones(len(ThBins))
+                phpS = np.zeros(len(ThBins))
 
-            # Weighted average of rho-North & rho-South
+            # Interp to the fixed_theta scale
+            phpS = np.interp( theta, tmp_theta, phpS )
+            # keep the weights as they are - don't interp. 
+                
             php_mean[lfv,i,:] = (weightN*phpN + weightS*phpS) / (weightN+weightS)
             for j in range(numN[lfv]):
-                php_split[j,i,:] = np.loadtxt(NFiles[lfv][j], usecols=(1,), unpack=True)
+                tmp_theta, tmp_php_splitN = np.loadtxt(NFiles[lfv][j], usecols=(0,1), unpack=True)
+                php_split[j,i,:] = np.interp( theta, tmp_theta, tmp_php_splitN )
+                
             for j in range(numS[lfv]):
-                php_split[numN[lfv]+j,i,:] = np.loadtxt(SFiles[lfv][j], usecols=(1,), unpack=True)
+                tmp_theta, tmp_php_splitS = np.loadtxt(SFiles[lfv][j], usecols=(0,1), unpack=True)
+                php_split[numN[lfv]+j,i,:] = np.interp( theta, tmp_theta, tmp_php_splitS )
 
             php_err[lfv,i,:] = np.sqrt( np.diag( np.cov(php_split[:,i,:], rowvar = False) ) / (numN[lfv]+numS[lfv]) )
 
@@ -298,7 +310,7 @@ def Read_alpha_per_bin(LFver):
     return alpha
 
 
-def Read_In_Theory_Vector(hi_lo_fid, theta_data):
+def Read_In_Theory_Vector(hi_lo_fid):
     num_zbins_tot = 15
     # This function returns the theoretical xi+ predictions with either a fiducial, high or low S8 value
     # hi_lo_fid must be one of 'high', 'low' or 'fid'
@@ -308,7 +320,8 @@ def Read_In_Theory_Vector(hi_lo_fid, theta_data):
     #theta_theory = np.loadtxt('%s/theta.txt' %indir_theory) * (180./np.pi) * 60.   # Convert long theta array in radians to arcmin        
 
     indir_theory = '/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/new_outputs/test_output_S8_%s_test/chain/output_test_A/shear_xi_plus_binned/' %hi_lo_fid
-    xip_theory_stack = np.zeros( [num_zbins_tot,len(theta_data)] )
+    theta_theory = np.loadtxt('%s/theta_bin_1_1.txt' %indir_theory)
+    xip_theory_stack = np.zeros( [num_zbins_tot,len(theta_theory)] )
     # ^This will store all auto & cross xi_p for the 5 tomo bins                                                                           
     idx = 0
     for i in range(1,6):
@@ -316,8 +329,9 @@ def Read_In_Theory_Vector(hi_lo_fid, theta_data):
             if i >= j:              # Only read in bins 1-1, 2-1, 2-2, 3-1, 3-2,...                                                
                 tmp_theta_theory = np.loadtxt('%s/theta_bin_%s_%s.txt' %(indir_theory,i,j))
                 tmp_xip_theory = np.loadtxt('%s/bin_%s_%s.txt' %(indir_theory,i,j))
-                xip_theory_stack[idx,:] = np.interp( theta_data, tmp_theta_theory, tmp_xip_theory )
-                # sample at the theta values used for PSF modelling.                                                           
+                xip_theory_stack[idx,:] = np.interp( theta_theory, tmp_theta_theory, tmp_xip_theory )
+                # pretty sure theta_theory is the same for every tomo bin combination
+                # but just in case, we interpolate everything to be sampled at the values for the 1_1 bin.
                 idx+=1
     xip_theory_stack = xip_theory_stack.flatten()
-    return xip_theory_stack  
+    return theta_theory, xip_theory_stack  

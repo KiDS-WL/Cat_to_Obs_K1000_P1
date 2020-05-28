@@ -83,19 +83,33 @@ Plot_Labels, theta, php_mean, php_err = Read_rho_Or_PH(LFver, 'ph', ThBins, Res)
 #sys.exit()
 
 # To get a rough idea of size of rho stats, read in the xi+- of some data to overplot 
-data_dir = 'xi_pm_Vectors_4_Overplotting/'  # '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/xi_pm/'
-data_ZBlabel = '0.7-0.9'					# ZBcut on the vector you overplot... '0.7-0.9', '0.1-0.3' '0.1-2.0'
-theta_data, xip_data = np.loadtxt('%s/KAll.BlindA.xi_pm.ZBcut%s.dat' %(data_dir, data_ZBlabel), usecols=(0,1), unpack=True)
+#data_dir = 'xi_pm_Vectors_4_Overplotting/'  # '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/xi_pm/'
+#data_ZBlabel = '0.7-0.9'					# ZBcut on the vector you overplot... '0.7-0.9', '0.1-0.3' '0.1-2.0'
+#theta_data, xip_data = np.loadtxt('%s/KAll.BlindA.xi_pm.ZBcut%s.dat' %(data_dir, data_ZBlabel), usecols=(0,1), unpack=True)
 
-# Read in a covariance 
-Linc_Rescale = 600. / 878.83	# Linc says I should rescale his cov by approx. this factor
+# Read in a covariance
+def Linc_Cov():
+        Linc_Rescale = 600. / 878.83	# Linc says I should rescale his cov by approx. this factor
                                 # to get the effective area right. This probs isn't 100% accurate.
-Cov_inDIR = './Lincs_CovMat'
-            # eday address: '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/Lincs_CovMat/'
-Cov_Mat_uc_Survey = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[81:90, 81:90] * Linc_Rescale * 0.16		
+        Cov_inDIR = './Lincs_CovMat'
+        # eday address: '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/Lincs_CovMat/'
+        cov = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR) * Linc_Rescale 
 							# [0:9, 0:9] This extracts xi+ Cov in lowest bin
 							# [81:90, 81:90] This pulls out the middle bin: 3-3
+        return cov
 
+def Marika_Cov(mCov):
+        # if mCov is True, reads covariance include m-uncertainty
+        # else reads cov excluding this.
+        if mCov:
+                keyword = 'with'
+        else:
+                keyword = 'no'
+        cov_fname = 'Marikas_CovMat/xipm_KIDS1000_BlindA_%s_m_bias_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits' %keyword
+        f = fits.open(cov_fname)
+        theta_cov = f[2].data['ANG'][0:ThBins] # The theta values the cov is defined at (in arcmin)
+        cov = f[1].data
+        return theta_cov, cov #[81:90, 81:90]
 
                                                         
 def Calc_delta_xip_J16(alphas, T_ratio, rho, rho_err): 		# !!! Jarvis (2016) expression for PSF systematic
@@ -116,8 +130,8 @@ def Calc_delta_xip_J16(alphas, T_ratio, rho, rho_err): 		# !!! Jarvis (2016) exp
 
 
 def Calc_delta_xip_H20(ph, ph_err): 		# !!! Heymans' (2020) derivation for PSF systematic
-        xip_theory = Read_In_Theory_Vector('fid', theta_data)	
-        xip_theory = np.reshape(xip_theory, (num_zbins_tot,len(theta))) # Reshape to be [num_zbins,ntheta]
+        theta_theory, xip_theory = Read_In_Theory_Vector('fid')	
+        xip_theory = np.reshape(xip_theory, (num_zbins_tot,len(theta_theory))) # Reshape to be [num_zbins,ntheta]
 
         # Calculate the additive shear bias for each lensfit version and in each tomographic bin (ie- value of alpha)
         delta_xip_total = np.zeros([ len(LFver), num_zbins_tot, ThBins ])
@@ -129,15 +143,17 @@ def Calc_delta_xip_H20(ph, ph_err): 		# !!! Heymans' (2020) derivation for PSF s
                 for j in range(num_zbins_tot):
                         # The 4 individual terms in \delta\xi+ (eqn 10. Giblin et al. 2020)
                         # Remember, in deltaT_ratio_tot[lfv,i,:], i=0 for mean, i=1 for error
-                        # same goes for Tg_invsq_tot. 
-                        delta_xip_terms[lfv,j,:,0] = 2*xip_theory[j,:]*deltaT_ratio_tot[lfv,0,j]
+                        # same goes for Tg_invsq_tot.
+                        # Also interpolate the theory vector onto the theta bins of the PH-stats
+                        # (should only be a minor change in the theta values).
+                        delta_xip_terms[lfv,j,:,0] = 2* np.interp(theta, theta_theory, xip_theory[j,:]) *deltaT_ratio_tot[lfv,0,j]
                         delta_xip_terms[lfv,j,:,1] =   Tg_invsq_tot[lfv,0,j] *(ph[lfv,0,:])
                         delta_xip_terms[lfv,j,:,2] = 2*Tg_invsq_tot[lfv,0,j] *(ph[lfv,1,:])
                         delta_xip_terms[lfv,j,:,3] =   Tg_invsq_tot[lfv,0,j] *(ph[lfv,2,:])
                         # The total
                         delta_xip_total[lfv,j,:] = delta_xip_terms[lfv,j,:,0]+delta_xip_terms[lfv,j,:,1]+delta_xip_terms[lfv,j,:,2]+delta_xip_terms[lfv,j,:,3]
                         # Following terms come from error propagation of eqn 10. (Giblin, Heymans et al. 2020)
-                        err_delta_xip_terms[lfv,j,:,0] = 2 * xip_theory[j,:] * deltaT_ratio_tot[lfv,1,j]
+                        err_delta_xip_terms[lfv,j,:,0] = 2 * np.interp(theta, theta_theory, xip_theory[j,:]) * deltaT_ratio_tot[lfv,1,j]
                         scale = [1,2,1] # PH term 2 has a factor 2 in it, others factor 1.
                         for t in range(1,4): # cycle through 3 ph terms - same error form
                                 part1 = scale[t-1] * Tg_invsq_tot[lfv,1,j]**2 * ph[lfv,t-1,:]**2  
@@ -149,32 +165,48 @@ def Calc_delta_xip_H20(ph, ph_err): 		# !!! Heymans' (2020) derivation for PSF s
 
 
 def Calc_delta_xip_cterms():
-	# This reads in the <cc> correlation function, where c is the additive shear correction
+	# This reads in the <ePSF(x,y) ePSF(x,y)> correlation function.
 	# This was produced using the codes, PSFRES_CORRMAP/create_c12_mock.py and Calc_2pt_Stats/calc_xi_w_treecorr.py
 	# on TreeCorr.
 	delta_xip = np.zeros([ len(LFver), num_zbins_tot, ThBins ])
 	err_delta_xip = np.zeros_like( delta_xip )
 	for lfv in range(len(LFver)):
 		for j in range(num_zbins_tot):
-			delta_xip[lfv,j,:], err_delta_xip[lfv,j,:]  = np.loadtxt('LFver%s/delta_xi_sys_LFver%s.dat' %(LFver[lfv],LFver[lfv]), usecols=(3,7), unpack=True) 
-	return delta_xip, err_delta_xip
+			theta_dxip, delta_xip[lfv,j,:], err_delta_xip[lfv,j,:]  = np.loadtxt('LFver%s/delta_xi_sys_LFver%s.dat' %(LFver[lfv],LFver[lfv]), usecols=(1,3,7), unpack=True) 
+	return theta_dxip, delta_xip, err_delta_xip
+
+def Calc_delta_xip_Bacon():
+        # The Bacon et al. (2010) PSF systematic: alpha^2 * xi_+^{PSF,PSF}
+        # for the 15 tomographic bins.
+        # Note this exists only for LFver glab_321.
+        Bacon_DIR = '/disk09/KIDS/K1000_TWO_PT_STATS/OUTSTATS/CSys/'
+        delta_xip = np.zeros([ num_zbins_tot, ThBins ])
+        k=0
+        for i in range( 5 ):
+                for j in range(5):
+                        if i<=j:
+                                theta_dxi, delta_xip[k,:] = np.loadtxt('%s/CSys_5Z_%s_%s_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.dat' %(Bacon_DIR,i+1,j+1), usecols=(1,3), unpack=True)
+                                #delta_xip[k,:] = np.interp( theta, tmp_theta, tmp_dxi ) # Interp onto the theta bins of the PH-stats
+                                k+=1
+        return theta_dxi, delta_xip
+                                           
 
 
 def Set_Heymans_Constraints(rho):
-	Cov_Mat_uc_Survey_All = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[0:135, 0:135] * Linc_Rescale
-	lfv = 0
-	delta_xip, _ = Calc_delta_xip_J16( alpha, T_ratio, rho )
-	delta_xip = delta_xip[lfv]
-
-	delta_chi2 = np.dot( np.transpose(delta_xip), 
-			np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), delta_xip ))		
-	return delta_chi2
+        #cov = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[0:135, 0:135] * Linc_Rescale
+        cov = Linc_Cov()
+        lfv = 0
+        delta_xip, _ = Calc_delta_xip_J16( alpha, T_ratio, rho )
+        delta_xip = delta_xip[lfv]
+        delta_chi2 = np.dot( np.transpose(delta_xip), 
+			np.dot( np.linalg.inv(cov), delta_xip ))
+        return delta_chi2
 
 
 
 def Set_Scales(ax):
 	ax.set_xscale('log')
-	ax.set_xlim([0.5,400.])
+	ax.set_xlim([0.5,350.])
 	#ax.set_yscale('log')
 	return
 
@@ -182,12 +214,16 @@ def Set_Scales(ax):
 
 # This plots the various ingredients of 
 def Plot_deltaxips_Only(zbin):
+        #cov = Linc_Cov()[81:90, 81:90]*0.16    # This pulls out the middle bin: 3-3, scales it by some factor to make it ~2D analysis.
+        theta_cov, cov = Marika_Cov(True)
+        cov = cov[81:90, 81:90]*0.16
+        
         lfv = 0
         #zbin= -1 # Plot the delta_xip for this z-bin alone.	
         
         delta_xip_H, err_delta_xip_H, delta_xip_terms_H, err_delta_xip_terms_H = Calc_delta_xip_H20( php_mean, php_err )
-        delta_xip_c, err_delta_xip_c = Calc_delta_xip_cterms( )
-
+        theta_dxip_c, delta_xip_c, err_delta_xip_c = Calc_delta_xip_cterms( )
+        theta_dxip_B, delta_xip_B = Calc_delta_xip_Bacon()
 
         fig = plt.figure(figsize = (10,6))
         gs1 = gridspec.GridSpec(1, 1)
@@ -204,8 +240,8 @@ def Plot_deltaxips_Only(zbin):
 
 
         # Plot the diagonal covariance
-        Req = np.sqrt( np.diagonal(Cov_Mat_uc_Survey) ) / 2.
-        ax.fill_between(theta_data, y1=abs(Req)*-1, y2=abs(Req)*1, facecolor='yellow') 
+        Req = np.sqrt( np.diagonal(cov) ) / 2.
+        ax.fill_between(theta_cov, y1=abs(Req)*-1, y2=abs(Req)*1, facecolor='yellow') 
 
 	# Plot the individual ingreidents of the delta_xip in Catherine's model
         ax.errorbar( 10**(np.log10(theta)-0.05), delta_xip_terms_H[lfv,zbin,:,0],
@@ -232,10 +268,14 @@ def Plot_deltaxips_Only(zbin):
                      yerr=err_delta_xip_H[lfv,zbin,:], color='red',
                      linewidth=2, label=r'$\delta\xi_+^{\rm sys}$' )
         
-        ax.errorbar( theta, delta_xip_c[lfv,zbin,:], yerr=err_delta_xip_c[lfv,zbin,:],
+        ax.errorbar( theta_dxip_c, delta_xip_c[lfv,zbin,:], yerr=err_delta_xip_c[lfv,zbin,:],
                      color='magenta', linewidth=2,
                      label=r'$\langle \delta\epsilon^{\rm PSF}(x,y) \, \delta\epsilon^{\rm PSF}(x,y) \rangle$' )
 
+        #ax.errorbar( theta_dxip_B, delta_xip_B[zbin,:], yerr=0., #err_delta_xip_B[zbin,:],
+        #             color='orange', linewidth=2,
+        #             label=r'$\alpha^2 \xi^{\rm PSF,PSF}$' )
+        
         ax.legend(loc='upper right', frameon=False, ncol=2)
         plt.subplots_adjust(hspace=0)
         plt.savefig('LFver%s/PHterms/Plot_deltaxip_CovPatches%sx%s_zbin%s.png'%(LFver[0],Res,Res,zbin))
@@ -243,7 +283,7 @@ def Plot_deltaxips_Only(zbin):
         return
 #for i in range(num_zbins_tot):
 #        Plot_deltaxips_Only(i)
-#Plot_deltaxips_Only(num_zbins_tot-1)
+Plot_deltaxips_Only(num_zbins_tot-1)
 
 
 
@@ -255,43 +295,61 @@ def Plot_deltaxips_Only(zbin):
 # Turns out it is, therefor systematic is subdominant to this tiny change in cosmology.
 
 def Investigate_chi2(rho):
-        Cov_Mat_uc_Survey_All = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[0:135,0:135] * Linc_Rescale
-	# [0:135,0:135] pulls out only the xi+ elements.
-        lfv = 0
-        #delta_xip, _ = Calc_delta_xip_J16( alpha, T_ratio, rho, rho )
-        #delta_xip,_,_,_ = Calc_delta_xip_H20( rho, rho )
-        delta_xip, err_delta_xip = Calc_delta_xip_cterms( )
-        delta_xip = np.ndarray.flatten( delta_xip[lfv] )
+        #cov_All = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[0:135,0:135] * Linc_Rescale
+        #cov_All = Linc_Cov()[0:135,0:135] # pulls out only the xi+ elements.   
+        theta_cov, cov_All = Marika_Cov(False)
+        cov_All = cov_All[0:135,0:135]
+        # [0:135,0:135] pulls out only the xi+ elements.   
 
-
-        # Assemble the theory vector - used to guage signif. of measuring genuine signal.
+        
         # And deviations in this signal from those with high/low values of S_8
         # 'higher/lower' are a 0.004 change in S_8 (0.2 sigma_k1000)
         # 'high/low' are a 0.002 change in S_8 (0.1 sigma_k1000),
         # 'midhigh/midlow' are a 0.001 change in S_8 (0.05 sigma_k1000) 
-        xip_theory_stack_hi = Read_In_Theory_Vector('high', theta_data)		# High S_8
-        xip_theory_stack_lo = Read_In_Theory_Vector('low', theta_data)		# Low S_8
-        xip_theory_stack_fid = Read_In_Theory_Vector('fid', theta_data)		# Fiducial S_8
+        theta_hi, xip_theory_stack_hi = Read_In_Theory_Vector('higher')		# High S_8
+        theta_low, xip_theory_stack_lo = Read_In_Theory_Vector('lower')		# Low S_8
+        theta_fid, xip_theory_stack_fid = Read_In_Theory_Vector('fid')		# Fiducial S_8
+        # Note: I've checked and theta_(hi,fid,low) & theta_cov are all identical.
 
+        # !!! A NOTE ON THETA BINNING !!!
+        # The delta-xips (e.g., Calc_delta_xip_H20, Calc_delta_xip_cterms, Calc_delta_xip_Bacon)...
+        # ... are all defined at the WEIGHTED-MID-point of the theta bins ([0.79,224.3] arcmin)
+        # BUT the covariance & theory predictions are defined at the MID-point of the theta bins ([0.71,210.3] arcmin)
+        # As it's very hard to get everything sampled at the same theta, we're settling to just interpolate
+        # the WEIGHTED-MID-point sampled correlations to the MID-point theta values,
+        # (and we're doing it this way round because lord knows how to interpolate a 2D covariance).
 
+        lfv = 0
+        #delta_xip, _ = Calc_delta_xip_J16( alpha, T_ratio, rho, rho )
+        #delta_xip,_,_,_ = Calc_delta_xip_H20( rho, rho )
+        #theta_dxip, delta_xip,_ = Calc_delta_xip_cterms( )
+        #delta_xip = delta_xip[lfv]
+        theta_dxip, delta_xip = Calc_delta_xip_Bacon()
+        for i in range(num_zbins_tot):
+                delta_xip[i,:] = np.interp( theta_fid, theta, delta_xip[i,:] )
+                # NB: theta_dxip (returned by Calc_delta_xip_cterms)
+                # differs from theta (returned by Paulin-Henriksson correlations(
+                # by only ~1% so probably safe to treat them as the same.
+        delta_xip = np.ndarray.flatten( delta_xip )
+        
         n_noise = 5000
         chi2_null = np.empty( n_noise )		# chi^2 of the null hypothesis (measurement is all noise) for each noise realisation
         chi2_sys = np.empty( n_noise )		# same for the hypothesis that measurement is contaminated by systematic
         chi2_hi = np.empty( n_noise )		# same for the hypothesis that measurement is high S_8
         chi2_lo = np.empty( n_noise )		# same for the hypothesis that measurement is low S_8
         for i in range(n_noise):
-                noise = multi_norm.rvs(mean=np.zeros(135), cov=Cov_Mat_uc_Survey_All)
+                noise = multi_norm.rvs(mean=np.zeros(135), cov=cov_All)
                 # chi2 for null hypothesis 
-                chi2_null[i] = np.dot( np.transpose(noise), np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise ))
+                chi2_null[i] = np.dot( np.transpose(noise), np.dot( np.linalg.inv(cov_All), noise ))
                 # chi2 for systematic hypothesis
                 chi2_sys[i] = np.dot( np.transpose(noise+delta_xip), 
-				      np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise+delta_xip ))
+				      np.dot( np.linalg.inv(cov_All), noise+delta_xip ))
                 # chi2 for high S_8 cosmology
                 chi2_hi[i] = np.dot( np.transpose(noise+xip_theory_stack_hi-xip_theory_stack_fid), 
-				     np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise+xip_theory_stack_hi-xip_theory_stack_fid ))
+				     np.dot( np.linalg.inv(cov_All), noise+xip_theory_stack_hi-xip_theory_stack_fid ))
                 # chi2 for low S_8 cosmology
                 chi2_lo[i] = np.dot( np.transpose(noise+xip_theory_stack_lo-xip_theory_stack_fid), 
-				     np.dot( np.linalg.inv(Cov_Mat_uc_Survey_All), noise+xip_theory_stack_lo-xip_theory_stack_fid ))
+				     np.dot( np.linalg.inv(cov_All), noise+xip_theory_stack_lo-xip_theory_stack_fid ))
 
         # Histogram the chi^2
         def Hist_n_Normalise(chi2, nbins):
@@ -310,7 +368,7 @@ def Investigate_chi2(rho):
         print("low S8: ", abs(mean_chi2_null-mean_chi2_lo))
         return abs(mean_chi2_null-mean_chi2_sys), abs(mean_chi2_null-mean_chi2_hi), abs(mean_chi2_null-mean_chi2_lo)
 t1 = time.time()
-ntrials = 5
+ntrials = 1
 delta_chi2_sys = np.zeros(ntrials)
 delta_chi2_hi = np.zeros_like(delta_chi2_sys)
 delta_chi2_lo =	np.zeros_like(delta_chi2_sys)
@@ -321,6 +379,26 @@ print(" It took %.0f seconds." %(t2-t1))
 
 
 sys.exit()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
