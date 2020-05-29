@@ -70,12 +70,13 @@ theta_max=300.0
 str_tmin='0.5'
 str_tmax='300'
 nTheta=9
+counter=1
 name_sys = FolderNameData+'CSys/CSys_5Z_'
 name = FolderNameData+'/XI/XI_K1000_ALL_BLIND_'+blind+'_'+cat_version+'_nbins_4000_theta_0.5_300.0_zbins_'
-xip_all_list =[]
-xim_all_list =[]
-xip_all_corr_list =[]
-xim_all_corr_list =[]
+# xip_all_list =[]
+# xim_all_list =[]
+# xip_all_corr_list =[]
+# xim_all_corr_list =[]
 for bin1 in range(nBins_source):
     for bin2 in range(bin1,nBins_source):
         m_corr= (1.+m[bin2])*(1.+m[bin1])
@@ -90,21 +91,35 @@ for bin1 in range(nBins_source):
         xim_binned = rebin(theta,xim,weight,theta_min,theta_max,nTheta)
         # now read the sys files, these are already binned into 9 bins
         fileName_sys=name_sys+str(bin1+1)+'_'+str(bin2+1)+'_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.dat'
-        file= open(fileNameInput)
+        file= open(fileName_sys)
         xipm_sys=np.loadtxt(file,comments='#')
         xip_sys   = xipm_sys[:,3]
         xim_sys   = xipm_sys[:,4]
-        if(((bin1==4) & (bin2==4)) or ((bin1==4) & (bin2==5)) or ((bin1==5) & (bin2==5))):
-            xip_binned -= xip_sys
-        xip_all_list.append(xip_binned)
-        xim_all_list.append(xim_binned)
-        xip_all_corr_list.append((xip_binned[:,-1]/m_corr))
-        xim_all_corr = np.hstack((xim_binned[:,-1]/m_corr))
+        if(((bin1==3) & (bin2==3)) or ((bin1==3) & (bin2==4)) or ((bin1==4) & (bin2==4))):
+            print(bin1+1,bin2+1)
+            print(xip_sys/xip_binned[:,-1])
+            xip_binned[:,-1] -= xip_sys
+        if counter==1:
+            xip_all = xip_binned[:,-1].copy()
+            xim_all = xim_binned[:,-1].copy()
+            xip_all_corr = xip_binned[:,-1]/m_corr
+            xim_all_corr = xim_binned[:,-1]/m_corr
+        else:
+            xip_all = np.hstack((xip_all,xip_binned[:,-1]))
+            xim_all = np.hstack((xim_all,xim_binned[:,-1]))
+            xip_all_corr = np.hstack((xip_all_corr,xip_binned[:,-1]/m_corr))
+            xim_all_corr = np.hstack((xim_all_corr,xim_binned[:,-1]/m_corr))
+        counter+=1
 
-xip_all = np.asarray(xip_all_list)
-xim_all = np.asarray(xim_all_list)
-xip_all_corr = np.asarray(xip_all_corr_list)
-xim_all_corr = np.asarray(xim_all_corr_list)
+        # xip_all_list.append(xip_binned[:,-1])
+        # xim_all_list.append(xim_binned[:,-1])
+        # xip_all_corr_list.append((xip_binned[:,-1]/m_corr))
+        # xim_all_corr = np.hstack((xim_binned[:,-1]/m_corr))
+
+# xip_all = np.asarray(xip_all_list)
+# xim_all = np.asarray(xim_all_list)
+# xip_all_corr = np.asarray(xip_all_corr_list)
+# xim_all_corr = np.asarray(xim_all_corr_list)
 
 xipm_all      = np.hstack((xip_all,xim_all))
 xipm_all_corr = np.hstack((xip_all_corr,xim_all_corr))
