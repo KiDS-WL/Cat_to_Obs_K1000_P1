@@ -227,6 +227,8 @@ bp_filename      = FolderNameInputs+'/kids/bp_K1000_ALL_BLIND_'+blind+'_'+name_t
 cosebis_filename = FolderNameInputs+'/kids/cosebis_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_theta_0.5_300.asc'
 xipm_filename    = FolderNameInputs+'/kids/xipm_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_9_theta_0.5_300.asc'
 
+xipm_sys_corrected_filename = FolderNameInputs+'/kids/psf_systematic_corrected/xipm_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_9_theta_0.5_300.asc'
+
 nBins_lens = 2
 lens1 = FolderNameInputs+'/boss/nofz/BOSS_and_2dFLenS_n_of_z1_res_0.01_extended.txt'
 lens2 = FolderNameInputs+'/boss/nofz/BOSS_and_2dFLenS_n_of_z2_res_0.01_extended.txt'
@@ -391,6 +393,58 @@ def saveFitsXIPM_list_KIDS1000():
         prefix_CosmoSIS=None,
         scDict=scDict,
         meanTag='file', meanName=xipm_filename,
+        covTag=covTag, covName=covName,
+        nOfZNameList=nOfZNameList, nGalList=nGalList, sigmaEpsList=sigmaEpsList,
+        saveName=saveName
+    )
+    return
+
+
+def saveFitsXIPM_sys_corrected_list_KIDS1000():
+    scDict = {
+        'use_stats': 'xiP xiM'.lower()
+    }
+    
+    sigmaEpsList = sigma_e.tolist()
+ 
+    if(name_tag=='no_m_bias'):
+        covTag='list'
+        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_xipm_apr6_list.dat'
+        nGalList   = nGal_all
+        nBins_lens = 2
+        nOfZNameList = [ lens1,
+                         lens2, 
+                         source1,
+                         source2,
+                         source3,
+                         source4,
+                         source5 ]
+    elif(name_tag=='with_m_bias'):
+        covTag='file'
+        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_xipm_apr6_matrix_with_sigma_m.dat'
+        nBins_lens = 0
+        nGalList     = nGal_source
+        nOfZNameList = [ source1,
+                         source2,
+                         source3,
+                         source4,
+                         source5 ]
+    else:
+        print('not a recognised name_tag, will not produce anything')
+        return
+        
+    
+    saveName  = FolderNameInputs+'/kids/fits/xipm_sys_corrected_KIDS1000_Blind'+blind+'_'+name_tag+'_'+cat_version+'.fits'
+    
+    saveFitsTwoPoint(
+        nbTomoN=nBins_lens, nbTomoG=nBins_source,
+        N_theta=9, theta_min=0.5, theta_max=300,
+        #N_ell=8, ell_min=100, ell_max=1500,
+        # nbModes=5,
+        prefix_Flinc=None,
+        prefix_CosmoSIS=None,
+        scDict=scDict,
+        meanTag='file', meanName=xipm_sys_corrected_filename,
         covTag=covTag, covName=covName,
         nOfZNameList=nOfZNameList, nGalList=nGalList, sigmaEpsList=sigmaEpsList,
         saveName=saveName
