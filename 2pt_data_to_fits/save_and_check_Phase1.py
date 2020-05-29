@@ -647,7 +647,8 @@ def unitaryTest(name1, name2):
 ############################################################
 # plot things here
 
-saveFitsCOSEBIs_KIDS1000()
+exit()
+# saveFitsCOSEBIs_KIDS1000()
 
 # saveFitsBP_list_KIDS1000()
 # saveFitsXIPM_list_KIDS1000()
