@@ -285,6 +285,7 @@ def Read_alpha_per_bin(LFver):
     num_zbins = 5
     num_zbins_tot = np.sum( range(num_zbins+1) )    # Number source bins including cross-bins
     alpha = np.zeros([ len(LFver), num_zbins_tot ])
+    alpha_err = np.zeros([ len(LFver), num_zbins_tot ])
     for lfv in range(len(LFver)):
 
         if LFver[lfv] == "321":
@@ -295,19 +296,26 @@ def Read_alpha_per_bin(LFver):
             print("Currently only have saved alpha values for 2 LF versions: 321 and 309c. EXITING")
             sys.exit()
 
-        tmp_a1, tmp_a2 = np.loadtxt('KAll.autocal.BlindA.alpha_VS_ZB.ZBcut0.1-1.2_LF_%s_2Dbins.dat'%tmp,
-                                    usecols=(1,3), unpack=True)
-        tmp_a = (tmp_a1 + tmp_a2) / 2.    # Just taking the avg of the alpha per ellipticity component                                 
-                                          # Also calculate the alphas in the cross-bins as the combination of values in the auto-bins  
+        tmp_a1, tmp_1_err, tmp_a2, tmp_a2_err = np.loadtxt('KAll.autocal.BlindA.alpha_VS_ZB.ZBcut0.1-1.2_LF_%s_2Dbins.dat'%tmp, usecols=(1,2,3,4), unpack=True)
+        tmp_a = (tmp_a1 + tmp_a2) / 2.    # Just taking the avg of the alpha per ellipticity component
+                                          # Also calculate the alphas in the cross-bins as
+                                          # the combination of values in the auto-bins
+        tmp_a_err = 0.5 * np.sqrt( tmp_1_err**2 + tmp_a2_err**2 ) 
         k=0
         for i in range(num_zbins):
             for j in range(num_zbins):
                 if j>= i:
-                    alpha[lfv,k] = np.sqrt( tmp_a[i]*tmp_a[j] )
+                    alpha[lfv,k] = ( tmp_a[i]+tmp_a[j] )/2. 
+                    # The error propagation formula HAS to change if j==i
+                    # since the differentiation would take a different form in this case.
+                    if i==j:
+                        alpha_err[lfv,k] = tmp_a_err[j]
+                    else:
+                        alpha_err[lfv,k] = 0.5* np.sqrt( tmp_a_err[j]**2 + tmp_a_err[i]**2 )
                     #print("%s : %s %s : %s" %(k, tmp_a1[i], tmp_a1[j], alpha[lfv,k]) )                                    
                     k+=1
 
-    return alpha
+    return alpha, alpha_err
 
 
 def Read_In_Theory_Vector(hi_lo_fid):

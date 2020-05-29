@@ -67,14 +67,13 @@ else:
                            header='# < deltaT_PSF / T_gal >, SIGMA[ deltaT_PSF / T_gal ], < T_gal^-2 > , SIGMA[ T_gal^-2  ]')
         
 # Read in the alpha values for each shear component and tomo-bin
-Use_alpha_per_bin = False
-alpha = np.zeros([ len(LFver), num_zbins_tot ])
+Use_alpha_per_bin = True
 if Use_alpha_per_bin:
         from Functions_4_Plotting_PSFstats import Read_alpha_per_bin
-        Read_alpha_per_bin(LFver)
+        alpha, alpha_err = Read_alpha_per_bin(["321", "309c"]) # Read in alpha values for both LFver
 else:
-	alpha += 0.03     # worse case scenario PSF leakage is 0.03;
-
+        alpha = np.zeros([ len(LFver), num_zbins_tot ])+0.03     # worse case scenario PSF leakage is 0.03;
+        alpha_err=np.zeros([ len(LFver), num_zbins_tot ])
 
 ThBins = 9
 Res = 7
@@ -178,17 +177,20 @@ def Calc_delta_xip_cterms():
 def Calc_delta_xip_Bacon():
         # The Bacon et al. (2010) PSF systematic: alpha^2 * xi_+^{PSF,PSF}
         # for the 15 tomographic bins.
-        # Note this exists only for LFver glab_321.
+        # Note this exists only for LFver svn_309c.
         Bacon_DIR = '/disk09/KIDS/K1000_TWO_PT_STATS/OUTSTATS/CSys/'
         delta_xip = np.zeros([ num_zbins_tot, ThBins ])
+        delta_xip_err = np.zeros_like( delta_xip )
         k=0
-        for i in range( 5 ):
-                for j in range(5):
+        for i in range( num_zbins ):
+                for j in range( num_zbins ):
                         if i<=j:
-                                theta_dxi, delta_xip[k,:] = np.loadtxt('%s/CSys_5Z_%s_%s_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.dat' %(Bacon_DIR,i+1,j+1), usecols=(1,3), unpack=True)
-                                #delta_xip[k,:] = np.interp( theta, tmp_theta, tmp_dxi ) # Interp onto the theta bins of the PH-stats
+                                theta_dxi, delta_xip[k,:], delta_xip_err[k,:] = np.loadtxt('%s/CSys_5Z_%s_%s_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.dat' %(Bacon_DIR,i+1,j+1), usecols=(1,3,5), unpack=True)
+                                #delta_xip[k,:] = np.interp( theta, tmp_theta, tmp_dxi )
+                                # Don't need to interp onto the theta bins of the PH-stats
+                                # Since the theta scales differ by ~<1%.
                                 k+=1
-        return theta_dxi, delta_xip
+        return theta_dxi, delta_xip, delta_xip_err
                                            
 
 
@@ -223,7 +225,7 @@ def Plot_deltaxips_Only(zbin):
         
         delta_xip_H, err_delta_xip_H, delta_xip_terms_H, err_delta_xip_terms_H = Calc_delta_xip_H20( php_mean, php_err )
         theta_dxip_c, delta_xip_c, err_delta_xip_c = Calc_delta_xip_cterms( )
-        theta_dxip_B, delta_xip_B = Calc_delta_xip_Bacon()
+        theta_dxip_B, delta_xip_B, err_delta_xip_B = Calc_delta_xip_Bacon()
 
         fig = plt.figure(figsize = (10,6))
         gs1 = gridspec.GridSpec(1, 1)
@@ -272,9 +274,9 @@ def Plot_deltaxips_Only(zbin):
                      color='magenta', linewidth=2,
                      label=r'$\langle \delta\epsilon^{\rm PSF}(x,y) \, \delta\epsilon^{\rm PSF}(x,y) \rangle$' )
 
-        #ax.errorbar( theta_dxip_B, delta_xip_B[zbin,:], yerr=0., #err_delta_xip_B[zbin,:],
-        #             color='orange', linewidth=2,
-        #             label=r'$\alpha^2 \xi^{\rm PSF,PSF}$' )
+        ax.errorbar( theta_dxip_B, delta_xip_B[zbin,:], yerr=err_delta_xip_B[zbin,:],
+                     color='orange', linewidth=2,
+                     label=r'$\alpha^2 \xi^{\rm PSF,PSF}$' )
         
         ax.legend(loc='upper right', frameon=False, ncol=2)
         plt.subplots_adjust(hspace=0)
@@ -283,7 +285,7 @@ def Plot_deltaxips_Only(zbin):
         return
 #for i in range(num_zbins_tot):
 #        Plot_deltaxips_Only(i)
-Plot_deltaxips_Only(num_zbins_tot-1)
+#Plot_deltaxips_Only(num_zbins_tot-1)
 
 
 
@@ -306,8 +308,8 @@ def Investigate_chi2(rho):
         # 'higher/lower' are a 0.004 change in S_8 (0.2 sigma_k1000)
         # 'high/low' are a 0.002 change in S_8 (0.1 sigma_k1000),
         # 'midhigh/midlow' are a 0.001 change in S_8 (0.05 sigma_k1000) 
-        theta_hi, xip_theory_stack_hi = Read_In_Theory_Vector('higher')		# High S_8
-        theta_low, xip_theory_stack_lo = Read_In_Theory_Vector('lower')		# Low S_8
+        theta_hi, xip_theory_stack_hi = Read_In_Theory_Vector('high0.3sigma')		# High S_8
+        theta_low, xip_theory_stack_lo = Read_In_Theory_Vector('low0.3sigma')		# Low S_8
         theta_fid, xip_theory_stack_fid = Read_In_Theory_Vector('fid')		# Fiducial S_8
         # Note: I've checked and theta_(hi,fid,low) & theta_cov are all identical.
 
@@ -324,7 +326,7 @@ def Investigate_chi2(rho):
         #delta_xip,_,_,_ = Calc_delta_xip_H20( rho, rho )
         #theta_dxip, delta_xip,_ = Calc_delta_xip_cterms( )
         #delta_xip = delta_xip[lfv]
-        theta_dxip, delta_xip = Calc_delta_xip_Bacon()
+        theta_dxip, delta_xip,_ = Calc_delta_xip_Bacon()
         for i in range(num_zbins_tot):
                 delta_xip[i,:] = np.interp( theta_fid, theta, delta_xip[i,:] )
                 # NB: theta_dxip (returned by Calc_delta_xip_cterms)
@@ -368,7 +370,7 @@ def Investigate_chi2(rho):
         print("low S8: ", abs(mean_chi2_null-mean_chi2_lo))
         return abs(mean_chi2_null-mean_chi2_sys), abs(mean_chi2_null-mean_chi2_hi), abs(mean_chi2_null-mean_chi2_lo)
 t1 = time.time()
-ntrials = 1
+ntrials = 5
 delta_chi2_sys = np.zeros(ntrials)
 delta_chi2_hi = np.zeros_like(delta_chi2_sys)
 delta_chi2_lo =	np.zeros_like(delta_chi2_sys)
