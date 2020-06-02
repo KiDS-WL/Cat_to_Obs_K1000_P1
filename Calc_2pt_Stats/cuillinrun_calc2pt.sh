@@ -41,10 +41,16 @@ mkdir -p $LOGDIR
 # COMBINE: combine the results from N and S for cross bin combination i j"
 
 LENSFIT_VERSION=svn_309c_2Dbins_v2
+RUNTHIS=$1
+BLIND=$2
 
-#: <<'=runmelater'
-for BLIND in A #B C
-do
+#FLAG_SOM=false
+FLAG_SOM=Flag_SOM_Fid 
+#FLAG_SOM=Flag_SOM_noDEEP2
+
+#===================
+
+if [ "${RUNTHIS}" = "CREATETOMO" ]; then
 
 ## Do you want to create the tomographic catalogues?  Safe to do this on the head node
 # No SOM Flag Selection
@@ -54,28 +60,25 @@ do
 # SOM Flag Selection
 for FLAG_SOM in Flag_SOM_Fid #Flag_SOM_noDEEP2
 do
-  #./doall_calc2pt.sh -m CREATETOMO -c true -p N -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
-  #./doall_calc2pt.sh -m CREATETOMO -c true -p S -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
-  ./doall_calc2pt.sh -m CREATETOMO -c true -p ALL -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
+  ./doall_calc2pt.sh -m CREATETOMO -c true -p N -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
+  ./doall_calc2pt.sh -m CREATETOMO -c true -p S -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
+  #./doall_calc2pt.sh -m CREATETOMO -c true -p ALL -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
 done
 
-done
-#=runmelater
+fi
 
+#===================
+
+if [ "${RUNTHIS}" = "XI" ]; then
 #Lets submit the XI-calculation to different nodes	    
 #This is for the default 5 bins
 
-#FLAG_SOM=false
-FLAG_SOM=Flag_SOM_Fid 
-#FLAG_SOM=Flag_SOM_noDEEP2
-
-: <<'=runmelater'
 for patch in N S
 do
     
 for ibin in {1..5}
 do
-	jbin=$ibin
+  jbin=$ibin
   while [[ $jbin -le 5 ]]
   do
 		echo $ibin $jbin
@@ -95,43 +98,54 @@ do
 		--partition=WL \
 	        --tasks-per-node=1 \
 	        --mem=0G \
-	        doall_calc2pt.sh -m XI -i $ibin -j $jbin -p $patch -v $LENSFIT_VERSION -s $FLAG_SOM -t "4000 0.5 300.0"
-#    	        doall_calc2pt.sh -m XI -i $ibin -j $jbin -p $patch -v $LENSFIT_VERSION -s $FLAG_SOM
+    	        doall_calc2pt.sh -m XI -i $ibin -j $jbin -p $patch -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND -t "4000 0.5 300.0"
+#	        doall_calc2pt.sh -m XI -i $ibin -j $jbin -p $patch -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND 
+
     ((jbin = jbin + 1))
   done
 done
 done
 
-=runmelater
-: <<'=runmelater'
+fi
 
+#==================
 
+if [ "${RUNTHIS}" = "COMBINEXI" ]; then
+    
 # Do you want to combine the XI N/S results?  Safe to do this on the head node
 for ibin in {1..5}
 do
 	jbin=$ibin
   while [[ $jbin -le 5 ]]
   do
-  ./doall_calc2pt.sh -m COMBINEXI -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION -s $FLAG_SOM
+  ./doall_calc2pt.sh -m COMBINEXI -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND -t "4000 0.5 300.0"
   ((jbin = jbin + 1))
   done
-done   
-=runmelater
+done
 
-: <<'=runmelater'
+fi
+
+#==================
+
+if [ "${RUNTHIS}" = "Pkk" ]; then
+    
 # Do you want to calculate Pkk?  Safe to do this on the head node
 for ibin in {1..5}
 do
 	jbin=$ibin
   while [[ $jbin -le 5 ]]
   do
-  ./doall_calc2pt.sh -m Pkk -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION  -s $FLAG_SOM
+  ./doall_calc2pt.sh -m Pkk -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION  -s $FLAG_SOM -b $BLIND
   ((jbin = jbin + 1))
   done
 done   
 
-=runmelater
-: <<'=runmelater'
+fi
+
+#================
+
+if [ "${RUNTHIS}" = "GT" ]; then
+
 # Do you want to calculate GGL?  do not do this on the head node
 # -p N automatically connects with BOSS
 # -p S automatically connects with 2dFLenS
@@ -151,47 +165,59 @@ do
 	        --tasks-per-node=1 \
 		--partition=WL \
 	        --mem=0G \
-            doall_calc2pt.sh -m GT -i $ibin -j $jbin -p $patch  -v $LENSFIT_VERSION #-s $FLAG_SOM
+            doall_calc2pt.sh -m GT -i $ibin -j $jbin -p $patch  -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
   done
 done   
 done
 
+fi
 
-=runmelater
-: <<'=runmelater'
+#================
+
+if [ "${RUNTHIS}" = "COMBINEGT" ]; then
+
 # Do you want to combine the GT N/S results?  Safe to do this on the head node
 for ibin in {1..2}
 do
   for jbin in {1..5}
   do
-    ./doall_calc2pt.sh -m COMBINEGT -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION -s $FLAG_SOM
+    ./doall_calc2pt.sh -m COMBINEGT -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION -s $FLAG_SOM -b $BLIND
   done
 done   
 
-=runmelater
+fi
 
+#================
 
-: <<'=runmelater'
+if [ "${RUNTHIS}" = "Pgk" ]; then
+
 # Do you want to calculate Pgk?  Safe to do this on the head node
 for ibin in {1..2}
 do
     for jbin in {1..5}
     do
-        ./doall_calc2pt.sh -m Pgk -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION  -s $FLAG_SOM
+        ./doall_calc2pt.sh -m Pgk -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION  -s $FLAG_SOM -b $BLIND
     done
 done   
-=runmelater
 
-: <<'=runmelater'
+fi
+
+#================
+
+if [ "${RUNTHIS}" = "COSEBIS" ]; then
+
 # Do you want to calculate COSEBIS?  Safe to do this on the head node
 for ibin in {1..5}
 do
 	jbin=$ibin
   while [[ $jbin -le 5 ]]
   do
-  ./doall_calc2pt.sh -m COSEBIS -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION -s $FLAG_SOM
+      ./doall_calc2pt.sh -m COSEBIS -i $ibin -j $jbin -p ALL -v $LENSFIT_VERSION -s $FLAG_SOM -t "4000 0.5 300.0" -b $BLIND
+  
   ((jbin = jbin + 1))
   done
 done   
 
-=runmelater
+fi
+
+#================

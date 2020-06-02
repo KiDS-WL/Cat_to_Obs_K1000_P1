@@ -992,6 +992,11 @@ do
     # This choise is not too important though the bins are finely binned
     # Treecorr: #   R_nom       meanR       meanlogR       xip          xim         xip_im      xim_im      sigma_xi      weight       npairs
 
+    #!!!!!!!!!!!!!!!!!!!
+    #HACK HERE FOR DATA COMBINEXI THERE IS ONLY ONE HEADER COLUMN
+    #FOR MOCKS WE HAVE 2 SO NEED NR>2 HERE :(
+    #FOR DATA WE NEED NR>1
+    #!!!!!!!!!!!!!!!!!!
     awk '(NR>2){print $2, $4, $5}' < ${treePath} > ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat
     N_theta_BP=`wc -l < ${FolderName}/xi2bandpow_input_${InputFileIdentifier}.dat`
 
