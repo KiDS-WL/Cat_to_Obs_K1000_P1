@@ -11,7 +11,7 @@ import sys
 
 Calc_PH = True           # Runs TreeCorr to calc rho1-5 if True.
 PreReadCat = True        # If True, read in a pre-saved shear catalogue
-Splitup_Fields = True    # If True, splits sky survey into Res*Res patches
+Splitup_Fields = False    # If True, splits sky survey into Res*Res patches
 Res = 7                  # Splits the Field into Res*Res pieces and calculates rho's for each.
                          # These are used to calculate Jackknife errors.
 
@@ -102,7 +102,7 @@ else:
             delta_e0PSF = np.append(delta_e0PSF, tmp_delta_e0PSF)
             delta_e1PSF = np.append(delta_e1PSF, tmp_delta_e1PSF)
         i+=1
-    # There's something weird with element 0: RA=745... Delete it.
+    # Delete the first element which comes from initialisation.
     RA = np.delete(RA, 0)
     Dec = np.delete(Dec, 0)
     Xpos = np.delete(Xpos, 0)
@@ -122,7 +122,7 @@ else:
 ThBins=9
 min_sep=0.5   # arcmin
 max_sep=300.  # arcmin                                                                                        
-bin_slop=0.1/(np.log(max_sep/min_sep)/float(ThBins))
+bin_slop=0.05 #0.1/(np.log(max_sep/min_sep)/float(ThBins))
 metric='Arc'
 
 def Run_TreeCorr(ra,dec,y1,y2,z1,z2):

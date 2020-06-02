@@ -274,9 +274,9 @@ def Plot_deltaxips_Only(zbin):
                      color='magenta', linewidth=2,
                      label=r'$\langle \delta\epsilon^{\rm PSF}(x,y) \, \delta\epsilon^{\rm PSF}(x,y) \rangle$' )
 
-        ax.errorbar( theta_dxip_B, delta_xip_B[zbin,:], yerr=err_delta_xip_B[zbin,:],
-                     color='orange', linewidth=2,
-                     label=r'$\alpha^2 \xi^{\rm PSF,PSF}$' )
+        #ax.errorbar( theta_dxip_B, delta_xip_B[zbin,:], yerr=err_delta_xip_B[zbin,:],
+        #             color='orange', linewidth=2,
+        #             label=r'$\alpha^2 \xi^{\rm PSF,PSF}$' )
         
         ax.legend(loc='upper right', frameon=False, ncol=2)
         plt.subplots_adjust(hspace=0)
@@ -308,8 +308,8 @@ def Investigate_chi2(rho):
         # 'higher/lower' are a 0.004 change in S_8 (0.2 sigma_k1000)
         # 'high/low' are a 0.002 change in S_8 (0.1 sigma_k1000),
         # 'midhigh/midlow' are a 0.001 change in S_8 (0.05 sigma_k1000) 
-        theta_hi, xip_theory_stack_hi = Read_In_Theory_Vector('high0.3sigma')		# High S_8
-        theta_low, xip_theory_stack_lo = Read_In_Theory_Vector('low0.3sigma')		# Low S_8
+        theta_hi, xip_theory_stack_hi = Read_In_Theory_Vector('high0.15sigma')		# High S_8
+        theta_low, xip_theory_stack_lo = Read_In_Theory_Vector('low0.15sigma')		# Low S_8
         theta_fid, xip_theory_stack_fid = Read_In_Theory_Vector('fid')		# Fiducial S_8
         # Note: I've checked and theta_(hi,fid,low) & theta_cov are all identical.
 
@@ -324,9 +324,9 @@ def Investigate_chi2(rho):
         lfv = 0
         #delta_xip, _ = Calc_delta_xip_J16( alpha, T_ratio, rho, rho )
         #delta_xip,_,_,_ = Calc_delta_xip_H20( rho, rho )
-        #theta_dxip, delta_xip,_ = Calc_delta_xip_cterms( )
-        #delta_xip = delta_xip[lfv]
-        theta_dxip, delta_xip,_ = Calc_delta_xip_Bacon()
+        theta_dxip, delta_xip,_ = Calc_delta_xip_cterms( )
+        delta_xip = delta_xip[lfv]
+        #theta_dxip, delta_xip,_ = Calc_delta_xip_Bacon()
         for i in range(num_zbins_tot):
                 delta_xip[i,:] = np.interp( theta_fid, theta, delta_xip[i,:] )
                 # NB: theta_dxip (returned by Calc_delta_xip_cterms)
@@ -370,7 +370,7 @@ def Investigate_chi2(rho):
         print("low S8: ", abs(mean_chi2_null-mean_chi2_lo))
         return abs(mean_chi2_null-mean_chi2_sys), abs(mean_chi2_null-mean_chi2_hi), abs(mean_chi2_null-mean_chi2_lo)
 t1 = time.time()
-ntrials = 5
+ntrials = 20
 delta_chi2_sys = np.zeros(ntrials)
 delta_chi2_hi = np.zeros_like(delta_chi2_sys)
 delta_chi2_lo =	np.zeros_like(delta_chi2_sys)
