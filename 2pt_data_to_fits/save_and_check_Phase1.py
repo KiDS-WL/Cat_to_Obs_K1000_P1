@@ -649,12 +649,15 @@ def unitaryTest(name1, name2):
 
 exit()
 # saveFitsCOSEBIs_KIDS1000()
+# saveFitsXIPM_sys_corrected_list_KIDS1000()
 
 # saveFitsBP_list_KIDS1000()
 # saveFitsXIPM_list_KIDS1000()
 
 FolderPlots=FolderNameInputs+'/plots'
 mkdir_mine(FolderPlots)
+
+
 
 
 filename=FolderNameInputs+"/kids/fits/cosebis_KIDS1000_Blind"+blind+"_"+name_tag+"_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
