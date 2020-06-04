@@ -13,11 +13,15 @@ Pz="Estimated"                       # only used if SOURCE_TYPE is MICE2_KV450
                                      # ONLY USED FOR ANALYSIS WITH K1000
 SOMFLAGNAME="Fid"                    # The type of SOM used TO ESTIMATE n(Z)
 
-nofz_shift="_nofzUp"           # Shift the nofz by the delta-z param?
-                                     # Blank for no shift, "_nofzUp" for shift up, "_nofzDown" for shift down
-                                     # SHOULD ONLY BE SET FOR K1000 SOURCES.
+nofz_shift=""             # Shift the nofz by the delta-z param?
+                          # Blank for no shift, "_nofzUp" for shift up, "_nofzDown" for shift down
+                          # SHOULD ONLY BE SET FOR K1000 SOURCES.
 
-BLIND="A"                            # Which Blind to use
+OL_Tag="" #"_OutlierPeaksInBins12" # If set, accesses nofzs saved in SOUCE_CATS/SOM_NofZ
+                              # which have an Outlier (OL) excess injected at high redshift
+                              # in the specified bin.
+                          # SHOULD ONLY BE SET FOR K1000 SOURCES.
+BLIND="A"                 # Which Blind to use
 
 
 if [ "$SOURCE_TYPE" == "K1000" ]; then
@@ -46,8 +50,11 @@ do
     if [ "$SOURCE_TYPE" == "K1000" ]; then
 	# This is the old DIR-Estimated n(z)
 	#source_nofz=/home/cech/public_html/KiDS/KiDS-VIKING-450/BLINDED_NZ/KiDS_2018-07-26_deepspecz_photoz_10th_BLIND_specweight_1000_4_ZB${tomochar}_blind${BLIND}_Nz.asc
+
 	# This is the new SOM-Estimated n(z)
-	source_nofz=/disk09/KIDS/K1000_TWO_PT_STATS/SOM_NofZ/K1000_NS_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_DIRcols_${SOMFLAGNAME}_blind${BLIND}_TOMO${JZBIN}_Nz.fits
+	source_nofz_DIR=/disk09/KIDS/K1000_TWO_PT_STATS/SOM_NofZ
+	#source_nofz_DIR=/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/Shear_Ratio_Test/SOURCECATS/SOM_NofZ
+	source_nofz=${source_nofz_DIR}/K1000_NS_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_DIRcols_${SOMFLAGNAME}_blind${BLIND}_TOMO${JZBIN}_Nz${OL_Tag}.fits
 	LENS_DIR=LENSCATS/${LENS_TYPE}/
 	
     elif [ "$SOURCE_TYPE" == "MICE2_KV450" ]; then

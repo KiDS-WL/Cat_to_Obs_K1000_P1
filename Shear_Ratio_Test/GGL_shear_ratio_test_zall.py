@@ -26,16 +26,17 @@ import string
 import numpy.ma as ma
 from astropy.io import ascii
 from scipy.optimize import curve_fit
+from astropy.io import fits
 
 plt.rc('font', size=10)
 # ----- Load Input ----- #
 DFLAG = ''                     # Data Flag. Set to '' for Fiducial MICE. '_Octant' for MICE Octant.
-Include_mCov = True            # Include the uncertainty due to the m-correction
+Include_mCov = True           # Include the uncertainty due to the m-correction
 Include_Hartlap = False        # Hartlap correction
 Include_Magnification = False  # If True, include extra param in gamma_t model: strength of magnifcation effect on gt.
-Single_Bin = True              # If True, fit for only a single lens-source bin, specified by user on the command line.
+Single_Bin = False             # If True, fit for only a single lens-source bin, specified by user on the command line.
                                # Else fit for all bins simultaneously.
-nofz_shift="_nofzDown"         # Only for K1000: use the Dls/Ds values for the nofz which has been
+nofz_shift=""         # Only for K1000: use the Dls/Ds values for the nofz which has been
                                # shifted up ('_nofzUp'), down ('_nofzDown') by (delta_z+delta_z_err)
                                # For no shift, set to ''
                                
@@ -60,10 +61,10 @@ if Single_Bin == True:
 else:
     print("Performing SRT for all lens and source bins simultaneously. ",
           "Will fit an amplitude parameter per lens and source bin.")
-    ntomo=5              # Number of photo-z bins
-    nspecz=5             # "..." of spec-z bins
-    spec_bins=range(nspecz)
-    tomo_bins=range(ntomo)
+    spec_bins=range(5)
+    tomo_bins=range(2, 5)
+    ntomo=len(tomo_bins)              # Number of photo-z bins
+    nspecz=len(spec_bins)             # "..." of spec-z bins 
     save_tag = ''        # Blank save_tag means SRT was conducted on all lens & source bins
     
 numz_tag=5               # Part of 'GT_' filenames; GT_6Z_source_Y_${numz_tag}Z_lens_X.asc
@@ -78,15 +79,22 @@ gt_list = []      # gamma_t
 gx_list = []      # gamma_x
 gterr_list = []
 
+# The following two are used to construct the analytical covariance
+# and are only read in if Cov_Method="Analytical"
+weight_sqrd_list = []  # the weight returned from the lens-source correlation with squared weights
+ran_weight_list = []
+
 tomo_list = []
 speczbin_list = []
 Dls_over_Ds_list = []
 
 
-Cov_Method = "Spin"   # The method for calculating the gamma_t realisations for use in covariance estimation
+Cov_Method = "Analytical"   # The method for calculating the gamma_t realisations for use in covariance estimation
                        # "Spin" many spin realisations of the source ellipticities (ie - shape noise only)
                        # "Patch" using other MICE realisations (1/8 of the sky)
                        # divided them into patches and calcuted the gamma_t from each patch.
+                       # "Analytical" means construct and use an analytical covariance matrix.
+                       
 nPatch = 16             # If Cov_Method is Patch, the MICE octant is split into nPatch RA
                        # and nPatch Dec slices (nPatch^2 patches in total). gamma_t is
                        # calculated from each patch.   
@@ -105,7 +113,7 @@ if "MICE2" in SOURCE_TYPE:
 
 
 nspin=500
-if Cov_Method == "Spin":
+if Cov_Method == "Spin" or Cov_Method == "Analytical":
     ncycle = nspin
     OUTDIR = INDIR + "/SPIN/"
     Area_Scale = 1.    # 341./750. # Approx. scaling KV450-->K1000     #1.
@@ -132,7 +140,13 @@ for tomobin in tomo_bins:
         gt_list.append(measurements['gt_'+str(speczbin)+"_"+str(tomobin)])
         gx_list.append(measurements['gx_'+str(speczbin)+"_"+str(tomobin)])
         gterr_list.append(measurements['gterr_'+str(speczbin)+"_"+str(tomobin)])
-
+        
+        if Cov_Method == "Analytical":
+            measurements['ranweight_'+str(speczbin)+"_"+str(tomobin)] = gtdat['ranweight']
+            measurements['weight_sqrd_'+str(speczbin)+"_"+str(tomobin)] = gtdat['weight_sqrd']
+            ran_weight_list.append(measurements['ranweight_'+str(speczbin)+"_"+str(tomobin)]) 
+            weight_sqrd_list.append(measurements['weight_sqrd_'+str(speczbin)+"_"+str(tomobin)])
+        
         tomo_list.append(tomobin*np.ones((ntheta),dtype=np.int16))
         speczbin_list.append(speczbin*np.ones((ntheta),dtype=np.int16))
 
@@ -159,7 +173,7 @@ INDIRcov=INDIR
 for tomobin in tomo_bins:
     for speczbin in spec_bins:
         for icycle in range(ncycle):
-            if Cov_Method == "Spin":
+            if Cov_Method == "Spin" or Cov_Method == "Analytical":
                 gtfile='%s/SPIN/GT_SPIN_%s_6Z_source_%s_%sZ_lens_%s.asc' %(INDIRcov,icycle,
                                                                            tomobin+1,numz_tag,speczbin+1)
             elif Cov_Method == "Patch":
@@ -179,8 +193,47 @@ for tomobin in tomo_bins:
             gtall = np.vstack((gtprev,gtlens))
             gtprev= np.copy(gtall)
             print(len(gtall))
-
 cov_gt=np.cov(gtall)
+
+
+
+if Cov_Method == "Analytical":
+    # Construct the analytical covariance matrix
+    weight_sqrd = np.hstack(weight_sqrd_list)
+    ran_weight = np.hstack(ran_weight_list)
+
+    # Need to read in the weights for the randoms and the lenses:
+    N_oversample = np.zeros( numz_tag )
+    for speczbin in spec_bins:
+        lenscatname='LENSCATS/%s%s/lens_cat_%sZ_%s.fits' %(LENS_TYPE,DFLAG, numz_tag,speczbin+1)
+        rancatname='LENSCATS/%s%s/lens_cat_%sZ_%s.fits' %(RANDOM_TYPE,DFLAG, numz_tag,speczbin+1)
+        f_l = fits.open(lenscatname)
+        w_l = f_l[1].data['WEICOMP']
+        f_l.close()
+        f_r = fits.open(rancatname)
+        w_r = f_r[1].data['WEICOMP']
+        f_r.close()
+        N_oversample[speczbin] =np.sum(w_r)/np.sum(w_l)
+
+    # Now calculate npairs_weighted for each tomo and spec bin
+    sigma_e = np.loadtxt('sigma_e_AllBlinds.asc', usecols=(0,), unpack=True) # col (0,1,2) = blind (A,B,C)
+    npairs_weighted = np.zeros_like( ran_weight )
+    cov_gt_a = np.zeros([ len(ran_weight), len(ran_weight) ])
+    for i in range(ntomo): #tomobin in tomo_bins:
+        for j in range(nspecz): #speczbin in spec_bins:
+            # Locate the elements of ran_weight and weight_sqrd to extract.
+            minidx = i*nspecz*ntheta+ j*ntheta
+            maxidx = minidx + ntheta
+            npairs_weighted[ minidx:maxidx ] = ran_weight[minidx:maxidx]**2 / ( N_oversample[spec_bins[j]]**2 *weight_sqrd[minidx:maxidx] )
+            # Fill the diagonal elements of the covariance matrix
+            for t in range(minidx, maxidx):
+                cov_gt_a[t,t] = sigma_e[spec_bins[j]]**2 / npairs_weighted[t]
+
+    # Replace the spin or patch covariance with the analytical one.
+    cov_gt = np.copy ( cov_gt_a )
+            
+    
+
 if Include_mCov:
     # Here we include the uncertainty due to the m-correction
     sigma_m = [0.019, 0.020, 0.017, 0.012, 0.010] # m-uncert. per source bin.

@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 DFLAG ='' # !!! TEMPORARY FLAG TO CALC DATA GT FROM MICE OCTANT, NOT FIDUCIAL MICE.
 
-Cov_Method = "Spin"  # The method for calculating the gamma_t realisations for use in covariance estimation
+Cov_Method = "None" #"Spin"  # The method for calculating the gamma_t realisations for use in covariance estimation
                      # "Spin" means do many spin realisations of the source ellipticities (ie - shape noise only)
                      # "Patch" means read in the other MICE realisations (1/8 of the sky)
                      # divide them into patches and calcute the gamma_t from each patch.
@@ -135,6 +135,9 @@ print("ngals", ngals)
 sourcecat = treecorr.Catalog(ra=ra,dec=dec,g1=eobs1,g2=eobs2,
                              ra_units='deg', dec_units='deg',w=weight,
                              flip_g1=flip_g1, flip_g2=flip_g2)
+sourcecat_wsq = treecorr.Catalog(ra=ra,dec=dec,g1=eobs1,g2=eobs2,
+                             ra_units='deg', dec_units='deg',w=weight**2,
+                             flip_g1=flip_g1, flip_g2=flip_g2)
 
 # If we're using the MICE octant for covariance, read in the source info here
 if Cov_Method == "Patch":
@@ -178,10 +181,10 @@ for IZBIN in range (izin,izin+1):   #1,2,3,4,5
 
     # the lens catalogue we will not modify so we can use the built in treecorr option to read 
     # in directly from the catalogue
-    lenscat = treecorr.Catalog(lenscatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
-                                  w_col='WEICOMP')
-    rancat = treecorr.Catalog(rancatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg', \
-                                  w_col='WEICOMP')
+    lenscat = treecorr.Catalog(lenscatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg',
+                               w_col='WEICOMP')
+    rancat = treecorr.Catalog(rancatname, ra_col='ALPHA_J2000', dec_col='DELTA_J2000', ra_units='deg', dec_units='deg',
+                              w_col='WEICOMP')
 
 
     # Set-up the different correlations that we want to measure
@@ -189,17 +192,30 @@ for IZBIN in range (izin,izin+1):   #1,2,3,4,5
     #bin_slop=0.12 # faster option
 
     # Number of source lens pairs
-    nlns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-        bin_slop=bin_slop)
+    nlns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin',
+                                  bin_slop=bin_slop)
     # Number of source random pairs     
-    nrns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-        bin_slop=bin_slop)
+    nrns = treecorr.NNCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin',
+                                  bin_slop=bin_slop)
     # Average shear around lenses     
-    ls = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-        bin_slop=bin_slop)
+    ls = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin',
+                                bin_slop=bin_slop)
     # Average shear around randoms     
-    rs = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin', \
-        bin_slop=bin_slop)
+    rs = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin',
+                                bin_slop=bin_slop)
+
+    # ----- Average around lenses with squared weights -----
+    f = fits.open(lenscatname)
+    ra_l_wsq = f[1].data['ALPHA_J2000']
+    dec_l_wsq = f[1].data['DELTA_J2000']
+    w_l_wsq = f[1].data['WEICOMP']
+    f.close()
+    lenscat_wsq = treecorr.Catalog(ra=ra_l_wsq,dec=dec_l_wsq,
+                                   ra_units='deg', dec_units='deg',
+                                   w=w_l_wsq**2 )
+    ls_wsq = treecorr.NGCorrelation(min_sep=theta_min, max_sep=theta_max, nbins=nbins, sep_units='arcmin',
+                                    bin_slop=bin_slop)
+    # -------------------------------------------------------
 
     # Now calculate the different 2pt correlation functions
     print("Calculating the number of source-lens pairs")
@@ -210,6 +226,11 @@ for IZBIN in range (izin,izin+1):   #1,2,3,4,5
     ls.process(lenscat,sourcecat)    # only this one needs to be recalculated for each spin test
     print("Calculating the average shear around the randoms")
     rs.process(rancat,sourcecat)
+    print("Calculating the average shear around the lenses WITH SQUARED WEIGHTS")
+    ls_wsq.process(lenscat_wsq,sourcecat_wsq)
+
+
+    
 
     # We will use the Mandelbaum 2006 estimator which includes both the random and boost correction.
     # It is given by
@@ -231,15 +252,16 @@ for IZBIN in range (izin,izin+1):   #1,2,3,4,5
 
     gamma_t = ls.xi*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi
     gamma_x = ls.xi_im*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi_im
-
+    # This next line produces data used in the computation of the analytical covariance matrix
+    #npairs_weighted_simple = (ls.weight)*(ls.weight)/(ls_wsq.weight)
     print("Writing out", outfile_main)
     
     #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
     treecorr.util.gen_write(outfile_main,
             ['r_nom','meanr','meanlogr','gamT','gamX','sigma','weight','npairs', 'nocor_gamT', 'nocor_gamX', 
-            'rangamT','rangamX','ransigma' ],
+             'rangamT','rangamX','ransigma', 'ranweight','weight_sqrd' ],
             [ ls.rnom,ls.meanr, ls.meanlogr,gamma_t, gamma_x, np.sqrt(ls.varxi), ls.weight, ls.npairs,
-            ls.xi, ls.xi_im, rs.xi, rs.xi_im, np.sqrt(rs.varxi) ])
+              ls.xi, ls.xi_im, rs.xi, rs.xi_im, np.sqrt(rs.varxi), rs.weight,ls_wsq.weight ])
 
     if Cov_Method == "Spin":
         # WE ARE CALCULATING THE COVARIANCE BY
@@ -272,8 +294,8 @@ for IZBIN in range (izin,izin+1):   #1,2,3,4,5
             eobs2_spin=-1.0*eobs1*st + eobs2*ct
 
             sourcespin = treecorr.Catalog(ra=ra,dec=dec,g1=eobs1_spin,g2=eobs2_spin,
-                                      ra_units='deg', dec_units='deg',w=weight,
-                                      flip_g1=flip_g1, flip_g2=flip_g2)
+                                          ra_units='deg', dec_units='deg',w=weight,
+                                          flip_g1=flip_g1, flip_g2=flip_g2)
             lssp.process(lenscat,sourcespin)    # only this needs to be recalculated for each spin test
 
             # ----- 19/12/19: GIBLIN's EDIT - CALC RANDOM SIGNAL AS WELL FOR SOURCE-SPINS -----
