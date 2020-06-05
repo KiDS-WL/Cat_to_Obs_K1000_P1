@@ -1,0 +1,1 @@
+/home/cech/KiDSLenS/THELI_catalogues/GET_CATSTATS/K1000_Phase1_ZB_bin_sigma_e_neff_blindA_FLAG_SOM_DR4.1.txt
