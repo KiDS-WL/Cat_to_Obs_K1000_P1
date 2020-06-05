@@ -30,3 +30,12 @@ class Get_Input:
     def SN(self):
         # Check if there is shape noise included in the mock shears
         return str(self.paraminput.split('SN = ')[-1].split(' ')[0].split('\n')[0].split('\t')[0])
+
+    def Blind(self):
+        # Check what Blind to use if we're running with K1000 sources
+        return str(self.paraminput.split('Blind = ')[-1].split(' ')[0].split('\n')[0].split('\t')[0])
+
+    def SOMFLAGNAME(self):
+        # Check what SOM Flag to use if running with K1000 sources
+        return str(self.paraminput.split('SOMFLAGNAME = ')[-1].split(' ')[0].split('\n')[0].split('\t')[0])
+

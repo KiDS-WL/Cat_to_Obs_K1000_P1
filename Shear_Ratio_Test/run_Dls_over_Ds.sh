@@ -21,11 +21,11 @@ OL_Tag="" #"_OutlierPeaksInBins12" # If set, accesses nofzs saved in SOUCE_CATS/
                               # which have an Outlier (OL) excess injected at high redshift
                               # in the specified bin.
                           # SHOULD ONLY BE SET FOR K1000 SOURCES.
-BLIND="A"                 # Which Blind to use
+BLIND="C"                 # Which Blind to use
 
 
 if [ "$SOURCE_TYPE" == "K1000" ]; then
-    OUTDIR=Dls_over_Ds_data/SOURCE-${SOURCE_TYPE}_LENS-${LENS_TYPE}
+    OUTDIR=Dls_over_Ds_data/SOURCE-${SOURCE_TYPE}_LENS-${LENS_TYPE}_Blind${BLIND}_SOM${SOMFLAGNAME}
 elif [ "$SOURCE_TYPE" == "MICE2_KV450" ]; then
 
     if [ "$Realisation" == "Fid" ]; then

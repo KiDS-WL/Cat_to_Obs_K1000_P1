@@ -1,0 +1,7 @@
+Source_Type = K1000
+Lens_Type = BOSS_data
+Random_Type = BOSS_random 
+Mag_OnOff =
+Pz_TrueEstimated =
+Blind = A
+SOMFLAGNAME = Fid

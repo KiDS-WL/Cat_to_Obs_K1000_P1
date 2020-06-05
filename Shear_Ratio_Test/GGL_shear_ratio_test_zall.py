@@ -34,7 +34,7 @@ DFLAG = ''                     # Data Flag. Set to '' for Fiducial MICE. '_Octan
 Include_mCov = True           # Include the uncertainty due to the m-correction
 Include_Hartlap = False        # Hartlap correction
 Include_Magnification = False  # If True, include extra param in gamma_t model: strength of magnifcation effect on gt.
-Single_Bin = False             # If True, fit for only a single lens-source bin, specified by user on the command line.
+Single_Bin = True             # If True, fit for only a single lens-source bin, specified by user on the command line.
                                # Else fit for all bins simultaneously.
 nofz_shift=""         # Only for K1000: use the Dls/Ds values for the nofz which has been
                                # shifted up ('_nofzUp'), down ('_nofzDown') by (delta_z+delta_z_err)
@@ -62,10 +62,14 @@ else:
     print("Performing SRT for all lens and source bins simultaneously. ",
           "Will fit an amplitude parameter per lens and source bin.")
     spec_bins=range(5)
-    tomo_bins=range(2, 5)
+    tomo_bins=range(5)
     ntomo=len(tomo_bins)              # Number of photo-z bins
-    nspecz=len(spec_bins)             # "..." of spec-z bins 
-    save_tag = ''        # Blank save_tag means SRT was conducted on all lens & source bins
+    nspecz=len(spec_bins)             # "..." of spec-z bins
+    if ntomo==5 and nspecz==5:
+        save_tag = ''                 # Blank save_tag means SRT was conducted on all lens & source bins
+    else:
+        save_tag = '_%stbins-%ssbins' %(ntomo,nspecz) # Using more than a single t&s bin,
+                                                     # but not all 5x5
     
 numz_tag=5               # Part of 'GT_' filenames; GT_6Z_source_Y_${numz_tag}Z_lens_X.asc
 ntheta = 4
@@ -89,7 +93,7 @@ speczbin_list = []
 Dls_over_Ds_list = []
 
 
-Cov_Method = "Analytical"   # The method for calculating the gamma_t realisations for use in covariance estimation
+Cov_Method = "Spin"   # The method for calculating the gamma_t realisations for use in covariance estimation
                        # "Spin" many spin realisations of the source ellipticities (ie - shape noise only)
                        # "Patch" using other MICE realisations (1/8 of the sky)
                        # divided them into patches and calcuted the gamma_t from each patch.
@@ -110,8 +114,12 @@ if "MICE2" in SOURCE_TYPE:
     SN = GI.SN()
     INDIR += '_Pz%s_SN%s_mag%s' %(Pz,SN,Mag_OnOff)
     DlsDIR += '_Pz%s_mag%s%s' %(Pz,Mag_OnOff,DFLAG)
-
-
+elif "K1000" in SOURCE_TYPE:
+    Blind = GI.Blind()
+    SOMFLAGNAME = GI.SOMFLAGNAME()
+    INDIR += '_Blind%s_SOM%s' %(Blind,SOMFLAGNAME)
+    DlsDIR += '_Blind%s_SOM%s' %(Blind,SOMFLAGNAME)
+    
 nspin=500
 if Cov_Method == "Spin" or Cov_Method == "Analytical":
     ncycle = nspin

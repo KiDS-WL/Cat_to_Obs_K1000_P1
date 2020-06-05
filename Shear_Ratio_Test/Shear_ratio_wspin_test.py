@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 DFLAG ='' # !!! TEMPORARY FLAG TO CALC DATA GT FROM MICE OCTANT, NOT FIDUCIAL MICE.
 
-Cov_Method = "None" #"Spin"  # The method for calculating the gamma_t realisations for use in covariance estimation
+Cov_Method = "Spin" #"Spin"  # The method for calculating the gamma_t realisations for use in covariance estimation
                      # "Spin" means do many spin realisations of the source ellipticities (ie - shape noise only)
                      # "Patch" means read in the other MICE realisations (1/8 of the sky)
                      # divide them into patches and calcute the gamma_t from each patch.
@@ -55,14 +55,14 @@ LENS_TYPE = GI.Lens_Type()
 RANDOM_TYPE = GI.Random_Type() 
 
 if SOURCE_TYPE == "K1000":    
-    Blind='A'
+    Blind = GI.Blind()
     CATDIR='/disk09/KIDS/K1000_TWO_PT_STATS/TOMOCATS/'
 
     # These are the old catalogues binned using DIR-redshift estimates
     #fitscat=CATDIR+'/K1000_N_BLIND_%s_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_goldclasses_5Z_%s.fits' %(Blind,JZBIN)
 
     # These are the new catalogues binned using the SOM-redshift estimates
-    SOMFLAGNAME='Fid' #'noDEEP2'
+    SOMFLAGNAME = GI.SOMFLAGNAME()
     fitscat=CATDIR+'K1000_N_BLIND_%s_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_%s_5Z_%s.fits' %(Blind,SOMFLAGNAME,JZBIN)
     
     # Fits extension and keywords depend on data source:
@@ -78,7 +78,7 @@ if SOURCE_TYPE == "K1000":
     # Extra info needed to identify lenscat
     lens_tag = ''
     # Location of the output files 
-    OUTDIR='Output/SOURCE-%s_LENS-%s' %(SOURCE_TYPE,LENS_TYPE)
+    OUTDIR='Output/SOURCE-%s_LENS-%s_Blind%s_SOM%s' %(SOURCE_TYPE,LENS_TYPE,Blind,SOMFLAGNAME)
     
 elif SOURCE_TYPE == "MICE2_KV450":
     Mag_OnOff = GI.Mag_OnOff()
