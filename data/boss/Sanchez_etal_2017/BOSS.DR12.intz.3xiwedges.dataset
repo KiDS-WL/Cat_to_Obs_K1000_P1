@@ -1,0 +1,32 @@
+#Configuration-space clustering wedges of the 
+#BOSS DR12 combined galaxy sample for 0.4 < z < 0.6
+#from Sanchez et al. (2017). 
+#covariance matrix from Patchy mock catalogues
+#NOTE: this bin is almost fully covariant
+#with the low and hig-z results and should not be
+#used in combination with them.
+name = BOSS.DR12.intz.3xiwedges
+
+#number of wedges or multipoles
+num_ell = 3
+
+# number of points and kbands in the input files
+num_points_full = 32
+num_bands_full = 160
+
+# decide which bandpowers to use, min to max
+min_points_use = 5
+max_points_use = 32
+min_bands_use = 21
+max_bands_use = 160
+
+data_type = xi_wed
+omega_fid = 0.31
+mean_redshift = 0.51
+n_mocks = 2048 
+
+windows_file = data/BOSS.DR12_windows.txt
+bands_file = data/BOSS.DR12_rbands.txt
+measurements_file = data/BOSS.DR12.intz.3xiwedges_measurements.txt
+cov_file = data/BOSS.DR12.intz.3xiwedges_covmat.txt
+
