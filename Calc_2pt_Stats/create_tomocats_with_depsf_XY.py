@@ -57,14 +57,14 @@ def Bootstrap_Error_csq(nboot, e1, e2, weights):
 #Read in the delta_epsf(X,Y) data
 #Note we used to call this "c" - but it's not a c-term
 #It's a delta_epsf term
-hdu_list_c1 = fits.open(md+'../PSFRES_CORRMAP/c1_map.fits')
+hdu_list_c1 = fits.open('../PSFRES_CORRMAP/c1_map.fits')
 depsf_1_map = hdu_list_c1[0].data
 
-hdu_list_c2 = fits.open(md+'../PSFRES_CORRMAP/c2_map.fits')
+hdu_list_c2 = fits.open('../PSFRES_CORRMAP/c2_map.fits')
 depsf_2_map = hdu_list_c2[0].data
 
 # find the edges of the image from the exposure map
-hdu_list_exp = fits.open(md+'../PSFRES_CORRMAP/exposure_map.fits')
+hdu_list_exp = fits.open('../PSFRES_CORRMAP/exposure_map.fits')
 exp_map = hdu_list_exp[0].data
 
 # and clip so it is zero for out of the image and 1 within
@@ -109,8 +109,8 @@ ALPHA_J2000=ldac_table['ALPHA_J2000']
 DELTA_J2000=ldac_table['DELTA_J2000']
 
 # and calculate the delta_epsf(x,y) term
-Xpos_in = ldac_table['Xpos_THELI']
-Ypos_in = ldac_table['Ypos_THELI']
+Xpos_in = ldac_table['Xpos']
+Ypos_in = ldac_table['Ypos']
 Nobj = np.shape(Xpos_in)[0]
 
 XYpos = np.vstack((Xpos_in,Ypos_in))
@@ -122,8 +122,8 @@ depsf_xy_1 = np.zeros(Nobj)
 depsf_xy_2 = np.zeros(Nobj)
 
 for i in range(Nobj):
-    depsf_xy_1[i] = c1_map[XYpos_int[0,i],XYpos_int[1,i]]
-    depsf_xy_2[i] = c2_map[XYpos_int[0,i],XYpos_int[1,i]]
+    depsf_xy_1[i] = depsf_1_map[XYpos_int[0,i],XYpos_int[1,i]]
+    depsf_xy_2[i] = depsf_2_map[XYpos_int[0,i],XYpos_int[1,i]]
 
 
 # If a SOM Flag has been selected, them we need to apply the SOM Flag in the
@@ -152,7 +152,8 @@ depsf_xy_2_inbin=depsf_xy_2[ztomo]
 #Npair calculation hack with Treecorr
 wsq_inbin=weight[ztomo]*weight[ztomo]
 
-nboot = 300
+#we don't use this for c-terms, so can have nboot low for speed
+nboot = 30
 
 # THIS WOULD NEED TO BE UPDATED FOR METACAL TO ALSO INCLUDE THE M_CORRECTION
 if (ccorr=='true'):  
