@@ -203,7 +203,7 @@ else:
 np.savetxt('%s/Catalogues/K%s.Blind%s.ccorr_e1_e2.%s_%s.dat'%(DIRECT,NorS,Blind,ZBlabel,tail), 
            np.c_[ np.average(ace1,weights=acw),np.average(ace2,weights=acw) ])
 
-sys.exit()
+
 
 def Bootstrap_Error(nboot, samples, weights,mcorr):
 	N = len(samples)
@@ -241,52 +241,49 @@ def Plot_XY_Grids(Q, yedges,xedges, lowlim, upplim, label, savename):
 
 def Plot_BinQx_VS_BinQy(Qx, Qy, weights, mcorr, num_bins, labels, xlabel, ylabel, title,xlimits, ylimits, savename, Bootstrap):
 
-    colors = ['magenta', 'dimgrey', 'darkblue', 'orange', 'lawngreen', 'red']
-    f, ((ax1)) = plt.subplots(1, 1, figsize=(8,7))
+	colors = ['magenta', 'dimgrey', 'darkblue', 'orange', 'lawngreen', 'red']
+	f, ((ax1)) = plt.subplots(1, 1, figsize=(8,7))
 
-    if len(Qx.shape) == 1:
-        Qx = np.reshape(Qx, (1,len(Qx)))
-        Qy = np.reshape(Qy, (1,len(Qy)))
+	if len(Qx.shape) == 1:
+		Qx = np.reshape(Qx, (1,len(Qx)))
+		Qy = np.reshape(Qy, (1,len(Qy)))
 
-    # Average the corresponding Y's to the X's
-    binx_centres = np.zeros([Qy.shape[0], num_bins])
-    biny_centres = np.zeros([Qy.shape[0], num_bins])
-    biny_centres_err = np.zeros([Qy.shape[0], num_bins])
-    probability = np.linspace(0,1,num_bins+1)	
+	# Average the corresponding Y's to the X's
+	binx_centres = np.zeros([Qy.shape[0], num_bins])
+	biny_centres = np.zeros([Qy.shape[0], num_bins])
+	biny_centres_err = np.zeros([Qy.shape[0], num_bins])
+	probability = np.linspace(0,1,num_bins+1)
 
-    for i in range(Qy.shape[0]):			
-        binx_edges = mquantiles(Qx[i,:], prob=probability)				# Edges of the num_bins bins, each containing same-% of data points.
-		
+	for i in range(Qy.shape[0]):
+		binx_edges = mquantiles(Qx[i,:], prob=probability)
+		# Edges of the num_bins bins, each containing same-% of data points.
 		for j in range(num_bins):
 			idx = np.where(np.logical_and(Qx[i,:]>=binx_edges[j], Qx[i,:]<binx_edges[j+1]))[0]
-			# print len(idx) / float(len(Qx[i,:]))
-			binx_centres[i,j] = np.sum( weights[idx]*Qx[i,idx] ) / np.sum( weights[idx] ) 
-			biny_centres[i,j] = np.sum( weights[idx]*Qy[i,idx] ) / np.sum( weights[idx] *mcorr[idx] ) 
-			#The number of bootstrap resamples to take in estimating the errors is set on the command line.
-			if Bootstrap:
-				biny_centres_err[i,j] = Bootstrap_Error(nboot, Qy[i,idx], weights[idx],mcorr[idx])
-			else:
-				biny_centres_err[i,j] = 0.
+			binx_centres[i,j] = np.sum( weights[idx]*Qx[i,idx] ) / np.sum( weights[idx] )
+			biny_centres[i,j] = np.sum( weights[idx]*Qy[i,idx] ) / np.sum( weights[idx] *mcorr[idx] )
+	    		#The number of bootstrap resamples to take in estimating the errors is set on the command line
+		if Bootstrap:
+			biny_centres_err[i,j] = Bootstrap_Error(nboot, Qy[i,idx], weights[idx],mcorr[idx])
+		else:
+			biny_centres_err[i,j] = 0.
+	plt.errorbar(binx_centres[i,:], biny_centres[i,:], yerr=biny_centres_err[i,:], fmt='o', color=colors[i],label=labels[i])
 
- 
-            plt.errorbar(binx_centres[i,:], biny_centres[i,:], yerr=biny_centres_err[i,:], fmt='o', color=colors[i],label=labels[i])
+	#you might want to add in an offset e.g
+	#offset = [-0.01,0.01, -0.03,0.03] 
+	# +offset[i]*np.mean(binx_centres)
 
-	    #you might want to add in an offset e.g
-	    #offset = [-0.01,0.01, -0.03,0.03] 
-	    # +offset[i]*np.mean(binx_centres)
-
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.title(title)
-    if ylimits != None:
-        plt.ylim(ylimits)
-    if xlimits != None:
-        plt.plot( xlimits, [0.,0.], 'k--' )
-        plt.xlim(xlimits)
-    plt.legend(loc='best', frameon=False)
-    plt.savefig(savename)
-    #plt.show()
-    return np.dstack(( binx_centres, biny_centres, biny_centres_err ))
+	plt.xlabel(xlabel)
+	plt.ylabel(ylabel)
+	plt.title(title)
+	if ylimits != None:
+		plt.ylim(ylimits)
+	if xlimits != None:
+		plt.plot( xlimits, [0.,0.], 'k--' )
+		plt.xlim(xlimits)
+	plt.legend(loc='best', frameon=False)
+	plt.savefig(savename)
+	#plt.show()
+	return np.dstack(( binx_centres, biny_centres, biny_centres_err ))
 
 # functions to extract and plot alpha values from the data
 
