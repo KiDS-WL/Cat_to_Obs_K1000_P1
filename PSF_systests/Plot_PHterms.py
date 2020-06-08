@@ -31,7 +31,7 @@ rcParams['pdf.use14corefonts'] = True
 
 font = {'family' : 'serif',
         'weight' : 'normal',
-        'size'   : 14} # 19
+        'size'   : 19} # 19
 
 plt.rc('font', **font)
 plt.rcParams["mathtext.fontset"] = "cm"
@@ -227,9 +227,10 @@ def Plot_deltaxips_Only(zbin):
         theta_dxip_c, delta_xip_c, err_delta_xip_c = Calc_delta_xip_cterms( )
         theta_dxip_B, delta_xip_B, err_delta_xip_B = Calc_delta_xip_Bacon()
 
-        fig = plt.figure(figsize = (10,6))
-        gs1 = gridspec.GridSpec(1, 1)
-        ax = plt.subplot(gs1[0], adjustable='box')
+        fig = plt.figure(figsize = (11,8))
+        gs1 = gridspec.GridSpec(2, 1, height_ratios=[0.25,0.75])
+        
+        ax = plt.subplot(gs1[1], adjustable='box')
         Set_Scales(ax)
         ax.set_ylabel(r'Components of $\delta\xi_+^{\rm sys}$')
         ax.set_xlabel(r'$\theta$ [arcmin]')
@@ -238,7 +239,7 @@ def Plot_deltaxips_Only(zbin):
         ax.set_yscale('symlog', linthreshy=symlogscale )
         ax.plot( [0.5,400.], [symlogscale, symlogscale],  'k-' )
         ax.plot( [0.5,400.], [-1*symlogscale, -1*symlogscale], 'k-' )
-        ax.set_ylim([-1*1e-5, 1e-1])
+        ax.set_ylim([-1*1e-5, 1e-5])
 
 
         # Plot the diagonal covariance
@@ -277,8 +278,9 @@ def Plot_deltaxips_Only(zbin):
         #ax.errorbar( theta_dxip_B, delta_xip_B[zbin,:], yerr=err_delta_xip_B[zbin,:],
         #             color='orange', linewidth=2,
         #             label=r'$\alpha^2 \xi^{\rm PSF,PSF}$' )
+
         
-        ax.legend(loc='upper right', frameon=False, ncol=2)
+        ax.legend(bbox_to_anchor=(0.5, 1.5), loc='upper center', frameon=False, ncol=2, fontsize=19)
         plt.subplots_adjust(hspace=0)
         plt.savefig('LFver%s/PHterms/Plot_deltaxip_CovPatches%sx%s_zbin%s.png'%(LFver[0],Res,Res,zbin))
         plt.show()
@@ -296,7 +298,7 @@ def Plot_deltaxips_Only(zbin):
 # This funcion evaluates if the shift (null-->sys) is subdominant to the shift (null-->hi/lo)
 # Turns out it is, therefor systematic is subdominant to this tiny change in cosmology.
 
-def Investigate_chi2(rho):
+def Investigate_chi2(rho, sigma_shift):
         #cov_All = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[0:135,0:135] * Linc_Rescale
         #cov_All = Linc_Cov()[0:135,0:135] # pulls out only the xi+ elements.   
         theta_cov, cov_All = Marika_Cov(False)
@@ -308,8 +310,8 @@ def Investigate_chi2(rho):
         # 'higher/lower' are a 0.004 change in S_8 (0.2 sigma_k1000)
         # 'high/low' are a 0.002 change in S_8 (0.1 sigma_k1000),
         # 'midhigh/midlow' are a 0.001 change in S_8 (0.05 sigma_k1000) 
-        theta_hi, xip_theory_stack_hi = Read_In_Theory_Vector('high0.15sigma')		# High S_8
-        theta_low, xip_theory_stack_lo = Read_In_Theory_Vector('low0.15sigma')		# Low S_8
+        theta_hi, xip_theory_stack_hi = Read_In_Theory_Vector('high%ssigma' %sigma_shift)		# High S_8
+        theta_low, xip_theory_stack_lo = Read_In_Theory_Vector('low%ssigma' %sigma_shift)		# Low S_8
         theta_fid, xip_theory_stack_fid = Read_In_Theory_Vector('fid')		# Fiducial S_8
         # Note: I've checked and theta_(hi,fid,low) & theta_cov are all identical.
 
@@ -323,8 +325,8 @@ def Investigate_chi2(rho):
 
         lfv = 0
         #delta_xip, _ = Calc_delta_xip_J16( alpha, T_ratio, rho, rho )
-        #delta_xip,_,_,_ = Calc_delta_xip_H20( rho, rho )
-        theta_dxip, delta_xip,_ = Calc_delta_xip_cterms( )
+        delta_xip,_,_,_ = Calc_delta_xip_H20( rho, rho )
+        #theta_dxip, delta_xip,_ = Calc_delta_xip_cterms( )
         delta_xip = delta_xip[lfv]
         #theta_dxip, delta_xip,_ = Calc_delta_xip_Bacon()
         for i in range(num_zbins_tot):
@@ -340,6 +342,7 @@ def Investigate_chi2(rho):
         chi2_hi = np.empty( n_noise )		# same for the hypothesis that measurement is high S_8
         chi2_lo = np.empty( n_noise )		# same for the hypothesis that measurement is low S_8
         for i in range(n_noise):
+                np.random.seed(i)
                 noise = multi_norm.rvs(mean=np.zeros(135), cov=cov_All)
                 # chi2 for null hypothesis 
                 chi2_null[i] = np.dot( np.transpose(noise), np.dot( np.linalg.inv(cov_All), noise ))
@@ -370,12 +373,14 @@ def Investigate_chi2(rho):
         print("low S8: ", abs(mean_chi2_null-mean_chi2_lo))
         return abs(mean_chi2_null-mean_chi2_sys), abs(mean_chi2_null-mean_chi2_hi), abs(mean_chi2_null-mean_chi2_lo)
 t1 = time.time()
+sigma_shifts = [0.05, 0.10, 0.15, 0.20]
 ntrials = 20
-delta_chi2_sys = np.zeros(ntrials)
+delta_chi2_sys = np.zeros([len(sigma_shifts), ntrials])
 delta_chi2_hi = np.zeros_like(delta_chi2_sys)
 delta_chi2_lo =	np.zeros_like(delta_chi2_sys)
-for i in range(ntrials):
-        delta_chi2_sys[i], delta_chi2_hi[i], delta_chi2_lo[i] = Investigate_chi2(php_mean)
+for j in range(len(sigma_shifts)):
+        for i in range(ntrials):
+                delta_chi2_sys[j,i], delta_chi2_hi[j,i], delta_chi2_lo[j,i] = Investigate_chi2(php_mean, sigma_shifts[j])
 t2 = time.time()
 print(" It took %.0f seconds." %(t2-t1))
 
