@@ -34,7 +34,7 @@ DFLAG = ''                     # Data Flag. Set to '' for Fiducial MICE. '_Octan
 Include_mCov = True           # Include the uncertainty due to the m-correction
 Include_Hartlap = False        # Hartlap correction
 Include_Magnification = False  # If True, include extra param in gamma_t model: strength of magnifcation effect on gt.
-Single_Bin = True             # If True, fit for only a single lens-source bin, specified by user on the command line.
+Single_Bin = False             # If True, fit for only a single lens-source bin, specified by user on the command line.
                                # Else fit for all bins simultaneously.
 nofz_shift=""         # Only for K1000: use the Dls/Ds values for the nofz which has been
                                # shifted up ('_nofzUp'), down ('_nofzDown') by (delta_z+delta_z_err)
@@ -284,7 +284,7 @@ plt.axis('off')
 if Single_Bin == False:
     # Save the full covariance matrix, so it can easily be read in by
     # Compare_BFParams_And_Models.py and errors easily extracted
-    np.save(OUTDIR+'/GTCovMat_%sx%s_6Z_source_5Z_lens_mCov%s'%(SOURCE_TYPE,LENS_TYPE,Include_mCov), cov)
+    np.save(OUTDIR+'/GTCovMat_%sx%s_6Z_source_5Z_lens_mCov%s%s'%(SOURCE_TYPE,LENS_TYPE,Include_mCov,save_tag), cov)
 
 #cov_inv=np.linalg.inv(cov)
 # Catherine reckons these two lines are a more stable way of inverting

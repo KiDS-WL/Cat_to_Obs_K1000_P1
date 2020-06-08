@@ -22,6 +22,7 @@ RANDOM_TYPE = GI.Random_Type()
 
 Cov_Method = "Spin"   # The method for calculating the gamma_t realisations for use in covariance estimation
 INDIR='Output/SOURCE-%s_LENS-%s' %(SOURCE_TYPE, LENS_TYPE)
+DlsDIR='Dls_over_Ds_data/SOURCE-%s_LENS-%s' %(SOURCE_TYPE, LENS_TYPE)
 if "MICE2" in SOURCE_TYPE:
     # Additional identifiers when working with MICE
     # True/Estimated P(z) and Magnification on/off
@@ -29,7 +30,14 @@ if "MICE2" in SOURCE_TYPE:
     Pz = GI.Pz_TrueEstimated()
     SN = GI.SN()
     INDIR += '_Pz%s_SN%s_mag%s' %(Pz,SN,Mag_OnOff)
-
+    DlsDIR += '_Pz%s_SN%s_mag%s' %(Pz,SN,Mag_OnOff)
+    
+elif "K1000" in SOURCE_TYPE:
+    Blind = GI.Blind()
+    SOMFLAGNAME = GI.SOMFLAGNAME()
+    INDIR += '_Blind%s_SOM%s' %(Blind,SOMFLAGNAME)
+    DlsDIR += '_Blind%s_SOM%s' %(Blind,SOMFLAGNAME)
+    
 OUTDIR = INDIR + '/' + Cov_Method.upper()
 
 nz_source = 5
@@ -153,7 +161,7 @@ if Compare_Mag:
 
 
 # ------------------------------------- FUNCTIONS FOR COMPARE SINGLE BIN ANALYSIS -------------------------------------
-DlsDIR='Dls_over_Ds_data/SOURCE-%s_LENS-%s' %(SOURCE_TYPE, LENS_TYPE)
+
 def Model(amplitude, amplitude_err, i, j):
     Dls_over_Ds_file = '%s/Dls_over_Ds_DIR_6Z_source_%s_5Z_lens_%s.asc' %(DlsDIR, i+1, j+1)
     Dls_over_Ds = np.loadtxt(Dls_over_Ds_file)
@@ -166,7 +174,7 @@ def Plot_SingleBin_Params():
     log_panels = [2,3,4]
     
     # Define y-limits for each lens bin panel
-    lin_ylimits = [ [ -0.005, 0.029], [ -0.029, 0.059], [ -0.029, 0.18], [ -0.29, 0.29], [ -0.75, 0.79] ]
+    lin_ylimits = [ [ 0.0, 0.029], [ 0.01, 0.029], [ -0.029, 0.18], [ -0.1, 0.14], [ -0.45, 0.49] ]
     mix_ylimits = [ [ -0.005, 0.029], [ 0.01, 0.049], [ 0.001, 2.], [ 0.001, 2.], [ 0.001, 2.] ]
     
     # Plot the Mag On/Off best-fit models
@@ -188,7 +196,8 @@ def Plot_SingleBin_Params():
         # Plot the weighted mean and error per lens bin...
         mean = np.average( params_sl[:,i], weights=(1./params_sl_err[:,i]**2) )
         error = np.sqrt( np.sum( params_sl_err[:,i]**2 ) / nz_source )
-        ax1.fill_between( tomobin_array , (mean-error), (mean+error), color='dimgrey', alpha=0.5 )
+        #ax1.fill_between( tomobin_array , (mean-error), (mean+error), color='dimgrey', alpha=0.5 )
+        #ax1.plot( tomobin_array , (np.zeros_like(tomobin_array)+mean), color='black', linewidth=1 )
         #print( mean, mean-error, mean+error )
 
         # ------ vvv USE THE SRT RESULTS w/ UP/DOWN SHIFTS IN THE n(z) TO DEFINE AN ERROR ON THE FITTED PARAMS vvv ------
@@ -197,25 +206,27 @@ def Plot_SingleBin_Params():
         shift_sys_err = np.sqrt( params_sl_shift_err[0,:,i]**2 + params_sl_shift_err[1,:,i]**2 ) # statistical error on the sys. shift per bin
         overall_shift_err = shift_sys+shift_sys_err
         # Or just try overall MAX range of params:
-        max_shift_range = abs(params_sl_shift[0,:,i]+params_sl_shift_err[0,:,i]-params_sl[:,i]) + abs(params_sl_shift[1,:,i]+params_sl_shift_err[1,:,i]-params_sl[:,i])
-        shift_mean = np.average( params_sl[:,i], weights=(1./max_shift_range**2) )
-        shift_mean_err = np.sqrt( np.sum( max_shift_range**2 ) / nz_source)
+        max_shift_range = abs( params_sl_shift[0,:,i]+params_sl_shift_err[0,:,i] - (params_sl_shift[1,:,i]-params_sl_shift_err[1,:,i]) )
+        shift_mean = np.average( params_sl[2:,i], weights=(1./max_shift_range[2:]**2) )
+        shift_mean_err = np.sqrt( np.sum( max_shift_range[2:]**2 ) / 3)  #nz_source)
         ax1.fill_between( tomobin_array , (shift_mean-shift_mean_err), (shift_mean+shift_mean_err), color='yellow', alpha=0.5 )
+        ax1.plot( tomobin_array , (np.zeros_like(tomobin_array)+shift_mean), color='black', linewidth=1 )
         #print( error, shift_mean_err )
         
-        ax1.errorbar( np.arange(1,nz_source+1)-0.1, params_sl_shift[0,:,i], yerr=params_sl_shift_err[0,:,i], fmt='v', color=colors[i], edgecolor=None )
-        ax1.errorbar( np.arange(1,nz_source+1)+0.1, params_sl_shift[1,:,i], yerr=params_sl_shift_err[1,:,i], fmt='^', color=colors[i], edgecolor=None )
+        #ax1.errorbar( np.arange(1,nz_source+1)-0.1, params_sl_shift[0,:,i], yerr=params_sl_shift_err[0,:,i], fmt='v', color=colors[i], edgecolor=None )
+        #ax1.errorbar( np.arange(1,nz_source+1)+0.1, params_sl_shift[1,:,i], yerr=params_sl_shift_err[1,:,i], fmt='^', color=colors[i], edgecolor=None )
 
         # ------ ^^^ USE THE SRT RESULTS w/ UP/DOWN SHIFTS IN THE n(z) TO DEFINE AN ERROR ON THE FITTED PARAMS ^^^ ------ 
         
-        ax1.plot( tomobin_array , (np.zeros_like(tomobin_array)+mean), color='black', linewidth=1 )
-        # ...OR plot the smallest error bar for the bin
+        # ...plot the smallest error bar for the bin
         #binmin = np.argmin(params_sl_err[:,i])
         #ax1.fill_between( tomobin_array , (params_sl[binmin,i]-params_sl_err[binmin,i]),
         #                  (params_sl[binmin,i]+params_sl_err[binmin,i]), color='dimgrey', alpha=0.5 )
         
-        ax1.errorbar( range(1,nz_source+1), params_sl[:,i], yerr=params_sl_err[:,i], fmt='o',
-                      color=colors[i], edgecolor=None )
+        ax1.errorbar( np.arange(1,nz_source+1), params_sl[:,i], yerr=params_sl_err[:,i], fmt='o',
+                      color=colors[i], edgecolor=None, solid_capstyle='projecting', capsize=5 )
+        ax1.errorbar( np.arange(1,nz_source+1), params_sl[:,i], yerr=max_shift_range, fmt='o',
+                      color=colors[i], edgecolor=None, solid_capstyle='projecting', capsize=5 )
 
         if i==(nz_source-1):
             ax1.set_xlabel(r'Tomographic bin')
@@ -224,7 +235,7 @@ def Plot_SingleBin_Params():
             ax1.set_xticks([])
 
         if i==2:
-            ax1.set_ylabel(r'$\sigma_{\rm v}$')
+            ax1.set_ylabel(r'$2\pi (\sigma_{\rm v} /c)^2$')
 
         ax1.set_ylim([ ylimits[0] , ylimits[1] ])
         #ax1.set_ylim([ 0.5*(params_sl[0,i]-params_sl_err[0,i]).min(),
@@ -306,7 +317,7 @@ def Plot_SingleBin_Data_And_Model():
     return
 
 if Compare_Single_Bin:
-    Plot_SingleBin_Params()
+    #Plot_SingleBin_Params()
     Plot_SingleBin_Data_And_Model()
 
 # ------------------------------------- ^^^FUNCTIONS FOR COMPARE SINGLE BIN ANALYSIS^^^ -------------------------------------
