@@ -7,7 +7,7 @@ import os
 from astropy.io import fits
 
 SOMFLAGNAME = 'Fid'
-Blind = 'A'
+Blind = 'C'
 OutlierPeak = True                # If set to true, create an outlier peak
                                    # in the tomo bins specified by OL_bins
                                    # of sizes given by OL_frac

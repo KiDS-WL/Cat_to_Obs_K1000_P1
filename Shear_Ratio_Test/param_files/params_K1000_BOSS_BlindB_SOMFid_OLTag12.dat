@@ -5,4 +5,4 @@ Mag_OnOff =
 Pz_TrueEstimated =
 Blind = B
 SOMFLAGNAME = Fid
-OL_Tag = 
+OL_Tag = _OutlierPeaksInBins12
