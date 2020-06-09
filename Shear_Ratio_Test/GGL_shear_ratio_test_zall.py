@@ -34,9 +34,9 @@ DFLAG = ''                     # Data Flag. Set to '' for Fiducial MICE. '_Octan
 Include_mCov = True           # Include the uncertainty due to the m-correction
 Include_Hartlap = False        # Hartlap correction
 Include_Magnification = False  # If True, include extra param in gamma_t model: strength of magnifcation effect on gt.
-Single_Bin = False             # If True, fit for only a single lens-source bin, specified by user on the command line.
+Single_Bin = True              # If True, fit for only a single lens-source bin, specified by user on the command line.
                                # Else fit for all bins simultaneously.
-nofz_shift=""         # Only for K1000: use the Dls/Ds values for the nofz which has been
+nofz_shift="_nofzDown"         # Only for K1000: use the Dls/Ds values for the nofz which has been
                                # shifted up ('_nofzUp'), down ('_nofzDown') by (delta_z+delta_z_err)
                                # For no shift, set to ''
                                
@@ -117,14 +117,18 @@ if "MICE2" in SOURCE_TYPE:
 elif "K1000" in SOURCE_TYPE:
     Blind = GI.Blind()
     SOMFLAGNAME = GI.SOMFLAGNAME()
+    OL_Tag = GI.OL_Tag() # Whether a high-z outlier is included in n(z)'s
+                         # that went into the Dls/Ds ratios
     INDIR += '_Blind%s_SOM%s' %(Blind,SOMFLAGNAME)
-    DlsDIR += '_Blind%s_SOM%s' %(Blind,SOMFLAGNAME)
-    
+    DlsDIR += '_Blind%s_SOM%s%s' %(Blind,SOMFLAGNAME, OL_Tag)
+    save_tag += OL_Tag
+
+
 nspin=500
 if Cov_Method == "Spin" or Cov_Method == "Analytical":
     ncycle = nspin
     OUTDIR = INDIR + "/SPIN/"
-    Area_Scale = 1.    # 341./750. # Approx. scaling KV450-->K1000     #1.
+    Area_Scale = 1. # 341./750. # Approx. scaling KV450-->K1000     #1.
 elif Cov_Method == "Patch":
     ncycle = nPatch*nPatch
     OUTDIR = INDIR + "/PATCH/"

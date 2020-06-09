@@ -39,3 +39,6 @@ class Get_Input:
         # Check what SOM Flag to use if running with K1000 sources
         return str(self.paraminput.split('SOMFLAGNAME = ')[-1].split(' ')[0].split('\n')[0].split('\t')[0])
 
+    def OL_Tag(self):
+        # Check what SOM Flag to use if running with K1000 sources
+        return str(self.paraminput.split('OL_Tag = ')[-1].split(' ')[0].split('\n')[0].split('\t')[0])
