@@ -325,8 +325,8 @@ def Investigate_chi2(rho, sigma_shift):
 
         lfv = 0
         #delta_xip, _ = Calc_delta_xip_J16( alpha, T_ratio, rho, rho )
-        delta_xip,_,_,_ = Calc_delta_xip_H20( rho, rho )
-        #theta_dxip, delta_xip,_ = Calc_delta_xip_cterms( )
+        #delta_xip,_,_,_ = Calc_delta_xip_H20( rho, rho )
+        theta_dxip, delta_xip,_ = Calc_delta_xip_cterms( )
         delta_xip = delta_xip[lfv]
         #theta_dxip, delta_xip,_ = Calc_delta_xip_Bacon()
         for i in range(num_zbins_tot):
@@ -373,8 +373,9 @@ def Investigate_chi2(rho, sigma_shift):
         print("low S8: ", abs(mean_chi2_null-mean_chi2_lo))
         return abs(mean_chi2_null-mean_chi2_sys), abs(mean_chi2_null-mean_chi2_hi), abs(mean_chi2_null-mean_chi2_lo)
 t1 = time.time()
-sigma_shifts = [0.05, 0.10, 0.15, 0.20]
-ntrials = 20
+sigma_shifts = [0.10] #, 0.15, 0.20, 0.3, 0.4]
+ntrials = 1  # NOTE: Only set this to >1 if np.random.seed is commented out in the function
+             # otherwise it will just return the exact same delta chi^2 shifts for every trial.
 delta_chi2_sys = np.zeros([len(sigma_shifts), ntrials])
 delta_chi2_hi = np.zeros_like(delta_chi2_sys)
 delta_chi2_lo =	np.zeros_like(delta_chi2_sys)
