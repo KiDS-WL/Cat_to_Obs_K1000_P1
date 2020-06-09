@@ -204,7 +204,7 @@ def Plot_SingleBin_Params():
     mix_ylimits = [ [ -0.005, 0.029], [ 0.01, 0.049], [ 0.001, 2.], [ 0.001, 2.], [ 0.001, 2.] ]
     
     # Plot the Mag On/Off best-fit models
-    fig = plt.figure(figsize = (8,6)) #figsize = (20,14)
+    fig = plt.figure(figsize = (8.5,6)) #figsize = (20,14)
     gs = gridspec.GridSpec(nz_source, 1)
     colors=[ 'red', 'blue', 'orange', 'green', 'magenta' ]
     tomobin_array = np.linspace(0.5, 5.5, 5) #np.arange(nz_source+1)+0.5
@@ -273,7 +273,7 @@ def Plot_SingleBin_Data_And_Model():
     # the SRT on each bin individually.
     alpha_boss = 2.0 # ~The level of magnification found for BOSS
     
-    fig = plt.figure(figsize = (8,6)) #figsize = (20,14)
+    fig = plt.figure(figsize = (8.5,6)) #figsize = (20,14)
     gs = gridspec.GridSpec(nz_source, nz_lens) #, width_ratios=[1,1,1,1,1], height_ratios=[1.2,1.2,1.2,1.2,1.2] )
     k=0
     for i in range(nz_source):
