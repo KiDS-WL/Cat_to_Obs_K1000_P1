@@ -2,7 +2,7 @@
 
 nlens=5                              # How many bins the lenses are divided into 
 SOURCE_TYPE="K1000"                  # K1000 or MICE2_KV450
-LENS_TYPE="BOSS_data"                # BOSS_data or MICE2_BOSS/MICE2_GAMA
+LENS_TYPE="GAMA_data"                # BOSS_data or MICE2_BOSS/MICE2_GAMA
 
                                      # ONLY USED FOR ANALYSIS WITH MICE
 Realisation="Fid"                    # Which MICE realisation to use?
@@ -13,7 +13,7 @@ Pz="Estimated"                       # only used if SOURCE_TYPE is MICE2_KV450
                                      # ONLY USED FOR ANALYSIS WITH K1000
 SOMFLAGNAME="Fid"                    # The type of SOM used TO ESTIMATE n(Z)
 
-nofz_shift="_nofzUp"             # Shift the nofz by the delta-z param?
+nofz_shift=""             # Shift the nofz by the delta-z param?
                           # Blank for no shift, "_nofzUp" for shift up, "_nofzDown" for shift down
                           # SHOULD ONLY BE SET FOR K1000 SOURCES.
 
@@ -21,7 +21,7 @@ OL_Tag=""   #""   #"_OutlierPeaksInBins12" # If set, accesses nofzs saved in SOU
                               # which have an Outlier (OL) excess injected at high redshift
                               # in the specified bin.
                           # SHOULD ONLY BE SET FOR K1000 SOURCES.
-BLIND="C"                 # Which Blind to use
+BLIND="A"                 # Which Blind to use
 
 
 if [ "$SOURCE_TYPE" == "K1000" ]; then

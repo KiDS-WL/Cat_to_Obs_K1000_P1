@@ -79,14 +79,15 @@ if Compare_Single_Bin:
     # ...including also the p-values and data-point error bars:
     p_values = np.zeros([nz_source, nz_lens])
     p_values_shift = np.zeros([len(nofz_shift), nz_source, nz_lens])
+    p_values_OL = np.zeros([nz_source, nz_lens])
     cov = np.load(OUTDIR+'/GTCovMat_%sx%s_6Z_source_5Z_lens_mCovTrue.npy'%(SOURCE_TYPE,LENS_TYPE))
 
     # ...finally, also read in the best-fit model and p-values when all bins fit simultaneously...
     # ...for both the fiducial 5 bin case, and the case where we neglect tomo bins 1&2
     model_5bin = np.loadtxt(OUTDIR+'/%sx%s_FitModel_MagFalse.dat'%(SOURCE_TYPE,LENS_TYPE), usecols=(1,), unpack=True)
-    model_3bin = np.loadtxt(OUTDIR+'/%sx%s_FitModel_MagFalse_3tbins-5sbins.dat'%(SOURCE_TYPE,LENS_TYPE), usecols=(1,), unpack=True)
+#    model_3bin = np.loadtxt(OUTDIR+'/%sx%s_FitModel_MagFalse_3tbins-5sbins.dat'%(SOURCE_TYPE,LENS_TYPE), usecols=(1,), unpack=True)
     p_value_5bin = np.loadtxt(OUTDIR+'/%sx%s_pvalue_MagFalse.dat'%(SOURCE_TYPE,LENS_TYPE))
-    p_value_3bin = np.loadtxt(OUTDIR+'/%sx%s_pvalue_MagFalse_3tbins-5sbins.dat'%(SOURCE_TYPE,LENS_TYPE))
+#    p_value_3bin = np.loadtxt(OUTDIR+'/%sx%s_pvalue_MagFalse_3tbins-5sbins.dat'%(SOURCE_TYPE,LENS_TYPE))
 
     # Read in the bin-by-bin data
     for i in range(nz_source):
@@ -104,16 +105,18 @@ if Compare_Single_Bin:
             # the analysis incl. the high-z outliers
             params_sl_OL[i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParams_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j, OL_Tag))
             params_sl_OL_err[i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParamsErrCF_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j, OL_Tag))
+            p_values_OL[i,j] = np.loadtxt(OUTDIR+'/%sx%s_pvalue_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,OL_Tag))
+            
             
             # Read in the shifted results:
-            for k in range(len(nofz_shift)):
+            #for k in range(len(nofz_shift)):
                 # nofz shift up/down ONLY
-                params_sl_shift[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParams_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]))
-                params_sl_shift_err[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParamsErrCF_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]))
+                #params_sl_shift[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParams_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]))
+                #params_sl_shift_err[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParamsErrCF_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]))
                 #model_sl_shift[k,i,j,:] = np.loadtxt(OUTDIR+'/%sx%s_FitModelCF_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]), usecols=(1,), unpack=True)
                 #p_values_shift[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_pvalue_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]))
-                params_sl_shift_OL[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParams_MagFalse_t%ss%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,OL_Tag,nofz_shift[k]))
-                params_sl_shift_OL_err[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParamsErrCF_MagFalse_t%ss%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,OL_Tag,nofz_shift[k]))
+                #params_sl_shift_OL[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParams_MagFalse_t%ss%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,OL_Tag,nofz_shift[k]))
+                #params_sl_shift_OL_err[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParamsErrCF_MagFalse_t%ss%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,OL_Tag,nofz_shift[k]))
                 
             
     # Read in the magnification model to overplot
@@ -284,16 +287,17 @@ def Plot_SingleBin_Data_And_Model():
             # PLOTTING STUFF
             # Best-fit bin-by-bin model
             tmp_model, tmp_model_err = Model(params_sl[i,j], params_sl_err[i,j], i, j)
-            #plt.errorbar( theta, theta*tmp_model, yerr=tmp_model_err, color='orange', fmt='o')
-            #plt.plot( theta, theta*model_sl[i,j,:], color='orange', linewidth=2, label=r'Model')
+            #tmp_model, tmp_model_err = Model(params_sl_OL[i,j], params_sl_OL_err[i,j], i, j)
+            plt.errorbar( theta, theta*tmp_model, yerr=tmp_model_err, color='orange', fmt='o')
+            plt.plot( theta, theta*model_sl[i,j,:], color='orange', linewidth=2, label=r'Model')
             
             # Best-fit 5 tomo bin model
-            plt.plot( theta, theta*model_5bin[k*ntheta:(k+1)*ntheta], color='orange', linewidth=2)
+            #plt.plot( theta, theta*model_5bin[k*ntheta:(k+1)*ntheta], color='orange', linewidth=2)
             if i>1:
                 # Best-fit 3 tomo bin model (excludes tomo bin 1&2)
                 offset = ntheta*nz_lens*2
-                plt.plot( theta, theta*model_3bin[(k*ntheta-offset):((k+1)*ntheta-offset)],
-                          color='red', linewidth=2, linestyle='--')
+            #    plt.plot( theta, theta*model_3bin[(k*ntheta-offset):((k+1)*ntheta-offset)],
+            #              color='red', linewidth=2, linestyle='--')
 
             # Magnification model
             Mag_Model = 2.*(alpha_boss-1.) * Magnif_Shape[k*ntheta:(k+1)*ntheta] #+ model_sl[i,j,:]
@@ -335,17 +339,17 @@ def Plot_SingleBin_Data_And_Model():
             #if j==0:
             #    if i==3 or i==4:
             #        text_ypos=0.4    
-            ax1.text(0.95,text_ypos, 't%s, sp%s\n'%(i+1,j+1), #+'$p=$%.1f'%(100*p_values[i,j])+r'%',
+            ax1.text(0.95,text_ypos, 't%s, sp%s\n'%(i+1,j+1) +'$p=$%.1f'%(100*p_values_OL[i,j])+r'%',
                      ha="right", va="top", transform=plt.gca().transAxes, fontsize=10)
             k+=1
 
     plt.subplots_adjust(wspace=0, hspace=0)
-    plt.savefig(OUTDIR+'/%sx%s_FitModel_MagFalse_AllBinsComparison_Blind%s.png'%(SOURCE_TYPE,LENS_TYPE,Blind))
+    #plt.savefig(OUTDIR+'/%sx%s_FitModel_MagFalse_AllBinsComparison_Blind%s.png'%(SOURCE_TYPE,LENS_TYPE,Blind))
     plt.show()
     return
 
 if Compare_Single_Bin:
-    Plot_SingleBin_Params()
+    #Plot_SingleBin_Params()
     Plot_SingleBin_Data_And_Model()
 
 # ------------------------------------- ^^^FUNCTIONS FOR COMPARE SINGLE BIN ANALYSIS^^^ -------------------------------------
