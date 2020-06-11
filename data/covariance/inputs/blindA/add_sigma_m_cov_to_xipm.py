@@ -4,7 +4,7 @@ import astropy.io.fits as fits
 nBins  = 5
 nTheta = 9 
 nPairs = int(nBins*(nBins+1)/2)
-blind='A'
+blind='C'
 
 
 filename="../../../kids/fits/xipm_KIDS1000_Blind"+blind+"_no_m_bias_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
@@ -80,7 +80,7 @@ for z1 in range(nBins):
 				cov_m_all[jmin+plus:jmax+plus,imin+plus:imax+plus] = Cov_sig_m_mm
 
 cov_tot = covariance + cov_m_all
-filename = 'thps_cov_kids1000_xipm_apr6_matrix_with_sigma_m.dat'
+filename = '../blind'+blind+'/thps_cov_kids1000_xipm_matrix_with_sigma_m.dat'
 np.savetxt(filename,cov_tot)
 
 
