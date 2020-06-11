@@ -216,7 +216,7 @@ def mkdir_mine(dirName):
 
 
 # Folder and file names for nofZ, for the sources it will depend on the blind
-blind = 'A'
+blind = 'B'
 cat_version = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid'
 name_tag    = 'with_m_bias' # with_m_bias # no_m_bias
 
@@ -282,9 +282,9 @@ def saveFitsBP_list_KIDS1000():
     sigmaEpsList = sigma_e.tolist()
 
     if(name_tag=='no_m_bias'):
-        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_apr6_bandpower_E_apod_0_list.dat'
+        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_bandpower_E_apod_0_list.dat'
     elif(name_tag=='with_m_bias'):
-        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_apr6_bandpower_E_apod_0_list_with_sigma_m.dat'
+        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_bandpower_E_apod_0_list_with_sigma_m.dat'
     else:
         print('not a recognised name_tag, will not produce anything')
         return
@@ -357,7 +357,7 @@ def saveFitsXIPM_list_KIDS1000():
  
     if(name_tag=='no_m_bias'):
         covTag='list'
-        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_xipm_apr6_list.dat'
+        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_xipm_list.dat'
         nGalList     = nGal_all
         nBins_lens = 2
         nOfZNameList = [ lens1,
@@ -369,7 +369,7 @@ def saveFitsXIPM_list_KIDS1000():
                          source5 ]
     elif(name_tag=='with_m_bias'):
         covTag='file'
-        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_xipm_apr6_matrix_with_sigma_m.dat'
+        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_xipm_matrix_with_sigma_m.dat'
         nBins_lens = 0
         nGalList     = nGal_source
         nOfZNameList = [ source1,
@@ -647,36 +647,34 @@ def unitaryTest(name1, name2):
 ############################################################
 # plot things here
 
-exit()
+# exit()
 # saveFitsCOSEBIs_KIDS1000()
 # saveFitsXIPM_sys_corrected_list_KIDS1000()
 
-# saveFitsBP_list_KIDS1000()
-# saveFitsXIPM_list_KIDS1000()
+saveFitsBP_list_KIDS1000()
+saveFitsXIPM_list_KIDS1000()
 
 FolderPlots=FolderNameInputs+'/plots'
 mkdir_mine(FolderPlots)
 
 
+# filename=FolderNameInputs+"/kids/fits/cosebis_KIDS1000_Blind"+blind+"_"+name_tag+"_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
+# title='KiDS'
+# savename=FolderPlots+'/only_source'+'_blind'+blind+'.pdf'
+# plot_redshift(filename,title,savename)
+
+# title='COSEBIs'
+# savename=FolderPlots+'/COSEBIs_covariance_'+name_tag+'_blind'+blind+'.pdf'
+# plot_covariance(filename,title,savename)
 
 
-filename=FolderNameInputs+"/kids/fits/cosebis_KIDS1000_Blind"+blind+"_"+name_tag+"_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
-title='KiDS'
-savename=FolderPlots+'/only_source'+'_blind'+blind+'.pdf'
-plot_redshift(filename,title,savename)
-
-title='COSEBIs'
-savename=FolderPlots+'/COSEBIs_covariance_'+name_tag+'_blind'+blind+'.pdf'
-plot_covariance(filename,title,savename)
+# savename=FolderPlots+'/COSEBIs_correlation_matrix_'+name_tag+'_blind'+blind+'.pdf'
+# plot_correlation_mat(filename,title,savename)
 
 
-savename=FolderPlots+'/COSEBIs_correlation_matrix_'+name_tag+'_blind'+blind+'.pdf'
-plot_correlation_mat(filename,title,savename)
-
-
-extname='En'
-savename=FolderPlots+'/COSEBIs_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
-plot_data(filename,title,extname,savename)
+# extname='En'
+# savename=FolderPlots+'/COSEBIs_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
+# plot_data(filename,title,extname,savename)
 
 
 # BP
