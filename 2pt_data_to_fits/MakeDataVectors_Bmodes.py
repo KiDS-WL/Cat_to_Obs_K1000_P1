@@ -89,5 +89,5 @@ COSEBIs_vector  = make_2pt_vector(input_files)
 
 name_tag = 'bmodes'
 savename = outputFolder+'cosebis_K1000_ALL_BLIND_'+blind+'_'+name_tag+'_'+cat_version+'_nbins_theta_0.5_300.asc'
-np.savetxt(savename,COSEBIs_vector_with_m_bias)
+np.savetxt(savename,COSEBIs_vector)
 
