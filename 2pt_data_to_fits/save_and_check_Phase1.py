@@ -1,5 +1,4 @@
 
-
     ######################################
     ##  save_and_check_Phase1.py        ##
     ##  Marika Asgari                   ##
@@ -167,12 +166,10 @@ def load_histogram_form(ext):
     # function)
     zlow = ext.data['Z_LOW']
     zhigh = ext.data['Z_HIGH']
-
     # First bin.
     i = 1
     bin_name = 'BIN{0}'.format(i)
     nz = []
-
     z = ext.data['Z_MID']
     # Load the n(z) columns, bin1, bin2, ...
     while bin_name in ext.data.names:
@@ -180,7 +177,6 @@ def load_histogram_form(ext):
         nz.append(col)
         i += 1
         bin_name = 'BIN{0}'.format(i)
-
     # First bin.
     i = 1
     ngal_name = "NGAL_"+str(i)
@@ -190,7 +186,6 @@ def load_histogram_form(ext):
         n_bar.append(n_b)
         i += 1
         ngal_name = "NGAL_"+str(i)
-
     nbin = len(nz)
     print("        Found {0} bins".format(nbin))
     nz = np.array(nz)
@@ -198,7 +193,6 @@ def load_histogram_form(ext):
     for col in nz:
         norm = np.trapz(col, z)
         col /= norm
-
     return z, nz, n_bar
 
 
@@ -216,9 +210,9 @@ def mkdir_mine(dirName):
 
 
 # Folder and file names for nofZ, for the sources it will depend on the blind
-blind = 'B'
+blind = 'A'
 cat_version = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid'
-name_tag    = 'with_m_bias' # with_m_bias # no_m_bias
+name_tag    = 'no_m_bias' # with_m_bias # no_m_bias
 
 FolderNameInputs  = '../data/'
 FolderNameCov     = '../data/covariance/'
@@ -651,9 +645,10 @@ def unitaryTest(name1, name2):
 # saveFitsCOSEBIs_KIDS1000()
 # saveFitsXIPM_sys_corrected_list_KIDS1000()
 
-saveFitsBP_list_KIDS1000()
+# saveFitsBP_list_KIDS1000()
 saveFitsXIPM_list_KIDS1000()
 
+exit()
 FolderPlots=FolderNameInputs+'/plots'
 mkdir_mine(FolderPlots)
 
