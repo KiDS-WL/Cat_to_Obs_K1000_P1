@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 DFLAG ='' # !!! TEMPORARY FLAG TO CALC DATA GT FROM MICE OCTANT, NOT FIDUCIAL MICE.
 
-Cov_Method = "Spin" #"Spin"  # The method for calculating the gamma_t realisations for use in covariance estimation
+Cov_Method = "None" #"Spin"  # The method for calculating the gamma_t realisations for use in covariance estimation
                      # "Spin" means do many spin realisations of the source ellipticities (ie - shape noise only)
                      # "Patch" means read in the other MICE realisations (1/8 of the sky)
                      # divide them into patches and calcute the gamma_t from each patch.
@@ -46,6 +46,15 @@ else:
     izin = int(sys.argv[6]) 
     ntprevrun = int(sys.argv[7]) 
     paramfile = sys.argv[8]
+
+# The following lines are used to separately save a finely binned gamma_t
+# for use in producing theoretical gamma_t's at the correct (mean-point) theta
+# values using kcap.
+if nbins > 10:
+    thsavetag = '_FineBins%s' %nbins
+else:
+    thsavetag =	''
+    
 
 # ----- Load Input ----- #
 from Get_Input import Get_Input              
@@ -177,7 +186,7 @@ for IZBIN in range (izin,izin+1):   #1,2,3,4,5
 
     lenscatname='LENSCATS/%s%s%s/lens_cat_%sZ_%s.fits' %(LENS_TYPE,lens_tag,DFLAG, nlens,IZBIN)
     rancatname='LENSCATS/%s%s%s/lens_cat_%sZ_%s.fits' %(RANDOM_TYPE,lens_tag,DFLAG, nlens,IZBIN)
-    outfile_main='%s/GT_6Z_source_%s_%sZ_lens_%s%s.asc' %(OUTDIR,JZBIN, nlens,IZBIN,DFLAG)
+    outfile_main='%s/GT_6Z_source_%s_%sZ_lens_%s%s%s.asc' %(OUTDIR,JZBIN, nlens,IZBIN, DFLAG,thsavetag)
 
     # the lens catalogue we will not modify so we can use the built in treecorr option to read 
     # in directly from the catalogue
@@ -313,7 +322,7 @@ for IZBIN in range (izin,izin+1):   #1,2,3,4,5
             gamma_t = lssp.xi*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rssp.xi         # GIBLIN! NOTE YOU CHANGED THIS
             gamma_x = lssp.xi_im*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rssp.xi_im   # rs --> rssp!!!
 
-            outfile_spin='%s/SPIN/GT_SPIN_%s_6Z_source_%s_%sZ_lens_%s.asc' %(OUTDIR,i,JZBIN, nlens,IZBIN)
+            outfile_spin='%s/SPIN/GT_SPIN_%s_6Z_source_%s_%sZ_lens_%s%s.asc' %(OUTDIR,i,JZBIN, nlens,IZBIN,thsavetag)
 
             #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
             treecorr.util.gen_write(outfile_spin,
@@ -407,7 +416,7 @@ for IZBIN in range (izin,izin+1):   #1,2,3,4,5
 
             if not os.path.exists(OUTDIR+'/PATCH/'):
                 os.makedirs(OUTDIR+'/PATCH/')
-            tmp_outfile='%s/PATCH/GT_PATCH_%sof%s_6Z_source_%s_%sZ_lens_%s.asc' %(OUTDIR,i,int(nPatch*nPatch),JZBIN,nlens,IZBIN)
+            tmp_outfile='%s/PATCH/GT_PATCH_%sof%s_6Z_source_%s_%sZ_lens_%s%s.asc' %(OUTDIR,i,int(nPatch*nPatch),JZBIN,nlens,IZBIN, thsavetag)
 
             #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code
             treecorr.util.gen_write(tmp_outfile,

@@ -31,14 +31,19 @@ from astropy.io import fits
 plt.rc('font', size=10)
 # ----- Load Input ----- #
 DFLAG = ''                     # Data Flag. Set to '' for Fiducial MICE. '_Octant' for MICE Octant.
-Include_mCov = True           # Include the uncertainty due to the m-correction
+Include_mCov = True            # Include the uncertainty due to the m-correction
 Include_Hartlap = False        # Hartlap correction
 Include_Magnification = False  # If True, include extra param in gamma_t model: strength of magnifcation effect on gt.
-Single_Bin = False              # If True, fit for only a single lens-source bin, specified by user on the command line.
+Include_IA = True             # If True, read in the kcap prediction for the IA-only <g_t> and add it to the model.
+                               # Note, currently this is *specific* to K1000xBOSS nofz's. 
+
+Single_Bin = False             # If True, fit for only a single lens-source bin, specified by user on the command line.
                                # Else fit for all bins simultaneously.
-nofz_shift=""         # Only for K1000: use the Dls/Ds values for the nofz which has been
+nofz_shift="_ModnofzUpDown"                  # Only for K1000: use the Dls/Ds values for the nofz which has been
                                # shifted up ('_nofzUp'), down ('_nofzDown') by (delta_z+delta_z_err)
                                # For no shift, set to ''
+                               # Finally, to include the uncert. on the nofz's in the SRT modelling,
+                               # set nofz_shift to "_ModnofzUpDown"
                                
 from Get_Input import Get_Input
 paramfile = sys.argv[1]   # e.g. params_KiDSdata.dat
@@ -91,6 +96,9 @@ ran_weight_list = []
 tomo_list = []
 speczbin_list = []
 Dls_over_Ds_list = []
+Dls_over_Ds_list_UP = []   # These two lists only get used if you are reading in the Dls/Ds for BOTH the
+Dls_over_Ds_list_DOWN = [] # nofz shift up/down, and including this extra uncert. in the fitting
+                           # (i.e. only if nofz_shift is set to "_ModnofzUpDown")
 
 
 Cov_Method = "Spin"   # The method for calculating the gamma_t realisations for use in covariance estimation
@@ -163,10 +171,27 @@ for tomobin in tomo_bins:
         speczbin_list.append(speczbin*np.ones((ntheta),dtype=np.int16))
 
         # Read in the Dls_over_Ds data created with Dls_over_Ds.py
-        Dls_over_Ds_file = '%s/Dls_over_Ds_DIR_6Z_source_%s_%sZ_lens_%s%s.asc' %(DlsDIR, (tomobin+1), numz_tag,(speczbin+1),nofz_shift)
-        Dls_over_Ds_tmp = np.loadtxt(Dls_over_Ds_file)
-        measurements['Dls_over_Ds_'+str(speczbin)+"_"+str(tomobin)] = np.repeat(Dls_over_Ds_tmp,ntheta)
-        Dls_over_Ds_list.append(measurements['Dls_over_Ds_'+str(speczbin)+"_"+str(tomobin)])
+        # Either read in ONLY the nofz shift up/down/no-shift...
+        # OR read in all, and incorporate the uncertainty on mean-z into the fitting.
+        Dls_over_Ds_file = '%s/Dls_over_Ds_DIR_6Z_source_%s_%sZ_lens_%s' %(DlsDIR, (tomobin+1), numz_tag,(speczbin+1))
+        if nofz_shift == "_ModnofzUpDown":
+            #Read in both nofz shift up and down (later use them to inflate the errors on the covariance):
+            Dls_over_Ds_tmp_up = np.loadtxt(Dls_over_Ds_file+'_nofzUp.asc')
+            Dls_over_Ds_tmp_down = np.loadtxt(Dls_over_Ds_file+'_nofzDown.asc')
+            Dls_over_Ds_tmp = np.loadtxt(Dls_over_Ds_file+'.asc')
+            
+            measurements['Dls_over_Ds_'+str(speczbin)+"_"+str(tomobin)+"_UP"] = np.repeat(Dls_over_Ds_tmp_up, ntheta)
+            measurements['Dls_over_Ds_'+str(speczbin)+"_"+str(tomobin)+"_DOWN"] = np.repeat(Dls_over_Ds_tmp_down, ntheta)
+            measurements['Dls_over_Ds_'+str(speczbin)+"_"+str(tomobin)] = np.repeat(Dls_over_Ds_tmp, ntheta)
+
+            Dls_over_Ds_list_UP.append(measurements['Dls_over_Ds_'+str(speczbin)+"_"+str(tomobin)+"_UP"])
+            Dls_over_Ds_list_DOWN.append(measurements['Dls_over_Ds_'+str(speczbin)+"_"+str(tomobin)+"_DOWN"])
+            Dls_over_Ds_list.append(measurements['Dls_over_Ds_'+str(speczbin)+"_"+str(tomobin)])
+            
+        else:
+            Dls_over_Ds_tmp = np.loadtxt(Dls_over_Ds_file+'%s.asc' %nofz_shift)
+            measurements['Dls_over_Ds_'+str(speczbin)+"_"+str(tomobin)] = np.repeat(Dls_over_Ds_tmp,ntheta)
+            Dls_over_Ds_list.append(measurements['Dls_over_Ds_'+str(speczbin)+"_"+str(tomobin)])
         
 thetas = np.hstack(thetas_list)
 tomo = np.hstack(tomo_list)
@@ -175,7 +200,11 @@ gt = np.hstack(gt_list)
 gx = np.hstack(gx_list) 
 gterr = np.hstack(gterr_list)
 Dls_over_Ds = np.hstack(Dls_over_Ds_list)
-
+if nofz_shift == "_ModnofzUpDown":
+    Dls_over_Ds_UP = np.hstack(Dls_over_Ds_list_UP)
+    Dls_over_Ds_DOWN = np.hstack(Dls_over_Ds_list_DOWN)
+    delta_A = gt * Dls_over_Ds * (1./Dls_over_Ds_UP - 1./Dls_over_Ds_DOWN) /2.0
+    
 nmatrix = nspecz*ntomo*ntheta
 gtlens=np.zeros([ntheta,ncycle])
 diag=np.zeros(nmatrix)
@@ -206,7 +235,6 @@ for tomobin in tomo_bins:
             gtprev= np.copy(gtall)
             print(len(gtall))
 cov_gt=np.cov(gtall)
-
 
 
 if Cov_Method == "Analytical":
@@ -275,9 +303,16 @@ else:
 cov = (cov_gt + cov_m) * Area_Scale
 print(len(cov))
 for i in range(nmatrix):
+
+    # If incl. the uncert. due to nofz shifts, inflate the diag of the covariance
+    if nofz_shift == "_ModnofzUpDown":
+        cov[i,i] += delta_A[i]**2 * Area_Scale
+        
     diag[i]=np.sqrt(cov[i,i])
     covdiag[i,i]=cov[i,i]
+        
 
+    
 Corr=np.corrcoef(gtall)
 plt.imshow(Corr, interpolation='None')
 plt.colorbar()
@@ -319,6 +354,10 @@ def func(params):
         alpha = np.repeat(alpha, ntheta)  # repeat each element ntheta times (no. points per lens bin)
         alpha = np.hstack((alpha,)*ntomo) # then create ntomo copies of this array
         model = model + 2.*(alpha-1.) * Magnif_Shape
+
+    if Include_IA:
+        model += gt_IA
+        
     return model
 
 
@@ -370,9 +409,21 @@ else:
     params_initial = np.zeros(nfreeparams)
 
 
+if Include_IA:
+    IA_DIR = '/home/bengib/kcap_NewInst/kcap/examples/GGL_IA/output/output_%sx%s_%s/gt_binned_ia_only'%(SOURCE_TYPE,
+                                                                                                        LENS_TYPE.split('_')[0],
+                                                                                                        Blind)
+    gt_IA = np.zeros([ ntomo*nspecz, ntheta ])
+    k=0
+    for tomobin in tomo_bins:
+        for speczbin in spec_bins:
+            gt_IA[k,:] = np.loadtxt('%s/bin_%s_%s.txt' %(IA_DIR,speczbin+1,tomobin+1))
+            k+=1
+    gt_IA = gt_IA.flatten()
+        
+
 ndof = (ntomo * nspecz * ntheta) - nfreeparams
 result = minimize(chi2, params_initial, args=(gt, cov_inv), options={'maxiter': 200000}, method='BFGS')
-
 
 
 Use_Curve_Fit = True # Try using curve_fit instead of chi^2 optimize
@@ -383,12 +434,16 @@ def model_curve_fit(x, amplitude):
 if Use_Curve_Fit and Single_Bin:
     params_0_cf, params_0_cferr = curve_fit(model_curve_fit, thetas, gt, p0=params_initial, sigma=cov )  
     # Save the outputs
-    np.savetxt(OUTDIR+'/%sx%s_FitParamsCF_Mag%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
-                                                          Include_Magnification,save_tag,nofz_shift), params_0_cf)
-    np.savetxt(OUTDIR+'/%sx%s_FitParamsErrCF_Mag%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
-                                                             Include_Magnification,save_tag,nofz_shift), params_0_cferr)
-    np.savetxt(OUTDIR+'/%sx%s_FitModelCF_Mag%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,Include_Magnification, save_tag,nofz_shift),
-           np.transpose(np.vstack(( thetas,func(params_0_cf) )) ) )
+    np.savetxt(OUTDIR+'/%sx%s_FitParamsCF_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+                                                                Include_Magnification,Include_IA,
+                                                                save_tag,nofz_shift), params_0_cf)
+    np.savetxt(OUTDIR+'/%sx%s_FitParamsErrCF_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+                                                                   Include_Magnification,Include_IA,
+                                                                   save_tag,nofz_shift), params_0_cferr)
+    np.savetxt(OUTDIR+'/%sx%s_FitModelCF_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+                                                               Include_Magnification,Include_IA,
+                                                               save_tag,nofz_shift),
+               np.transpose(np.vstack(( thetas,func(params_0_cf) )) ) )
 
 
     
@@ -406,14 +461,19 @@ params_0=result['x']
 # the sqrt of the inverse Hessian matrix diag is the error on the fitted parameters
 # https://stackoverflow.com/questions/43593592/errors-to-fit-parameters-of-scipy-optimize
 params_0err=np.sqrt( np.diag(result['hess_inv']) )
-np.savetxt(OUTDIR+'/%sx%s_FitParams_Mag%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
-                                                    Include_Magnification,save_tag,nofz_shift), params_0)
-np.savetxt(OUTDIR+'/%sx%s_FitParamsErr_Mag%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
-                                                       Include_Magnification,save_tag,nofz_shift), params_0err)
-np.savetxt(OUTDIR+'/%sx%s_FitModel_Mag%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,Include_Magnification, save_tag,nofz_shift),
+np.savetxt(OUTDIR+'/%sx%s_FitParams_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+                                                          Include_Magnification,Include_IA,
+                                                          save_tag,nofz_shift), params_0)
+np.savetxt(OUTDIR+'/%sx%s_FitParamsErr_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+                                                             Include_Magnification,Include_IA,
+                                                             save_tag,nofz_shift), params_0err)
+np.savetxt(OUTDIR+'/%sx%s_FitModel_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+                                                         Include_Magnification,Include_IA,
+                                                         save_tag,nofz_shift),
            np.transpose(np.vstack(( thetas,func(params_0) )) ) )
 # Save the p-value to be read in and plotted by the code Compare_BFParams_And_Models.py
-np.savetxt(OUTDIR+'/%sx%s_pvalue_Mag%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,Include_Magnification,
+np.savetxt(OUTDIR+'/%sx%s_pvalue_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+                                                       Include_Magnification,Include_IA,
                                                  save_tag,nofz_shift), np.c_[p_value])
 
 ######### plots ###

@@ -84,14 +84,27 @@ if Compare_Single_Bin:
 
     # ...finally, also read in the best-fit model and p-values when all bins fit simultaneously...
     # ...for both the fiducial 5 bin case, and the case where we neglect tomo bins 1&2
-    model_5bin = np.loadtxt(OUTDIR+'/%sx%s_FitModel_MagFalse.dat'%(SOURCE_TYPE,LENS_TYPE), usecols=(1,), unpack=True)
-#    model_3bin = np.loadtxt(OUTDIR+'/%sx%s_FitModel_MagFalse_3tbins-5sbins.dat'%(SOURCE_TYPE,LENS_TYPE), usecols=(1,), unpack=True)
-    p_value_5bin = np.loadtxt(OUTDIR+'/%sx%s_pvalue_MagFalse.dat'%(SOURCE_TYPE,LENS_TYPE))
-#    p_value_3bin = np.loadtxt(OUTDIR+'/%sx%s_pvalue_MagFalse_3tbins-5sbins.dat'%(SOURCE_TYPE,LENS_TYPE))
+    model_5bin = np.loadtxt(OUTDIR+'/%sx%s_FitModel_MagFalse_IATrue_ModnofzUpDown.dat'%(SOURCE_TYPE,LENS_TYPE),
+                            usecols=(1,), unpack=True)
+    model_3bin = np.loadtxt(OUTDIR+'/%sx%s_FitModel_MagFalse_IATrue_3tbins-5sbins.dat'%(SOURCE_TYPE,LENS_TYPE),
+                            usecols=(1,), unpack=True)
+    p_value_5bin = np.loadtxt(OUTDIR+'/%sx%s_pvalue_MagFalse_IATrue_ModnofzUpDown.dat'%(SOURCE_TYPE,LENS_TYPE))
+    p_value_3bin = np.loadtxt(OUTDIR+'/%sx%s_pvalue_MagFalse_IATrue_3tbins-5sbins.dat'%(SOURCE_TYPE,LENS_TYPE))
 
+    # The IA-only gamma_t prediction
+    IA_DIR = '/home/bengib/kcap_NewInst/kcap/examples/GGL_IA/output/output_%sx%s_%s/gt_binned_ia_only'%(SOURCE_TYPE,
+                                                                                                        LENS_TYPE.split('_')[0],
+                                                                                                        Blind)
+    gt_IA = np.zeros([ nz_source*nz_lens, ntheta ])
+    
     # Read in the bin-by-bin data
+    idx_IA = 0
     for i in range(nz_source):
         for j in range(nz_lens):
+            # IA-only gamma_t
+            gt_IA[idx_IA,:] = np.loadtxt('%s/bin_%s_%s.txt' %(IA_DIR,j+1,i+1))
+            idx_IA+=1
+            
             # the data
             data_sl[i,j,:] = np.loadtxt('%s/GT_6Z_source_%s_5Z_lens_%s.asc' %(INDIR,(i+1),(j+1)), usecols=(3,), unpack=True)
 
@@ -109,19 +122,19 @@ if Compare_Single_Bin:
             
             
             # Read in the shifted results:
-            #for k in range(len(nofz_shift)):
+            for k in range(len(nofz_shift)):
                 # nofz shift up/down ONLY
-                #params_sl_shift[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParams_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]))
-                #params_sl_shift_err[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParamsErrCF_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]))
-                #model_sl_shift[k,i,j,:] = np.loadtxt(OUTDIR+'/%sx%s_FitModelCF_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]), usecols=(1,), unpack=True)
-                #p_values_shift[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_pvalue_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]))
-                #params_sl_shift_OL[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParams_MagFalse_t%ss%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,OL_Tag,nofz_shift[k]))
-                #params_sl_shift_OL_err[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParamsErrCF_MagFalse_t%ss%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,OL_Tag,nofz_shift[k]))
+                params_sl_shift[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParams_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]))
+                params_sl_shift_err[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParamsErrCF_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]))
+                model_sl_shift[k,i,j,:] = np.loadtxt(OUTDIR+'/%sx%s_FitModelCF_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]), usecols=(1,), unpack=True)
+                p_values_shift[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_pvalue_MagFalse_t%ss%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,nofz_shift[k]))
+                params_sl_shift_OL[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParams_MagFalse_t%ss%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,OL_Tag,nofz_shift[k]))
+                params_sl_shift_OL_err[k,i,j] = np.loadtxt(OUTDIR+'/%sx%s_FitParamsErrCF_MagFalse_t%ss%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,i,j,OL_Tag,nofz_shift[k]))
                 
-            
+    gt_IA = gt_IA.flatten()        
     # Read in the magnification model to overplot
     Magnif_Shape = np.load('/home/bengib/kcap_NewInst/kcap/examples/output_magnification_alpha1.0/SRTparam_Bij.npy').flatten()
-
+    
 
     
 # ------------------------------------- FUNCTIONS FOR COMPARE MAG ON/OFF ANALYSES -------------------------------------
@@ -288,16 +301,21 @@ def Plot_SingleBin_Data_And_Model():
             # Best-fit bin-by-bin model
             tmp_model, tmp_model_err = Model(params_sl[i,j], params_sl_err[i,j], i, j)
             #tmp_model, tmp_model_err = Model(params_sl_OL[i,j], params_sl_OL_err[i,j], i, j)
-            plt.errorbar( theta, theta*tmp_model, yerr=tmp_model_err, color='orange', fmt='o')
-            plt.plot( theta, theta*model_sl[i,j,:], color='orange', linewidth=2, label=r'Model')
+            #plt.errorbar( theta, theta*tmp_model, yerr=tmp_model_err, color='orange', fmt='o')
+            #plt.plot( theta, theta*model_sl[i,j,:], color='orange', linewidth=2, label=r'Model')
             
             # Best-fit 5 tomo bin model
-            #plt.plot( theta, theta*model_5bin[k*ntheta:(k+1)*ntheta], color='orange', linewidth=2)
-            if i>1:
+            plt.plot( theta, theta*model_5bin[k*ntheta:(k+1)*ntheta], color='orange', linewidth=2)
+            # Don't bother plotting the 3-bin model
+            #if i>1:
                 # Best-fit 3 tomo bin model (excludes tomo bin 1&2)
-                offset = ntheta*nz_lens*2
+            #    offset = ntheta*nz_lens*2
             #    plt.plot( theta, theta*model_3bin[(k*ntheta-offset):((k+1)*ntheta-offset)],
             #              color='red', linewidth=2, linestyle='--')
+
+            # The IA-only prediction
+            plt.plot( theta, 5*theta*gt_IA[k*ntheta:(k+1)*ntheta], color='cyan', linewidth=2)
+            
 
             # Magnification model
             Mag_Model = 2.*(alpha_boss-1.) * Magnif_Shape[k*ntheta:(k+1)*ntheta] #+ model_sl[i,j,:]
@@ -308,7 +326,7 @@ def Plot_SingleBin_Data_And_Model():
             error = np.sqrt( np.diag( cov[k*ntheta:(k+1)*ntheta, k*ntheta:(k+1)*ntheta] ) )
             plt.errorbar( theta, theta*data_sl[i,j,:], yerr=theta*error, color='blue', fmt='o', label='Data' )
 
-            ax1.set_ylim(-0.0075,0.025)
+            ax1.set_ylim(-0.015, 0.025) #-0.0075,0.025)
             ax1.set_xscale('log')
             ax1.set_xlim(1.98, 60.)
             
@@ -339,12 +357,12 @@ def Plot_SingleBin_Data_And_Model():
             #if j==0:
             #    if i==3 or i==4:
             #        text_ypos=0.4    
-            ax1.text(0.95,text_ypos, 't%s, sp%s\n'%(i+1,j+1) +'$p=$%.1f'%(100*p_values_OL[i,j])+r'%',
+            ax1.text(0.95,text_ypos, 't%s, sp%s\n'%(i+1,j+1), #+'$p=$%.1f'%(100*p_values[i,j])+r'%',
                      ha="right", va="top", transform=plt.gca().transAxes, fontsize=10)
             k+=1
 
     plt.subplots_adjust(wspace=0, hspace=0)
-    #plt.savefig(OUTDIR+'/%sx%s_FitModel_MagFalse_AllBinsComparison_Blind%s.png'%(SOURCE_TYPE,LENS_TYPE,Blind))
+    plt.savefig(OUTDIR+'/%sx%s_FitModel_MagFalse_AllBinsComparison_Blind%s.png'%(SOURCE_TYPE,LENS_TYPE,Blind))
     plt.show()
     return
 

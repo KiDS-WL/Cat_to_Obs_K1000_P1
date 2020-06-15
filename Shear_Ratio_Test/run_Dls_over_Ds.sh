@@ -13,7 +13,7 @@ Pz="Estimated"                       # only used if SOURCE_TYPE is MICE2_KV450
                                      # ONLY USED FOR ANALYSIS WITH K1000
 SOMFLAGNAME="Fid"                    # The type of SOM used TO ESTIMATE n(Z)
 
-nofz_shift=""             # Shift the nofz by the delta-z param?
+nofz_shift="_nofzDown"             # Shift the nofz by the delta-z param?
                           # Blank for no shift, "_nofzUp" for shift up, "_nofzDown" for shift down
                           # SHOULD ONLY BE SET FOR K1000 SOURCES.
 
@@ -21,7 +21,7 @@ OL_Tag=""   #""   #"_OutlierPeaksInBins12" # If set, accesses nofzs saved in SOU
                               # which have an Outlier (OL) excess injected at high redshift
                               # in the specified bin.
                           # SHOULD ONLY BE SET FOR K1000 SOURCES.
-BLIND="A"                 # Which Blind to use
+BLIND="C"                 # Which Blind to use
 
 
 if [ "$SOURCE_TYPE" == "K1000" ]; then
