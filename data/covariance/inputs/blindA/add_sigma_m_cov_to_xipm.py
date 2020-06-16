@@ -4,7 +4,7 @@ import astropy.io.fits as fits
 nBins  = 5
 nTheta = 9 
 nPairs = int(nBins*(nBins+1)/2)
-blind='C'
+blind='A'
 
 
 filename="../../../kids/fits/xipm_KIDS1000_Blind"+blind+"_no_m_bias_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
@@ -84,6 +84,10 @@ filename = '../blind'+blind+'/thps_cov_kids1000_xipm_matrix_with_sigma_m.dat'
 np.savetxt(filename,cov_tot)
 
 
+filename = '../blind'+blind+'/thps_cov_kids1000_xipm_matrix.dat'
+np.savetxt(filename,covariance)
+
+exit()
 import matplotlib.pyplot as plt
 plt.clf()
 fig, ax = plt.subplots()
