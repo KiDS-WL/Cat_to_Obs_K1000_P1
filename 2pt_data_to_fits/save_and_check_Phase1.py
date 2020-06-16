@@ -212,7 +212,7 @@ def mkdir_mine(dirName):
 # Folder and file names for nofZ, for the sources it will depend on the blind
 blind = 'A'
 cat_version = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid'
-name_tag    = 'no_m_bias' # with_m_bias # no_m_bias
+name_tag    = 'bmodes' # with_m_bias # no_m_bias # bmodes
 
 FolderNameInputs  = '../data/'
 FolderNameCov     = '../data/covariance/'
@@ -279,6 +279,8 @@ def saveFitsBP_list_KIDS1000():
         covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_bandpower_E_apod_0_list.dat'
     elif(name_tag=='with_m_bias'):
         covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_bandpower_E_apod_0_list_with_sigma_m.dat'
+    elif(name_tag=='bmodes'):
+        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_bandpower_B_apod_0_list.dat'
     else:
         print('not a recognised name_tag, will not produce anything')
         return
@@ -319,6 +321,8 @@ def saveFitsCOSEBIs_KIDS1000():
         covName   = FolderNameCov+'/outputs/Covariance_no_m_bias_blind'+blind+'_nMaximum_20_0.50_300.00_nBins5.ascii'
     elif(name_tag=='with_m_bias'):
         covName   = FolderNameCov+'/outputs/Covariance_blind'+blind+'_nMaximum_20_0.50_300.00_nBins5.ascii'
+    elif(name_tag=='bmodes'):
+        covName   = FolderNameCov+'/outputs/Covariance_blind'+blind+'_nMaximum_20_0.50_300.00_nBins5_NoiseJustForNoise.ascii'
     else:
         print('not a recognised name_tag, will not produce anything')
         return
@@ -351,8 +355,9 @@ def saveFitsXIPM_list_KIDS1000():
  
     if(name_tag=='no_m_bias'):
         covTag='list'
+        # covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_xipm_list.dat'
         covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_xipm_list.dat'
-        nGalList     = nGal_all
+        nGalList   = nGal_all
         nBins_lens = 2
         nOfZNameList = [ lens1,
                          lens2, 
@@ -376,7 +381,7 @@ def saveFitsXIPM_list_KIDS1000():
         return
         
     
-    saveName  = FolderNameInputs+'/kids/fits/xipm_KIDS1000_Blind'+blind+'_'+name_tag+'_'+cat_version+'.fits'
+    saveName  = FolderNameInputs+'/kids/fits/newer_xipm_KIDS1000_Blind'+blind+'_'+name_tag+'_'+cat_version+'.fits'
     
     saveFitsTwoPoint(
         nbTomoN=nBins_lens, nbTomoG=nBins_source,
@@ -642,11 +647,11 @@ def unitaryTest(name1, name2):
 # plot things here
 
 # exit()
-# saveFitsCOSEBIs_KIDS1000()
+saveFitsCOSEBIs_KIDS1000()
 # saveFitsXIPM_sys_corrected_list_KIDS1000()
 
-# saveFitsBP_list_KIDS1000()
-saveFitsXIPM_list_KIDS1000()
+saveFitsBP_list_KIDS1000()
+# saveFitsXIPM_list_KIDS1000()
 
 exit()
 FolderPlots=FolderNameInputs+'/plots'
