@@ -95,10 +95,10 @@ for bin1 in range(nBins_source):
         xipm_sys=np.loadtxt(file,comments='#')
         xip_sys   = xipm_sys[:,3]
         xim_sys   = xipm_sys[:,4]
-        if(((bin1==3) & (bin2==3)) or ((bin1==3) & (bin2==4)) or ((bin1==4) & (bin2==4))):
-            print(bin1+1,bin2+1)
-            print(xip_sys/xip_binned[:,-1])
-            xip_binned[:,-1] -= xip_sys
+        # if(((bin1==3) & (bin2==3)) or ((bin1==3) & (bin2==4)) or ((bin1==4) & (bin2==4))):
+        print(bin1+1,bin2+1)
+        print(xip_sys/xip_binned[:,-1])
+        xip_binned[:,-1] -= xip_sys
         if counter==1:
             xip_all = xip_binned[:,-1].copy()
             xim_all = xim_binned[:,-1].copy()
