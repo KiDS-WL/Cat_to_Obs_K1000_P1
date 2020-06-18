@@ -4,7 +4,7 @@ import astropy.io.fits as fits
 nBins  = 5
 nTheta = 9 
 nPairs = int(nBins*(nBins+1)/2)
-blind='B'
+blind='C'
 
 
 filename="../../../kids/fits/xipm_KIDS1000_Blind"+blind+"_no_m_bias_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
