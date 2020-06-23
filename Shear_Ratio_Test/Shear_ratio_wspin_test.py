@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 DFLAG ='' # !!! TEMPORARY FLAG TO CALC DATA GT FROM MICE OCTANT, NOT FIDUCIAL MICE.
 
-Cov_Method = "None" #"Spin"  # The method for calculating the gamma_t realisations for use in covariance estimation
+Cov_Method = "Spin" #"Spin"  # The method for calculating the gamma_t realisations for use in covariance estimation
                      # "Spin" means do many spin realisations of the source ellipticities (ie - shape noise only)
                      # "Patch" means read in the other MICE realisations (1/8 of the sky)
                      # divide them into patches and calcute the gamma_t from each patch.

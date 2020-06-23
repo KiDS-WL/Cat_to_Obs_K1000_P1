@@ -319,8 +319,8 @@ def Plot_SingleBin_Data_And_Model():
 
             # Magnification model
             Mag_Model = 2.*(alpha_boss-1.) * Magnif_Shape[k*ntheta:(k+1)*ntheta] #+ model_sl[i,j,:]
-            #print( Mag_Model / model_sl[i,j,:] )
-            #plt.plot( theta, theta*Mag_Model, color='magenta', linewidth=2, label=r'Magnification')
+            print( Mag_Model / model_sl[i,j,:] )
+            #plt.plot( theta, 5*theta*Mag_Model, color='magenta', linewidth=2, label=r'Magnification')
 
             # Data
             error = np.sqrt( np.diag( cov[k*ntheta:(k+1)*ntheta, k*ntheta:(k+1)*ntheta] ) )

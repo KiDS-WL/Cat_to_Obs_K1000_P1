@@ -11,8 +11,8 @@ Blind = 'C'
 OutlierPeak = True                # If set to true, create an outlier peak
                                    # in the tomo bins specified by OL_bins
                                    # of sizes given by OL_frac
-OL_bins = '12'                      # bins to add an outlier peak, listed in order: e.g., '123', 
-OL_frac = [0.10, 0.05, 0., 0., 0.]   # fraction of sources you want to be represented in the peak
+OL_bins = '12345'                      # bins to add an outlier peak, listed in order: e.g., '123', 
+OL_frac = [0.10, 0.10, 0.10, 0.10, 0.10]   # fraction of sources you want to be represented in the peak
 
 numz = 5
 inDIR = '/disk09/KIDS/K1000_TWO_PT_STATS/SOM_NofZ/'
@@ -43,13 +43,17 @@ for i in range(1, numz+1):
             idx_peak = np.where( z>1.45 )[0][0]
             sum_heights = np.sum( density[ z != z[idx_peak] ] ) # Find the sum-total density
             density_wpeak[ idx_peak ] = OL_frac[i-1] * sum_heights
-        
+
+        # FITS (saved for Dls_over_Ds.py to use)
         hdulist = fits.BinTableHDU.from_columns(
             [fits.Column(name='binstart', format='1D',array=z),
              fits.Column(name='density', format='1E', array=density_wpeak)])
         hdulist.writeto('%s/%s.fits' %(outDIR,filename_ol), overwrite=True)
+        # ascii (saved for MakeNofZForCosmosis_LensAndSource.py in the kcap directory to read)
+        np.savetxt('%s/%s.asc' %(outDIR,filename_ol),
+               np.c_[z, density], header='# binstart, density' )
 
-
+        
 def Plot_Nz():
     import matplotlib.pyplot as plt
     for i in range(1, numz+1):

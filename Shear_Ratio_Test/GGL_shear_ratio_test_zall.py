@@ -32,16 +32,23 @@ plt.rc('font', size=10)
 # ----- Load Input ----- #
 DFLAG = ''                     # Data Flag. Set to '' for Fiducial MICE. '_Octant' for MICE Octant.
 Include_mCov = True            # Include the uncertainty due to the m-correction
+Include_mBias = False           # If True, read in and bias the gamma_t by *(1 + m + f_mBias * m_err)
+f_mBias = 5                    # where f_mBias (no. of sigmas to bias by) is defined below.
+
 Include_Hartlap = False        # Hartlap correction
-Include_Magnification = False  # If True, include extra param in gamma_t model: strength of magnifcation effect on gt.
-Include_IA = True             # If True, read in the kcap prediction for the IA-only <g_t> and add it to the model.
-                               # Note, currently this is *specific* to K1000xBOSS nofz's. 
+Include_Magnification = False   # If True, include extra param in gamma_t model: strength of magnifcation effect on gt.
+
+Include_IA = True              # If True, read in the kcap prediction for the IA-only <g_t> and inflate the cov diag by
+f_IA = 2                       # +(f_IA* gt_IA)^2 ; f_IA is our uncert. on IA amplitude.
+A_IA = 0                       # A_IA*gt_IA is added to the fitted model if Include_IA is True.
 
 Single_Bin = False             # If True, fit for only a single lens-source bin, specified by user on the command line.
                                # Else fit for all bins simultaneously.
-nofz_shift="_ModnofzUpDown"                  # Only for K1000: use the Dls/Ds values for the nofz which has been
-                               # shifted up ('_nofzUp'), down ('_nofzDown') by (delta_z+delta_z_err)
-                               # For no shift, set to ''
+                               
+nofz_shift="_nofzUp5sig"       # Only for K1000: use the Dls/Ds values for the nofz which has been
+                               # shifted up ('_nofzUp'), down ('_nofzDown') by +/-(delta_z+delta_z_err)
+                               # OR 5sig shift-up ('_nofzUp5sig'), down ('_nofzDown5sig') by (+/- 5*delta_z_err)
+                               # For no shift, set to ''.
                                # Finally, to include the uncert. on the nofz's in the SRT modelling,
                                # set nofz_shift to "_ModnofzUpDown"
                                
@@ -131,12 +138,20 @@ elif "K1000" in SOURCE_TYPE:
     DlsDIR += '_Blind%s_SOM%s%s' %(Blind,SOMFLAGNAME, OL_Tag)
     save_tag += OL_Tag
 
-
+if Include_mBias:
+    # Read in the m-bias and error per tomo_bin
+    mBias, mBias_err = np.loadtxt('mbias_perbin_mean_err.asc', usecols=(0,1), unpack=True)
+    #mBias_err[1] *= -1
+    #mBias_err[3] *= -1
+else:
+    mBias = np.zeros(len(tomo_bins))
+    mBias_err = np.zeros_like( mBias )
+    
 nspin=500
 if Cov_Method == "Spin" or Cov_Method == "Analytical":
     ncycle = nspin
     OUTDIR = INDIR + "/SPIN/"
-    Area_Scale = 1. # 341./750. # Approx. scaling KV450-->K1000     #1.
+    Area_Scale = 1. #341./777. # Approx. scaling KV450-->K1000     #1.
 elif Cov_Method == "Patch":
     ncycle = nPatch*nPatch
     OUTDIR = INDIR + "/PATCH/"
@@ -152,9 +167,9 @@ for tomobin in tomo_bins:
         gtdat=ascii.read(gtfile)
 
         measurements['thetas_'+str(speczbin)+"_"+str(tomobin)] = gtdat['meanr']
-        measurements['gt_'+str(speczbin)+"_"+str(tomobin)]     = gtdat['gamT']
-        measurements['gx_'+str(speczbin)+"_"+str(tomobin)]     = gtdat['gamX']
-        measurements['gterr_'+str(speczbin)+"_"+str(tomobin)]  = gtdat['sigma']
+        measurements['gt_'+str(speczbin)+"_"+str(tomobin)]     = gtdat['gamT']*( 1+(mBias+f_mBias*mBias_err)[tomobin] )
+        measurements['gx_'+str(speczbin)+"_"+str(tomobin)]     = gtdat['gamX']*( 1+(mBias+f_mBias*mBias_err)[tomobin] )
+        measurements['gterr_'+str(speczbin)+"_"+str(tomobin)]  = gtdat['sigma']*( 1+(mBias+f_mBias*mBias_err)[tomobin] )
 
         thetas_list.append(measurements['thetas_'+str(speczbin)+"_"+str(tomobin)])
         gt_list.append(measurements['gt_'+str(speczbin)+"_"+str(tomobin)])
@@ -299,11 +314,33 @@ if Include_mCov:
             cov_m[a,b] = gt[a] * gt[b] * (sigma_m[i]*sigma_m[k])
 else:
     cov_m = np.zeros_like(cov_gt)
-    
+
+
 cov = (cov_gt + cov_m) * Area_Scale
 print(len(cov))
-for i in range(nmatrix):
 
+
+if Include_IA:
+    IA_DIR = '/home/bengib/kcap_NewInst/kcap/examples/GGL_IA/output/output_%sx%s_%s%s/gt_binned_ia_only'%(SOURCE_TYPE,
+                                                                                                          LENS_TYPE.split('_')[0],
+                                                                                                          Blind,OL_Tag)
+    gt_IA = np.zeros([ ntomo*nspecz, ntheta ])
+    k=0
+    for tomobin in tomo_bins:
+        for speczbin in spec_bins:
+            gt_IA[k,:] = np.loadtxt('%s/bin_%s_%s.txt' %(IA_DIR,speczbin+1,tomobin+1))
+            k+=1
+    gt_IA = gt_IA.flatten()
+else:
+    gt_IA = np.zeros_like(gt)        
+
+# Inflate the covariance diagonal by the uncertainty introduced by the IA:
+# This does nothing if Include_IA is False.
+delta_IA = f_IA * gt_IA
+    
+for i in range(nmatrix):
+    cov[i,i] += delta_IA[i]**2. * Area_Scale
+    
     # If incl. the uncert. due to nofz shifts, inflate the diag of the covariance
     if nofz_shift == "_ModnofzUpDown":
         cov[i,i] += delta_A[i]**2 * Area_Scale
@@ -356,7 +393,7 @@ def func(params):
         model = model + 2.*(alpha-1.) * Magnif_Shape
 
     if Include_IA:
-        model += gt_IA
+        model += A_IA * gt_IA
         
     return model
 
@@ -409,18 +446,6 @@ else:
     params_initial = np.zeros(nfreeparams)
 
 
-if Include_IA:
-    IA_DIR = '/home/bengib/kcap_NewInst/kcap/examples/GGL_IA/output/output_%sx%s_%s/gt_binned_ia_only'%(SOURCE_TYPE,
-                                                                                                        LENS_TYPE.split('_')[0],
-                                                                                                        Blind)
-    gt_IA = np.zeros([ ntomo*nspecz, ntheta ])
-    k=0
-    for tomobin in tomo_bins:
-        for speczbin in spec_bins:
-            gt_IA[k,:] = np.loadtxt('%s/bin_%s_%s.txt' %(IA_DIR,speczbin+1,tomobin+1))
-            k+=1
-    gt_IA = gt_IA.flatten()
-        
 
 ndof = (ntomo * nspecz * ntheta) - nfreeparams
 result = minimize(chi2, params_initial, args=(gt, cov_inv), options={'maxiter': 200000}, method='BFGS')
@@ -461,20 +486,20 @@ params_0=result['x']
 # the sqrt of the inverse Hessian matrix diag is the error on the fitted parameters
 # https://stackoverflow.com/questions/43593592/errors-to-fit-parameters-of-scipy-optimize
 params_0err=np.sqrt( np.diag(result['hess_inv']) )
-np.savetxt(OUTDIR+'/%sx%s_FitParams_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
-                                                          Include_Magnification,Include_IA,
-                                                          save_tag,nofz_shift), params_0)
-np.savetxt(OUTDIR+'/%sx%s_FitParamsErr_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
-                                                             Include_Magnification,Include_IA,
-                                                             save_tag,nofz_shift), params_0err)
-np.savetxt(OUTDIR+'/%sx%s_FitModel_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
-                                                         Include_Magnification,Include_IA,
-                                                         save_tag,nofz_shift),
-           np.transpose(np.vstack(( thetas,func(params_0) )) ) )
+#np.savetxt(OUTDIR+'/%sx%s_FitParams_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+#                                                          Include_Magnification,Include_IA,
+#                                                          save_tag,nofz_shift), params_0)
+#np.savetxt(OUTDIR+'/%sx%s_FitParamsErr_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+#                                                             Include_Magnification,Include_IA,
+#                                                             save_tag,nofz_shift), params_0err)
+#np.savetxt(OUTDIR+'/%sx%s_FitModel_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+#                                                         Include_Magnification,Include_IA,
+#                                                         save_tag,nofz_shift),
+#           np.transpose(np.vstack(( thetas,func(params_0) )) ) )
 # Save the p-value to be read in and plotted by the code Compare_BFParams_And_Models.py
-np.savetxt(OUTDIR+'/%sx%s_pvalue_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
-                                                       Include_Magnification,Include_IA,
-                                                 save_tag,nofz_shift), np.c_[p_value])
+#np.savetxt(OUTDIR+'/%sx%s_pvalue_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+#                                                       Include_Magnification,Include_IA,
+#                                                 save_tag,nofz_shift), np.c_[p_value])
 
 ######### plots ###
 

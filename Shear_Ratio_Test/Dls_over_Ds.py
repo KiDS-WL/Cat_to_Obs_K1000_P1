@@ -48,19 +48,33 @@ try:
 except IndexError:
     nofz_shift=""
 
-if "_nofzUp" in nofz_shift or "_nofzDown" in nofz_shift:
+if "_nofz" in nofz_shift:
     # Read in delta-z shifts and errors
     dz,dz_err = np.loadtxt('nofz_shifts_perbin_mean_err.asc', usecols=(0,1), unpack=True)
     tbin = int(source_cat.split('TOMO')[-1].split('_')[0]) # Extracted tomo bin number
 
-    # Up means we find the n(z-dz-dz_err), and shift it UP to redshift z
-    # Down means shifting n(z+dz+dz_err), and shift DOWN to redshift z.
+    # Here we figure out what kind of shift is applied:
+    # Up means we find the n(z-A*dz_err), and shift it UP to redshift z
+    # Down means we find n(z+A*dz_err), and shift DOWN to redshift z.
+    # Mix means we shift EVEN tomo bins UP and ODD tomo bins DOWN.
+
+    shift_size = int( nofz_shift.split('sig')[0][-1] ) # How many sigma shifts to apply to n(z)
     if "Up" in nofz_shift:
-        new_zs = source_hist[:,0] - abs(dz[tbin-1]) - abs(dz_err[tbin-1])
+        shift_size *= -1.
+
+    # If "Down" is in nofz_shift, then we leave shift_size as it is (+ve number).
+    
+    elif "Mix" in nofz_shift:
+        # Then we're shifting UP if it's an even bin, or DOWN if it's an odd bin:
+        if (tbin-1) % 2 ==0:
+            shift_size *= -1.
+
+    # Apply the shift:
+    new_zs = source_hist[:,0] + shift_size * dz_err[tbin-1] # forget the mean shift # +shift_size*dz[tbin-1]
+    if "Up" in nofz_shift:
         # Get rid of the ~1 element that goes negative from this shift
         new_zs[new_zs<0.] = 0.
-    elif "Down" in nofz_shift:
-        new_zs = source_hist[:,0] + abs(dz[tbin-1]) + abs(dz_err[tbin-1])
+
     # Interp old nofz to new shifted redshifts
     new_nzs = np.interp( new_zs, source_hist[:,0], source_hist[:,1] )
     # Replace old source histogram with the shifted version
