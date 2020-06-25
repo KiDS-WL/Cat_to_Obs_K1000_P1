@@ -296,6 +296,7 @@ def Plot_SingleBin_Data_And_Model():
         for j in range(nz_lens):
             ax1 = plt.subplot(gs[k])
             #ax1.set_aspect(1.2) # Note: this doesn't work as aspect not supported for linear yaxis + log xaxis.
+            plt.plot( [1., 100.], [0.,0.,], 'k:', linewidth=0.5)
             
             # PLOTTING STUFF
             # Best-fit bin-by-bin model
@@ -319,7 +320,7 @@ def Plot_SingleBin_Data_And_Model():
 
             # Magnification model
             Mag_Model = 2.*(alpha_boss-1.) * Magnif_Shape[k*ntheta:(k+1)*ntheta] #+ model_sl[i,j,:]
-            print( Mag_Model / model_sl[i,j,:] )
+            #print( Mag_Model / model_sl[i,j,:] )
             #plt.plot( theta, 5*theta*Mag_Model, color='magenta', linewidth=2, label=r'Magnification')
 
             # Data
