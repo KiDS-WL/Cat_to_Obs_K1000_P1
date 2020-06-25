@@ -46,7 +46,7 @@ ext=F['xim']
 data = ext.data
 data['VALUE'][:] = xim_th_sys_corrected.copy()
 
-filename = FolderNameInputs+'/kids/mock_data/xipm_theory_psf_sys_corrected.fits'
+filename = FolderNameInputs+'/kids/mock_data/xipm_theory_psf_sys_corrected_all_bins.fits'
 F.writeto(filename)
 
 F = fits.open(filename)

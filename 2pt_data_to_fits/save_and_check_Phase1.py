@@ -210,9 +210,9 @@ def mkdir_mine(dirName):
 
 
 # Folder and file names for nofZ, for the sources it will depend on the blind
-blind = 'B'
+blind = 'A'
 cat_version = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid'
-name_tag    = 'with_m_bias' # with_m_bias # no_m_bias # bmodes
+name_tag    = 'no_m_bias' # with_m_bias # no_m_bias # bmodes
 
 FolderNameInputs  = '../data/'
 FolderNameCov     = '../data/covariance/'
@@ -419,7 +419,7 @@ def saveFitsXIPM_sys_corrected_list_KIDS1000():
                          source5 ]
     elif(name_tag=='with_m_bias'):
         covTag='file'
-        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_xipm_apr6_matrix_with_sigma_m.dat'
+        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_xipm_matrix_with_sigma_m.dat'
         nBins_lens = 0
         nGalList     = nGal_source
         nOfZNameList = [ source1,
