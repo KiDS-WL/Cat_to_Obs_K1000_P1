@@ -132,7 +132,8 @@ def Calc_Important_Tquantities(LFver,zbounds, nboot):
         delta_TPSF_Sg = Interp_deltaT(RA_Sg[idx_S], Dec_Sg[idx_S], RA_Sp, Dec_Sp, delta_TPSF_Sp)
 
         # 1. < deltaT_PSF / T_gal > & SIGMA[ deltaT_PSF / T_gal ]
-        # NOTE: T_g is on the DENOMINATOR here, so don't think weights shoulf be weight_g !
+        # NOTE: T_g is on the DENOMINATOR here, so the optimal weight is not weight_g,
+        # but thats what we're using.
         T_g = np.append(T_Ng[idx_N], T_Sg[idx_S])
         dT_p = np.append(delta_TPSF_Ng, delta_TPSF_Sg)
         weight_g = np.append(weight_Ng[idx_N], weight_Sg[idx_S])
