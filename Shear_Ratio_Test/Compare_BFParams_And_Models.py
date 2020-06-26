@@ -306,7 +306,7 @@ def Plot_SingleBin_Data_And_Model():
             #plt.plot( theta, theta*model_sl[i,j,:], color='orange', linewidth=2, label=r'Model')
             
             # Best-fit 5 tomo bin model
-            plt.plot( theta, theta*model_5bin[k*ntheta:(k+1)*ntheta], color='orange', linewidth=2)
+            plt.plot( theta, theta*model_5bin[k*ntheta:(k+1)*ntheta], color='red', linewidth=2)
             # Don't bother plotting the 3-bin model
             #if i>1:
                 # Best-fit 3 tomo bin model (excludes tomo bin 1&2)
