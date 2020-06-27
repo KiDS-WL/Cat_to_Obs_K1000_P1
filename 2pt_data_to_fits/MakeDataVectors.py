@@ -46,7 +46,7 @@ def rebin(x,signal,weight,x_min,x_max,nbins):
 ##################################################################################
 ### Making data vectors for Phase-1 real data
 
-blind = 'C'
+blind = 'A'
 cat_version = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid'
 
 # This is were the raw data is saved on cuillin
