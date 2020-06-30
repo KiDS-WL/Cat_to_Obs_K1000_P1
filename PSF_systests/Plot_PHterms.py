@@ -289,7 +289,7 @@ def Plot_deltaxips_Only(zbin):
         return
 #for i in range(num_zbins_tot):
 #        Plot_deltaxips_Only(i)
-Plot_deltaxips_Only(num_zbins_tot-1)
+#Plot_deltaxips_Only(num_zbins_tot-1)
 
 
 
@@ -327,8 +327,8 @@ def Investigate_chi2(rho, sigma_shift):
 
         lfv = 0
         #delta_xip, _ = Calc_delta_xip_J16( alpha, T_ratio, rho, rho )
-        #delta_xip,_,_,_ = Calc_delta_xip_H20( rho, rho )
-        theta_dxip, delta_xip,_ = Calc_delta_xip_cterms( )
+        delta_xip,_,_,_ = Calc_delta_xip_H20( rho, rho )
+        #theta_dxip, delta_xip,_ = Calc_delta_xip_cterms( )
         delta_xip = delta_xip[lfv]
         #theta_dxip, delta_xip,_ = Calc_delta_xip_Bacon()
         for i in range(num_zbins_tot):
@@ -381,9 +381,9 @@ ntrials = 1  # NOTE: Only set this to >1 if np.random.seed is commented out in t
 delta_chi2_sys = np.zeros([len(sigma_shifts), ntrials])
 delta_chi2_hi = np.zeros_like(delta_chi2_sys)
 delta_chi2_lo =	np.zeros_like(delta_chi2_sys)
-#for j in range(len(sigma_shifts)):
-#        for i in range(ntrials):
-#                delta_chi2_sys[j,i], delta_chi2_hi[j,i], delta_chi2_lo[j,i] = Investigate_chi2(php_mean, sigma_shifts[j])
+for j in range(len(sigma_shifts)):
+        for i in range(ntrials):
+                delta_chi2_sys[j,i], delta_chi2_hi[j,i], delta_chi2_lo[j,i] = Investigate_chi2(php_mean, sigma_shifts[j])
 t2 = time.time()
 print(" It took %.0f seconds." %(t2-t1))
 
