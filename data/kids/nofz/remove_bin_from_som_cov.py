@@ -6,7 +6,7 @@ cov_in=np.loadtxt(file)
 L_in = np.linalg.cholesky(cov_in) 
 inv_L_in = np.linalg.inv(L_in)
 
-bins_to_remove=[4]
+bins_to_remove=[5]
 
 # remove row and column from cov
 cov = cov_in.copy()
@@ -38,8 +38,9 @@ delta_x = np.dot(inv_L,delta_z_in)
 delta_z = np.dot(L,delta_x)
 
 print('bins_to_remove:',bins_to_remove)
-# print('delta_z_in=',delta_z_in)
+print('delta_z_in=',delta_z_in)
 print('delta_x=',delta_x)
+print('delta_x_in=',delta_x_in)
 # print('delta_z=',delta_z)
 
 nBins=5
