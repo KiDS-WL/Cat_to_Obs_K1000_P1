@@ -372,3 +372,9 @@ if Compare_Single_Bin:
     Plot_SingleBin_Data_And_Model()
 
 # ------------------------------------- ^^^FUNCTIONS FOR COMPARE SINGLE BIN ANALYSIS^^^ -------------------------------------
+
+# Convert a p-value into a sigma value (how consistent with the model?)
+def Return_sigma_1Tailed(p_value):
+    # Imput is the p-value as a percentage
+    from scipy.stats import norm
+    return norm.ppf( 1-(p_value/(100) ) ) # 2 factor is to make it 2-tailed, 100 factor converts percent to frac.

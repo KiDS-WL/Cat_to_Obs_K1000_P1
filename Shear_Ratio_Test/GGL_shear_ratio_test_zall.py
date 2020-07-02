@@ -38,14 +38,14 @@ f_mBias = 5                    # where f_mBias (no. of sigmas to bias by) is def
 Include_Hartlap = False        # Hartlap correction
 Include_Magnification = False   # If True, include extra param in gamma_t model: strength of magnifcation effect on gt.
 
-Include_IA = False              # If True, read in the kcap prediction for the IA-only <g_t> and inflate the cov diag by
+Include_IA = True              # If True, read in the kcap prediction for the IA-only <g_t> and inflate the cov diag by
 f_IA = 2                       # +(f_IA* gt_IA)^2 ; f_IA is our uncert. on IA amplitude.
 A_IA = 0                       # A_IA*gt_IA is added to the fitted model if Include_IA is True.
 
 Single_Bin = False             # If True, fit for only a single lens-source bin, specified by user on the command line.
                                # Else fit for all bins simultaneously.
                                
-nofz_shift=""       # Only for K1000: use the Dls/Ds values for the nofz which has been
+nofz_shift="_ModnofzUpDown"       # Only for K1000: use the Dls/Ds values for the nofz which has been
                                # shifted up ('_nofzUp'), down ('_nofzDown') by +/-(delta_z+delta_z_err)
                                # OR 5sig shift-up ('_nofzUp5sig'), down ('_nofzDown5sig') by (+/- 5*delta_z_err)
                                # For no shift, set to ''.
@@ -74,7 +74,7 @@ else:
     print("Performing SRT for all lens and source bins simultaneously. ",
           "Will fit an amplitude parameter per lens and source bin.")
     spec_bins=range(5)
-    tomo_bins=range(5)
+    tomo_bins=range(2)
     ntomo=len(tomo_bins)              # Number of photo-z bins
     nspecz=len(spec_bins)             # "..." of spec-z bins
     if ntomo==5 and nspecz==5:
@@ -144,7 +144,7 @@ if Include_mBias:
     #mBias_err[1] *= -1
     #mBias_err[3] *= -1
 else:
-    mBias = np.zeros(len(tomo_bins))
+    mBias = np.zeros(tomo_bins[-1]+1)
     mBias_err = np.zeros_like( mBias )
     
 nspin=500
