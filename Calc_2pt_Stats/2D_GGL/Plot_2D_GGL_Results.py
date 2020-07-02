@@ -101,7 +101,7 @@ ang_vals[:nrow] *= -1
 
 # Plot the gamma_{t,x} 2D and 1D
 cmap = plt.cm.rainbow
-f = plt.figure(figsize = (7.5,8))
+f = plt.figure(figsize = (8,8))
 gs1 = gridspec.GridSpec(4, 2)
 
 #vmin = -0.002 	#gamma_t_2D.min()
