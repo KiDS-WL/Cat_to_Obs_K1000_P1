@@ -50,4 +50,18 @@ for z in range(1,nBins+1):
 	else:
 		print('delta_x_in-delta_x=','%0.3f' %  (delta_x_in-delta_x)[z-1])
 
+print('\n\n')
+print('bins_to_remove:',bins_to_remove)
+
+print('')
+for z in range(1,nBins+1):
+	print('uncorr_bias_'+str(z),'=','-5.0','%0.3f' %delta_x[z-1],'5.0')
+
+
+
+print('')
+for z in range(1,nBins+1):
+	print('uncorr_bias_'+str(z),'=','gaussian','%0.3f' %delta_x[z-1],'1.0')
+
+
 
