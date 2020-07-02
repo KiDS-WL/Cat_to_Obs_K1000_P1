@@ -31,7 +31,7 @@ rcParams['pdf.use14corefonts'] = True
 
 font = {'family' : 'serif',
         'weight' : 'normal',
-        'size'   : 16} # 19
+        'size'   : 12} # 19
 
 plt.rc('font', **font)
 plt.rcParams["mathtext.fontset"] = "cm"
@@ -227,8 +227,8 @@ def Plot_deltaxips_Only(zbin):
         theta_dxip_c, delta_xip_c, err_delta_xip_c = Calc_delta_xip_cterms( )
         theta_dxip_B, delta_xip_B, err_delta_xip_B = Calc_delta_xip_Bacon()
 
-        fig = plt.figure(figsize = (9,6.5)) #(11,8)
-        gs1 = gridspec.GridSpec(2, 1, height_ratios=[0.25,0.75])
+        fig = plt.figure(figsize = (8,6)) #(11,8)
+        gs1 = gridspec.GridSpec(2, 1, height_ratios=[0.15,0.85])
         
         ax = plt.subplot(gs1[1], adjustable='box')
         Set_Scales(ax)
@@ -280,7 +280,7 @@ def Plot_deltaxips_Only(zbin):
         #             label=r'$\alpha^2 \xi^{\rm PSF,PSF}$' )
 
         
-        ax.legend(bbox_to_anchor=(0.5, 1.5), loc='upper center', frameon=False, ncol=2, fontsize=16)
+        ax.legend(bbox_to_anchor=(0.5, 1.37), loc='upper center', frameon=False, ncol=2, fontsize=12)
         #fontsize=19)
         # bbox_to_anchor=(0.5, 1.5)
         plt.subplots_adjust(hspace=0)
@@ -289,7 +289,7 @@ def Plot_deltaxips_Only(zbin):
         return
 #for i in range(num_zbins_tot):
 #        Plot_deltaxips_Only(i)
-#Plot_deltaxips_Only(num_zbins_tot-1)
+Plot_deltaxips_Only(num_zbins_tot-1)
 
 
 
@@ -381,9 +381,9 @@ ntrials = 1  # NOTE: Only set this to >1 if np.random.seed is commented out in t
 delta_chi2_sys = np.zeros([len(sigma_shifts), ntrials])
 delta_chi2_hi = np.zeros_like(delta_chi2_sys)
 delta_chi2_lo =	np.zeros_like(delta_chi2_sys)
-for j in range(len(sigma_shifts)):
-        for i in range(ntrials):
-                delta_chi2_sys[j,i], delta_chi2_hi[j,i], delta_chi2_lo[j,i] = Investigate_chi2(php_mean, sigma_shifts[j])
+#for j in range(len(sigma_shifts)):
+#        for i in range(ntrials):
+#                delta_chi2_sys[j,i], delta_chi2_hi[j,i], delta_chi2_lo[j,i] = Investigate_chi2(php_mean, sigma_shifts[j])
 t2 = time.time()
 print(" It took %.0f seconds." %(t2-t1))
 
