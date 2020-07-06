@@ -1,0 +1,7 @@
+is_auto = False
+nbin_a = 2
+nbin_b = 5
+sample_a = 'LENS'
+sample_b = 'SOURCE'
+save_name = ''
+sep_name = 'ell'
