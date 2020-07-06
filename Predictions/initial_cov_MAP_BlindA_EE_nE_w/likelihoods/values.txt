@@ -1,0 +1,2 @@
+2x2pt_like_like = -99.67000327400481
+xi_wedges_like_like = -84.22455619847366
