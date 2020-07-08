@@ -216,7 +216,7 @@ def mkdir_mine(dirName):
 
 
 # Folder and file names for nofZ, for the sources it will depend on the blind
-blind = 'A'
+blind = 'C'
 cat_version = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid'
 name_tag    = 'with_m_bias' # with_m_bias, only this name_tag is allowed for the iteration.
 
