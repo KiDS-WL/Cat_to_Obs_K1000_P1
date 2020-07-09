@@ -2,7 +2,7 @@ import numpy as np
 
 
 # update this to the new one
-filename="../thps_cov_kids1000_egretta_bp_apo_obs_bandpower_E_apod_list_mbias.dat"
+filename="thps_cov_kids1000_blindC_bp_iterated_bandpower_E_apod_0_list_mbias.dat"
 file=open(filename)
 m_bias_list=np.loadtxt(filename)[:,-1]
 
