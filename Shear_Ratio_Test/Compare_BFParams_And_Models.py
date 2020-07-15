@@ -11,7 +11,7 @@ import numpy as np
 import sys
 import matplotlib.gridspec as gridspec
 
-plt.rc('font', size=18)
+plt.rc('font', size=16)
 # ----- Load Input ----- #                                                                                                               
 from Get_Input import Get_Input
 paramfile = sys.argv[1]   # e.g. params_KiDSdata.dat                                                                                     
@@ -283,13 +283,13 @@ def Plot_SingleBin_Params():
 
 
 def Plot_SingleBin_Data_And_Model():
-    plt.rc('font', size=16)
+    plt.rc('font', size=11)
     
     # Plot the gamma_t per l&s bin VS the best-fit model when we perform
     # the SRT on each bin individually.
     alpha_boss = 2.0 # ~The level of magnification found for BOSS
     
-    fig = plt.figure(figsize = (8.5,6)) #figsize = (20,14)
+    fig = plt.figure(figsize = (9,7)) #figsize = (20,14)
     gs = gridspec.GridSpec(nz_source, nz_lens) #, width_ratios=[1,1,1,1,1], height_ratios=[1.2,1.2,1.2,1.2,1.2] )
     k=0
     for i in range(nz_source):
@@ -306,7 +306,7 @@ def Plot_SingleBin_Data_And_Model():
             #plt.plot( theta, theta*model_sl[i,j,:], color='orange', linewidth=2, label=r'Model')
             
             # Best-fit 5 tomo bin model
-            plt.plot( theta, theta*model_5bin[k*ntheta:(k+1)*ntheta], color='red', linewidth=2)
+            plt.plot( theta, theta*model_5bin[k*ntheta:(k+1)*ntheta], color='red', linewidth=1.5)
             # Don't bother plotting the 3-bin model
             #if i>1:
                 # Best-fit 3 tomo bin model (excludes tomo bin 1&2)
@@ -315,7 +315,7 @@ def Plot_SingleBin_Data_And_Model():
             #              color='red', linewidth=2, linestyle='--')
 
             # The IA-only prediction
-            plt.plot( theta, 5*theta*gt_IA[k*ntheta:(k+1)*ntheta], color='cyan', linewidth=2)
+            plt.plot( theta, 5*theta*gt_IA[k*ntheta:(k+1)*ntheta], color='cyan', linewidth=1.5)
             
 
             # Magnification model
@@ -325,7 +325,7 @@ def Plot_SingleBin_Data_And_Model():
 
             # Data
             error = np.sqrt( np.diag( cov[k*ntheta:(k+1)*ntheta, k*ntheta:(k+1)*ntheta] ) )
-            plt.errorbar( theta, theta*data_sl[i,j,:], yerr=theta*error, color='blue', fmt='o', label='Data' )
+            plt.errorbar( theta, theta*data_sl[i,j,:], yerr=theta*error, color='blue', fmt='o', markersize=4, label='Data' )
 
             ax1.set_ylim(-0.015, 0.025) #-0.0075,0.025)
             ax1.set_xscale('log')

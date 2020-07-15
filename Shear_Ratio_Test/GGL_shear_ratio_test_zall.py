@@ -39,8 +39,8 @@ Include_Hartlap = False        # Hartlap correction
 Include_Magnification = False   # If True, include extra param in gamma_t model: strength of magnifcation effect on gt.
 
 Include_IA = True              # If True, read in the kcap prediction for the IA-only <g_t> and inflate the cov diag by
-f_IA = 2                       # +(f_IA* gt_IA)^2 ; f_IA is our uncert. on IA amplitude.
-A_IA = 0                       # A_IA*gt_IA is added to the fitted model if Include_IA is True.
+f_IA = 0                       # +(f_IA* gt_IA)^2 ; f_IA is our uncert. on IA amplitude.
+A_IA = 1                       # A_IA*gt_IA is added to the fitted model if Include_IA is True.
 
 Single_Bin = False             # If True, fit for only a single lens-source bin, specified by user on the command line.
                                # Else fit for all bins simultaneously.
@@ -74,7 +74,7 @@ else:
     print("Performing SRT for all lens and source bins simultaneously. ",
           "Will fit an amplitude parameter per lens and source bin.")
     spec_bins=range(5)
-    tomo_bins=range(2)
+    tomo_bins=range(5)
     ntomo=len(tomo_bins)              # Number of photo-z bins
     nspecz=len(spec_bins)             # "..." of spec-z bins
     if ntomo==5 and nspecz==5:
