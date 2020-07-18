@@ -9,7 +9,6 @@
 # It has been adapted to make .fits files for the Phase1 real data
 
 import sys
-
 import numpy as np
 import scipy.interpolate as itp
 import astropy.io.fits as fits
@@ -276,11 +275,11 @@ def saveFitsBP_list_KIDS1000():
     sigmaEpsList = sigma_e.tolist()
 
     if(name_tag=='no_m_bias'):
-        covName   = FolderNameCov+'/inputs/iterative_cov/blind'+blind+'/thps_cov_kids1000_bandpower_E_apod_0_list.dat'
+        covName   = FolderNameCov+'/inputs/iterative_covariance/blind'+blind+'/thps_cov_kids1000_bandpower_E_apod_0_list.dat'
     elif(name_tag=='with_m_bias'):
-        covName   = FolderNameCov+'/inputs/iterative_cov/blind'+blind+'/thps_cov_kids1000_bandpower_E_apod_0_list_with_sigma_m.dat'
+        covName   = FolderNameCov+'/inputs/iterative_covariance/blind'+blind+'/thps_cov_kids1000_bandpower_E_apod_0_list_with_sigma_m.dat'
     elif(name_tag=='bmodes'):
-        covName   = FolderNameCov+'/inputs/iterative_cov/blind'+blind+'/thps_cov_kids1000_bandpower_B_apod_0_list.dat'
+        covName   = FolderNameCov+'/inputs/iterative_covariance/blind'+blind+'/thps_cov_kids1000_bandpower_B_apod_0_list.dat'
     else:
         print('not a recognised name_tag, will not produce anything')
         return
@@ -355,7 +354,7 @@ def saveFitsXIPM_list_KIDS1000():
  
     if(name_tag=='no_m_bias'):
         covTag='list'
-        covName   = FolderNameCov+'/inputs/iterative_cov/blind'+blind+'/thps_cov_kids1000_xipm_list.dat'
+        covName   = FolderNameCov+'/inputs/iterative_covariance/blind'+blind+'/thps_cov_kids1000_xipm_list.dat'
         nGalList   = nGal_all
         nBins_lens = 2
         nOfZNameList = [ lens1,
@@ -367,7 +366,7 @@ def saveFitsXIPM_list_KIDS1000():
                          source5 ]
     elif(name_tag=='with_m_bias'):
         covTag='file'
-        covName   = FolderNameCov+'/inputs/iterative_cov/blind'+blind+'/thps_cov_kids1000_xipm_matrix_with_sigma_m.dat'
+        covName   = FolderNameCov+'/inputs/iterative_covariance/blind'+blind+'/thps_cov_kids1000_xipm_matrix_with_sigma_m.dat'
         nBins_lens = 0
         nGalList     = nGal_source
         nOfZNameList = [ source1,
@@ -595,8 +594,8 @@ def unitaryTest(name1, name2):
 
 # exit()
 saveFitsCOSEBIs_KIDS1000()
-# saveFitsBP_list_KIDS1000()
-# saveFitsXIPM_list_KIDS1000()
+saveFitsBP_list_KIDS1000()
+saveFitsXIPM_list_KIDS1000()
 
 # exit()
 FolderPlots=FolderNameInputs+'/plots_iterative_cov'
@@ -621,7 +620,7 @@ extname='En'
 savename=FolderPlots+'/COSEBIs_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
 plot_data(filename,title,extname,savename)
 
-exit()
+# exit()
 # BP
 filename=FolderNameInputs+"/kids/fits_iterative_covariance/bp_KIDS1000_Blind"+blind+"_"+name_tag+"_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
 title= 'KiDS1000-BOSS'
