@@ -31,7 +31,7 @@ rcParams['pdf.use14corefonts'] = True
 
 font = {'family' : 'serif',
         'weight' : 'normal',
-        'size'   : 12} # 19
+        'size'   : 26} # 12
 
 plt.rc('font', **font)
 plt.rcParams["mathtext.fontset"] = "cm"
@@ -227,8 +227,8 @@ def Plot_deltaxips_Only(zbin):
         theta_dxip_c, delta_xip_c, err_delta_xip_c = Calc_delta_xip_cterms( )
         theta_dxip_B, delta_xip_B, err_delta_xip_B = Calc_delta_xip_Bacon()
 
-        fig = plt.figure(figsize = (8,6)) #(11,8)
-        gs1 = gridspec.GridSpec(2, 1, height_ratios=[0.15,0.85])
+        fig = plt.figure(figsize = (11,10)) #(8,6)
+        gs1 = gridspec.GridSpec(2, 1, height_ratios=[0.05,0.95]) #[0.15,0.85]
         
         ax = plt.subplot(gs1[1], adjustable='box')
         Set_Scales(ax)
@@ -247,44 +247,46 @@ def Plot_deltaxips_Only(zbin):
         ax.fill_between(theta_cov, y1=abs(Req)*-1, y2=abs(Req)*1, facecolor='yellow') 
 
 	# Plot the individual ingreidents of the delta_xip in Catherine's model
-        ax.errorbar( 10**(np.log10(theta)-0.05), delta_xip_terms_H[lfv,zbin,:,0],
-                     yerr=err_delta_xip_terms_H[lfv,zbin,:,0],
-                     color='lime', linewidth=2, linestyle=':', 
-		     label=r'$ 2 \left[{\frac{\overline{\delta T_{\rm PSF}}}{T_{\rm gal}}}\right] \left< e_{\rm obs}^{\rm perfect} e_{\rm obs}^{\rm perfect} \right>$' )
+        #ax.errorbar( 10**(np.log10(theta)-0.05), delta_xip_terms_H[lfv,zbin,:,0],
+        #             yerr=err_delta_xip_terms_H[lfv,zbin,:,0],
+        #             color='lime', linewidth=2, linestyle=':', 
+	#	     label=r'$ 2 \left[{\frac{\overline{\delta T_{\rm PSF}}}{T_{\rm gal}}}\right] \left< e_{\rm obs}^{\rm perfect} e_{\rm obs}^{\rm perfect} \right>$' )
         
-        ax.errorbar( theta, delta_xip_terms_H[lfv,zbin,:,1],
-                     yerr=err_delta_xip_terms_H[lfv,zbin,:,1],
-                     color='green', linewidth=2, linestyle='-.',
-		     label=r'$\left[ \,\overline{\frac{1}{T_{\rm gal}}}\,\right]^2 \left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (e_{\rm PSF} \, \delta T_{\rm PSF}) \right>$' )
+        #ax.errorbar( theta, delta_xip_terms_H[lfv,zbin,:,1],
+        #             yerr=err_delta_xip_terms_H[lfv,zbin,:,1],
+        #             color='green', linewidth=2, linestyle='-.',
+	#	     label=r'$\left[ \,\overline{\frac{1}{T_{\rm gal}}}\,\right]^2 \left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (e_{\rm PSF} \, \delta T_{\rm PSF}) \right>$' )
         
-        ax.errorbar( 10**(np.log10(theta)+0.025), delta_xip_terms_H[lfv,zbin,:,2],
-                     yerr=err_delta_xip_terms_H[lfv,zbin,:,2],
-                     color='cyan', linewidth=2, linestyle='-',
-		     label=r'$2 \left[ \,\overline{\frac{1}{T_{\rm gal}}}\,\right]^2  \left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (\delta e_{\rm PSF} \, T_{\rm PSF}) \right>$' )
+        #ax.errorbar( 10**(np.log10(theta)+0.025), delta_xip_terms_H[lfv,zbin,:,2],
+        #             yerr=err_delta_xip_terms_H[lfv,zbin,:,2],
+        #             color='cyan', linewidth=2, linestyle='-',
+	#	     label=r'$2 \left[ \,\overline{\frac{1}{T_{\rm gal}}}\,\right]^2  \left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (\delta e_{\rm PSF} \, T_{\rm PSF}) \right>$' )
 
-        ax.errorbar( 10**(np.log10(theta)-0.025), delta_xip_terms_H[lfv,zbin,:,3],
-                     yerr=err_delta_xip_terms_H[lfv,zbin,:,3],
-                     color='blue', linewidth=2, linestyle='--',
-                     label=r'$\left[ \,\overline{\frac{1}{T_{\rm gal}}}\,\right]^2 \left< (\delta e_{\rm PSF} \, T_{\rm PSF}) \,  (\delta e_{\rm PSF} \,T_{\rm PSF}) \right>$' )
+        #ax.errorbar( 10**(np.log10(theta)-0.025), delta_xip_terms_H[lfv,zbin,:,3],
+        #             yerr=err_delta_xip_terms_H[lfv,zbin,:,3],
+        #             color='blue', linewidth=2, linestyle='--',
+        #             label=r'$\left[ \,\overline{\frac{1}{T_{\rm gal}}}\,\right]^2 \left< (\delta e_{\rm PSF} \, T_{\rm PSF}) \,  (\delta e_{\rm PSF} \,T_{\rm PSF}) \right>$' )
 
         ax.errorbar( 10**(np.log10(theta)+0.05), delta_xip_H[lfv,zbin,:],
-                     yerr=err_delta_xip_H[lfv,zbin,:], color='red',
-                     linewidth=2, label=r'$\delta\xi_+^{\rm sys}$' )
+                     yerr=err_delta_xip_H[lfv,zbin,:], color='lawngreen', linewidth=3, #'red', 2
+                     label=r'PH08') #label=r'$\delta\xi_+^{\rm sys}$' )
+        
+        ax.errorbar( theta_dxip_B, delta_xip_B[zbin,:], yerr=err_delta_xip_B[zbin,:],
+                     color='orange', linewidth=3, #2
+                     label=r'B03') #label=r'$\alpha^2 \xi^{\rm PSF,PSF}$' )
         
         ax.errorbar( theta_dxip_c, delta_xip_c[lfv,zbin,:], yerr=err_delta_xip_c[lfv,zbin,:],
-                     color='magenta', linewidth=2,
+                     color='magenta', linewidth=3, #2
                      label=r'$\langle \delta\epsilon^{\rm PSF}(x,y) \, \delta\epsilon^{\rm PSF}(x,y) \rangle$' )
 
-        #ax.errorbar( theta_dxip_B, delta_xip_B[zbin,:], yerr=err_delta_xip_B[zbin,:],
-        #             color='orange', linewidth=2,
-        #             label=r'$\alpha^2 \xi^{\rm PSF,PSF}$' )
-
         
-        ax.legend(bbox_to_anchor=(0.5, 1.37), loc='upper center', frameon=False, ncol=2, fontsize=12)
+        ax.legend(bbox_to_anchor=(0.5, 1.18), loc='upper center', frameon=False, ncol=2, fontsize=26)
+        # bbox_to_anchor=(0.5, 1.37)
         #fontsize=19)
         # bbox_to_anchor=(0.5, 1.5)
         plt.subplots_adjust(hspace=0)
-        plt.savefig('LFver%s/PHterms/Plot_deltaxip_CovPatches%sx%s_zbin%s.png'%(LFver[0],Res,Res,zbin))
+        plt.savefig('/home/bengib/Poster_Plot.png')
+        #plt.savefig('LFver%s/PHterms/Plot_deltaxip_CovPatches%sx%s_zbin%s.png'%(LFver[0],Res,Res,zbin))
         plt.show()
         return
 #for i in range(num_zbins_tot):
