@@ -11,7 +11,7 @@ import numpy as np
 import sys
 import matplotlib.gridspec as gridspec
 
-plt.rc('font', size=16)
+plt.rc('font', size=22) #16
 # ----- Load Input ----- #                                                                                                               
 from Get_Input import Get_Input
 paramfile = sys.argv[1]   # e.g. params_KiDSdata.dat                                                                                     
@@ -277,13 +277,13 @@ def Plot_SingleBin_Params():
         ax1.text(0.95,0.95, 'sp%s'%(i+1), ha="right", va="top", transform=plt.gca().transAxes)
         
     plt.subplots_adjust(wspace=0, hspace=0)
-    plt.savefig(OUTDIR+'/%sx%s_FitParams_MagFalse_AllBinsComparison%s_Blind%s.png'%(SOURCE_TYPE,LENS_TYPE,save_tag,Blind))
+    #plt.savefig(OUTDIR+'/%sx%s_FitParams_MagFalse_AllBinsComparison%s_Blind%s.png'%(SOURCE_TYPE,LENS_TYPE,save_tag,Blind))
     plt.show()
     return
 
 
 def Plot_SingleBin_Data_And_Model():
-    plt.rc('font', size=11)
+    plt.rc('font', size=22) #11
     
     # Plot the gamma_t per l&s bin VS the best-fit model when we perform
     # the SRT on each bin individually.
@@ -306,7 +306,7 @@ def Plot_SingleBin_Data_And_Model():
             #plt.plot( theta, theta*model_sl[i,j,:], color='orange', linewidth=2, label=r'Model')
             
             # Best-fit 5 tomo bin model
-            plt.plot( theta, theta*model_5bin[k*ntheta:(k+1)*ntheta], color='red', linewidth=1.5)
+            plt.plot( theta, theta*model_5bin[k*ntheta:(k+1)*ntheta], color='red', linewidth=3) #.15
             # Don't bother plotting the 3-bin model
             #if i>1:
                 # Best-fit 3 tomo bin model (excludes tomo bin 1&2)
@@ -314,8 +314,8 @@ def Plot_SingleBin_Data_And_Model():
             #    plt.plot( theta, theta*model_3bin[(k*ntheta-offset):((k+1)*ntheta-offset)],
             #              color='red', linewidth=2, linestyle='--')
 
-            # The IA-only prediction
-            plt.plot( theta, 5*theta*gt_IA[k*ntheta:(k+1)*ntheta], color='cyan', linewidth=1.5)
+            # The IA-only prediction # !!! UNCOMMENT FOR THE PAPER PLOT !!!
+            #plt.plot( theta, 5*theta*gt_IA[k*ntheta:(k+1)*ntheta], color='cyan', linewidth=1.5)
             
 
             # Magnification model
@@ -325,8 +325,9 @@ def Plot_SingleBin_Data_And_Model():
 
             # Data
             error = np.sqrt( np.diag( cov[k*ntheta:(k+1)*ntheta, k*ntheta:(k+1)*ntheta] ) )
-            plt.errorbar( theta, theta*data_sl[i,j,:], yerr=theta*error, color='blue', fmt='o', markersize=4, label='Data' )
-
+            plt.errorbar( theta, theta*data_sl[i,j,:], yerr=theta*error, color='blue', fmt='o', markersize=10, label='Data' )
+            # markersize=4
+            
             ax1.set_ylim(-0.015, 0.025) #-0.0075,0.025)
             ax1.set_xscale('log')
             ax1.set_xlim(1.98, 60.)
@@ -355,15 +356,16 @@ def Plot_SingleBin_Data_And_Model():
             # certain panels we need to adjust where the text appears or it clashes with the data points
             # ...that is what this if statement is for.
             text_ypos=0.95
-            #if j==0:
-            #    if i==3 or i==4:
-            #        text_ypos=0.4    
+            if j==0:
+                if i==3 or i==4:
+                    text_ypos=0.4
             ax1.text(0.95,text_ypos, 't%s, sp%s\n'%(i+1,j+1), #+'$p=$%.1f'%(100*p_values[i,j])+r'%',
-                     ha="right", va="top", transform=plt.gca().transAxes, fontsize=10)
+                     ha="right", va="top", transform=plt.gca().transAxes, fontsize=22) #10
             k+=1
 
     plt.subplots_adjust(wspace=0, hspace=0)
-    plt.savefig(OUTDIR+'/%sx%s_FitModel_MagFalse_AllBinsComparison_Blind%s.png'%(SOURCE_TYPE,LENS_TYPE,Blind))
+    plt.savefig('/home/bengib/Poster_Plot2.png')
+    #plt.savefig(OUTDIR+'/%sx%s_FitModel_MagFalse_AllBinsComparison_Blind%s.png'%(SOURCE_TYPE,LENS_TYPE,Blind))
     plt.show()
     return
 
