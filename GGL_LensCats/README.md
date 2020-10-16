@@ -62,8 +62,6 @@ GRCOL, RICOL, RMAG -- saving these in order to easily produce plots of the distr
                       (could potentially delete these columns)
 
 Random lenses have WEICOMP=1, FLAGPHOT=0, WEIMAG=1 
-                      (not entirely sure what weight to give random lenses if the data lenses have 
-                      magnitude/colour weights).
 
 The standard weight to use to correspond to the BOSS clustering analysis would be WEICOMP*WEIFKP.
 
