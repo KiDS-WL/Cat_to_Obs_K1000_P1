@@ -1,11 +1,16 @@
 # KiDS-1000 BOSS and 2dFLenS 3x2pt data
 
+The KiDS-1000 cosmological analyses were blinded through the analysis of three different shear catalogues, Blind A, B and C.   Blind C was revealed as the truth after we completed our analysis.   In this repo to avoid any confusion we only provide the unblinded Blind C data, but you will find options in the scripts to create Blinds A and B.
+
 ## BOSS Sanchez et al 2017 Anisotropic Clustering
 * boss/Sanchez_etal_2017:  clustering data and covariance matrix
 * boss/nofz: BOSS and 2dFLenS n(z) for GGL predictions
 
 ## KiDS-1000 data
-* cosebis: Ascii E and B mode COSEBIS for each tomographic bin combination
+* kids/cosebis: Ascii E and B mode COSEBIS for each tomographic bin combination (*to do add Blind C*)
+* kids/ellipticity_dispersion: sigma_e per tomographic bin
+
+
 
 * sigma_e in kids/ellipticity_dispersion
 * n(z)    in kids/nofz/SOM_N_of_Z
