@@ -1,5 +1,4 @@
 
-
     ######################################
     ##  save_and_check_Phase1.py        ##
     ##  Marika Asgari                   ##
@@ -167,12 +166,10 @@ def load_histogram_form(ext):
     # function)
     zlow = ext.data['Z_LOW']
     zhigh = ext.data['Z_HIGH']
-
     # First bin.
     i = 1
     bin_name = 'BIN{0}'.format(i)
     nz = []
-
     z = ext.data['Z_MID']
     # Load the n(z) columns, bin1, bin2, ...
     while bin_name in ext.data.names:
@@ -180,7 +177,6 @@ def load_histogram_form(ext):
         nz.append(col)
         i += 1
         bin_name = 'BIN{0}'.format(i)
-
     # First bin.
     i = 1
     ngal_name = "NGAL_"+str(i)
@@ -190,7 +186,6 @@ def load_histogram_form(ext):
         n_bar.append(n_b)
         i += 1
         ngal_name = "NGAL_"+str(i)
-
     nbin = len(nz)
     print("        Found {0} bins".format(nbin))
     nz = np.array(nz)
@@ -198,7 +193,6 @@ def load_histogram_form(ext):
     for col in nz:
         norm = np.trapz(col, z)
         col /= norm
-
     return z, nz, n_bar
 
 
@@ -216,9 +210,9 @@ def mkdir_mine(dirName):
 
 
 # Folder and file names for nofZ, for the sources it will depend on the blind
-blind = 'A'
+blind = 'C'
 cat_version = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid'
-name_tag    = 'with_m_bias' # with_m_bias # no_m_bias
+name_tag    = 'no_m_bias' # with_m_bias # no_m_bias # bmodes
 
 FolderNameInputs  = '../data/'
 FolderNameCov     = '../data/covariance/'
@@ -282,9 +276,11 @@ def saveFitsBP_list_KIDS1000():
     sigmaEpsList = sigma_e.tolist()
 
     if(name_tag=='no_m_bias'):
-        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_apr6_bandpower_E_apod_0_list.dat'
+        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_bandpower_E_apod_0_list.dat'
     elif(name_tag=='with_m_bias'):
-        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_apr6_bandpower_E_apod_0_list_with_sigma_m.dat'
+        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_bandpower_E_apod_0_list_with_sigma_m.dat'
+    elif(name_tag=='bmodes'):
+        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_bandpower_B_apod_0_list.dat'
     else:
         print('not a recognised name_tag, will not produce anything')
         return
@@ -325,6 +321,8 @@ def saveFitsCOSEBIs_KIDS1000():
         covName   = FolderNameCov+'/outputs/Covariance_no_m_bias_blind'+blind+'_nMaximum_20_0.50_300.00_nBins5.ascii'
     elif(name_tag=='with_m_bias'):
         covName   = FolderNameCov+'/outputs/Covariance_blind'+blind+'_nMaximum_20_0.50_300.00_nBins5.ascii'
+    elif(name_tag=='bmodes'):
+        covName   = FolderNameCov+'/outputs/Covariance_blind'+blind+'_nMaximum_20_0.50_300.00_nBins5_NoiseOnly.ascii'
     else:
         print('not a recognised name_tag, will not produce anything')
         return
@@ -357,8 +355,8 @@ def saveFitsXIPM_list_KIDS1000():
  
     if(name_tag=='no_m_bias'):
         covTag='list'
-        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_xipm_apr6_list.dat'
-        nGalList     = nGal_all
+        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_xipm_list.dat'
+        nGalList   = nGal_all
         nBins_lens = 2
         nOfZNameList = [ lens1,
                          lens2, 
@@ -369,7 +367,7 @@ def saveFitsXIPM_list_KIDS1000():
                          source5 ]
     elif(name_tag=='with_m_bias'):
         covTag='file'
-        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_xipm_apr6_matrix_with_sigma_m.dat'
+        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_xipm_matrix_with_sigma_m.dat'
         nBins_lens = 0
         nGalList     = nGal_source
         nOfZNameList = [ source1,
@@ -421,7 +419,7 @@ def saveFitsXIPM_sys_corrected_list_KIDS1000():
                          source5 ]
     elif(name_tag=='with_m_bias'):
         covTag='file'
-        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_xipm_apr6_matrix_with_sigma_m.dat'
+        covName   = FolderNameCov+'/inputs/blind'+blind+'/thps_cov_kids1000_xipm_matrix_with_sigma_m.dat'
         nBins_lens = 0
         nGalList     = nGal_source
         nOfZNameList = [ source1,
@@ -432,7 +430,6 @@ def saveFitsXIPM_sys_corrected_list_KIDS1000():
     else:
         print('not a recognised name_tag, will not produce anything')
         return
-        
     
     saveName  = FolderNameInputs+'/kids/fits/xipm_sys_corrected_KIDS1000_Blind'+blind+'_'+name_tag+'_'+cat_version+'.fits'
     
@@ -647,17 +644,16 @@ def unitaryTest(name1, name2):
 ############################################################
 # plot things here
 
-exit()
-# saveFitsCOSEBIs_KIDS1000()
+# exit()
+saveFitsCOSEBIs_KIDS1000()
 # saveFitsXIPM_sys_corrected_list_KIDS1000()
 
 # saveFitsBP_list_KIDS1000()
 # saveFitsXIPM_list_KIDS1000()
 
+# exit()
 FolderPlots=FolderNameInputs+'/plots'
 mkdir_mine(FolderPlots)
-
-
 
 
 filename=FolderNameInputs+"/kids/fits/cosebis_KIDS1000_Blind"+blind+"_"+name_tag+"_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
@@ -680,45 +676,45 @@ plot_data(filename,title,extname,savename)
 
 
 # BP
-filename=FolderNameInputs+"/kids/fits/bp_KIDS1000_Blind"+blind+"_"+name_tag+"_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
-title= 'KiDS1000-BOSS'
-savename=FolderPlots+'/KiDS1000_nofz_'+name_tag+'_blind'+blind+'.pdf'
-plot_redshift(filename,title,savename)
+# filename=FolderNameInputs+"/kids/fits/bp_KIDS1000_Blind"+blind+"_"+name_tag+"_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
+# title= 'KiDS1000-BOSS'
+# savename=FolderPlots+'/KiDS1000_nofz_'+name_tag+'_blind'+blind+'.pdf'
+# plot_redshift(filename,title,savename)
 
-savename=FolderPlots+'/BP_covariance_'+name_tag+'_blind'+blind+'.pdf'
-plot_covariance(filename,title,savename)
+# savename=FolderPlots+'/BP_covariance_'+name_tag+'_blind'+blind+'.pdf'
+# plot_covariance(filename,title,savename)
 
-savename=FolderPlots+'/BP_correlation_matrix_'+name_tag+'_blind'+blind+'.pdf'
-plot_correlation_mat(filename,title,savename)
+# savename=FolderPlots+'/BP_correlation_matrix_'+name_tag+'_blind'+blind+'.pdf'
+# plot_correlation_mat(filename,title,savename)
 
-file=open(bp_filename)
-bp=np.loadtxt(file)
+# file=open(bp_filename)
+# bp=np.loadtxt(file)
 
-extname='PeeE'
-savename=FolderPlots+'/BP_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
-plot_data(filename,title,extname,savename)
+# extname='PeeE'
+# savename=FolderPlots+'/BP_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
+# plot_data(filename,title,extname,savename)
 
-extname='PneE'
-savename=FolderPlots+'/BP_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
-plot_data(filename,title,extname,savename)
+# extname='PneE'
+# savename=FolderPlots+'/BP_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
+# plot_data(filename,title,extname,savename)
 
-# xipm
-filename=FolderNameInputs+"/kids/fits/xipm_KIDS1000_Blind"+blind+"_"+name_tag+"_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
-title= 'Xipm'
-savename=FolderPlots+'/xipm_nofz_'+name_tag+'_blind'+blind+'.pdf'
-plot_redshift(filename,title,savename)
+# # xipm
+# filename=FolderNameInputs+"/kids/fits/xipm_KIDS1000_Blind"+blind+"_"+name_tag+"_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
+# title= 'Xipm'
+# savename=FolderPlots+'/xipm_nofz_'+name_tag+'_blind'+blind+'.pdf'
+# plot_redshift(filename,title,savename)
 
-savename=FolderPlots+'/xipm_covariance_'+name_tag+'_blind'+blind+'.pdf'
-plot_covariance(filename,title,savename)
+# savename=FolderPlots+'/xipm_covariance_'+name_tag+'_blind'+blind+'.pdf'
+# plot_covariance(filename,title,savename)
 
-savename=FolderPlots+'/xipm_correlation_matrix_'+name_tag+'_blind'+blind+'.pdf'
-plot_correlation_mat(filename,title,savename)
+# savename=FolderPlots+'/xipm_correlation_matrix_'+name_tag+'_blind'+blind+'.pdf'
+# plot_correlation_mat(filename,title,savename)
 
-extname='xip'
-savename=FolderPlots+'/xip_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
-plot_data(filename,title,extname,savename)
+# extname='xip'
+# savename=FolderPlots+'/xip_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
+# plot_data(filename,title,extname,savename)
 
-extname='xim'
-savename=FolderPlots+'/xim_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
-plot_data(filename,title,extname,savename)
+# extname='xim'
+# savename=FolderPlots+'/xim_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
+# plot_data(filename,title,extname,savename)
 
