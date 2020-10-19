@@ -9,7 +9,8 @@ This repository contains the scripts used to convert the shear-photo-z catalogue
 
 With the publication of these papers, we make these scripts available to the community following the draft Software Policy document from the LSST-DESC Software Review Policy Committee.   In doing so we aim to show the reliability, reproducibility and reusability of our code, ensure visibility for our developers, and build trust in our "4-eye" software review process.   There is a major caveat here though - we are not software engineers! We fully recognise that our code could be improved in many ways.  We nevertheless provide these scripts "as is" without user support.
 
-We provide a brief summary of each directory, referring the user to the directory readmes which further describe the contents.    
+We provide a brief summary of each directory, referring the user to the directory readmes which further describe the contents.  
+* 2pt_data_to_fits: Creating data fits tables for KCAP/CosmoSIS
 * Flinc_theory_inputs: [SALMO][5] mock inputs
 * GGL_LensCats: Creating KiDS-overlap Lens Catalogues from the BOSS and 2dFLenS master catalogues
 * PSFRES_CORRMAP : Chip-dependent 2D PSF residual model
