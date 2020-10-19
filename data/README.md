@@ -9,6 +9,10 @@ The KiDS-1000 cosmological analyses were blinded through the analysis of three d
 ## KiDS-1000 data
 * kids/cosebis: Ascii E and B mode COSEBIS for each tomographic bin combination (*to do add Blind C*)
 * kids/ellipticity_dispersion: sigma_e per tomographic bin
+* kids/fits: fits data cubes for KCAP/CosmoSIS that contain the data vectors, initial covariance and n(z) as used in systematic tests
+* kids/fits_iterative_covariance: fits data cubes for KCAP/CosmoSIS that contain the data vectors, final covariance and n(z) used for the final analysis
+* kids/mock_data: mock data for pipeline tests
+* kids/multiplicative_bias: m-calibration values from Kannawadi et al re-analysis of SOM sample
 
 
 
