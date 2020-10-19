@@ -41,16 +41,19 @@ ntomobin=5
 # number of modes in data file
 nmodestot=20
 # number of modes to analyse
-nmodes=20
+nmodes=20 # full set
+#nmodes=5 # set used in E-mode cosmic shear analysis
+
 # value of the modes
 n=np.arange(1, nmodes+1, dtype=int)
 
 # before we read in the per tomo bin combination data, we need to read in the full covariance from the mocks
-#covdat='/disk05/calin/91_Data/mockFootprint/zosterops/MFP_for_others/cov_sim_Bn_obs.dat'
-covdat='Covariance_blindA_nMaximum_20_0.50_300.00_nBins5_NoiseOnly.ascii'
+covdat='../../data/covariance/outputs/Covariance_blind'+str(BLIND)+'_nMaximum_20_0.50_300.00_nBins5_NoiseOnly.ascii'
 cov=np.loadtxt(covdat)
 # and set up a smaller array for each tomobin combination
 covizjz=np.zeros((nmodes,nmodes))
+# and an array for the nmodes=5 option
+cov_five=np.zeros((nmodes*15,nmodes*15))
 
 # tomake different sub plots we count the grid square that we want to plot in
 #initialising the counter
@@ -69,11 +72,13 @@ for iz in range(1,ntomobin+1):
 
         tomochar='%s_%s'%(iz,jz)
         Bnfile='%s_%s_%s_%s.asc'%(filetop,LFVER,filetail,tomochar)
-        Bnall = np.loadtxt(Bnfile)
-        Bn= Bnall[0:nmodes]
+        Bn_in = np.loadtxt(Bnfile)
+        Bn= Bn_in[0:nmodes]
         #breaking up the large covariance matrix to find the significance per tomographic bin combination
         ipos=gridpos*nmodestot
         cov_izjz=cov[ipos:ipos+nmodes,ipos:ipos+nmodes]
+        fpos=gridpos*nmodes
+        cov_five[fpos:fpos+nmodes, fpos:fpos+nmodes] = cov_izjz
         diagerr=np.sqrt(np.diagonal(cov_izjz))
         invcov=np.linalg.inv(cov_izjz)
         # calculate the null chi-sq value and associated p-value
@@ -81,6 +86,7 @@ for iz in range(1,ntomobin+1):
         pval=chi2.sf(chisq_null,nmodes)
         pvalchar='p=%0.2f'%(pval)
 
+        print (pval, iz, jz)
         # and plot the results with annotations of the bin combination and p-value
         ax.errorbar(n, Bn*1e9, yerr=diagerr*1e9, fmt='o', color='magenta',label=tomochar,markerfacecolor='none')
         ax.axhline(y=0, color='black', ls=':')
@@ -103,9 +109,16 @@ for iz in range(1,ntomobin+1):
         Bn_prev = Bn_all
 
 # calculate the chi-sq null test for the full data vector
-invcov=np.linalg.inv(cov)
-chisq_null = np.matmul(Bn_all,(np.matmul(invcov,Bn_all)))
-pval=chi2.sf(chisq_null,nmodes*15)
+
+if nmodes==20 :
+    invcov=np.linalg.inv(cov)
+    chisq_null = np.matmul(Bn_all,(np.matmul(invcov,Bn_all)))
+    pval=chi2.sf(chisq_null,nmodes*15)
+else :
+    invcov=np.linalg.inv(cov_five)
+    chisq_null = np.matmul(Bn_all,(np.matmul(invcov,Bn_all)))
+    pval=chi2.sf(chisq_null,nmodes*15)
+    
 # write out the full p-value to the plot title truncated to 3dp
 #titlechar='%s p=%0.3f'%(LFVER,pval)
 titlechar='p=%0.2f'%(pval)
@@ -119,8 +132,8 @@ grid[12].set_xlabel('n')
 grid[13].set_xlabel('n')
 grid[14].set_xlabel('n')
 
-outfile='figures/COSEBIS_Bmodes_%s_%s.png'%(LFVER,BLIND)
-plt.savefig(outfile)
+#outfile='figures/COSEBIS_Bmodes_%s_%s.png'%(LFVER,BLIND)
+#plt.savefig(outfile)
 plt.show()
 
 
