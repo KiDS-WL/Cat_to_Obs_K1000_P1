@@ -1,4 +1,11 @@
-# KiDS-1000 data
+# KiDS-1000 BOSS and 2dFLenS 3x2pt data
+
+## BOSS Sanchez et al 2017 Anisotropic Clustering
+* boss/Sanchez_etal_2017:  clustering data and covariance matrix
+* boss/nofz: BOSS and 2dFLenS n(z) for GGL predictions
+
+## KiDS-1000 data
+* cosebis: Ascii E and B mode COSEBIS for each tomographic bin combination
 
 * sigma_e in kids/ellipticity_dispersion
 * n(z)    in kids/nofz/SOM_N_of_Z
