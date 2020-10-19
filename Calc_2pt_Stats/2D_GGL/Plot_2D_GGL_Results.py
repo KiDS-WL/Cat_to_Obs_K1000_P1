@@ -23,7 +23,7 @@ rcParams['ps.useafm'] = True
 rcParams['pdf.use14corefonts'] = True
 font = {'family' : 'serif',
         'weight' : 'normal',
-        'size'   : 16}
+        'size'   : 19}
 plt.rc('font', **font)
 
 #This makes episilons appear as epsilons rather than varepsilons
