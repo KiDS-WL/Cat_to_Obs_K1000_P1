@@ -27,7 +27,7 @@ The KiDS-1000 Cosmic Shear and 3x2pt covariance is described in [Joachimi, Lin, 
 
 
 [1]: https://arxiv.org/pdf/2007.15633.pdf "Asgari et al."
-
+[2]: https://arxiv.org/pdf/2007.01844.pdf "Joachimi et al."
 
 
 
