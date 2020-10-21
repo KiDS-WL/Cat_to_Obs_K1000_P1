@@ -9,10 +9,10 @@ import glob
 import os
 import sys
 
-Calc_PH = True           # Runs TreeCorr to calc rho1-5 if True.
+Calc_PH = True           # Runs TreeCorr to calc PH terms if True.
 PreReadCat = True        # If True, read in a pre-saved shear catalogue
-Splitup_Fields = False    # If True, splits sky survey into Res*Res patches
-Res = 7                  # Splits the Field into Res*Res pieces and calculates rho's for each.
+Splitup_Fields = False   # If True, splits sky survey into Res*Res patches
+Res = 7                  # Splits the Field into Res*Res pieces and calculates PH terms for each.
                          # These are used to calculate Jackknife errors.
 
 LFver = sys.argv[1]        # e.g. "321" or "309b" # Lensfit versions
@@ -37,14 +37,16 @@ for x in Fields_tmp:
 data_indir = "/disk09/KIDS/KIDSCOLLAB_V1.0.0/" # Contains all the KiDS Field directories
 outdir = "/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/PSF_systests/LFver%s" %LFver
 if not os.path.exists(outdir+"/PHterms"):
-    #os.makedirs(outdir)
     os.makedirs(outdir+"/PHterms")
-    #os.makedirs(outdir+"/Catalogues")
+if not os.path.exists(outdir+"/Catalogues"):
+    os.makedirs(outdir+"/Catalogues")
 
 
 if PreReadCat:
+    # Read in pre-made pickled PSF catalogue (runs in ~seconds)
     RA, Dec, e0PSF, e1PSF, delta_e0PSF, delta_e1PSF, TPSF, delta_TPSF, Xpos, Ypos = np.load('%s/Catalogues/PSF_Data_%s.npy'%(outdir,NorS)).transpose()
 else:
+    # Assemble the shear catalogue (runs in ~minute(s))
     Field_ID = np.empty([]) # ID of the field in file 'fname'
                             # where the PSF data came from
     # RA, dec
@@ -59,7 +61,7 @@ else:
     TPSF = np.empty([])
     delta_TPSF = np.empty([])
     Xpos = np.empty([])       # These guys aren't used for rho stat cal
-    Ypos = np.empty([])       # But they need to be saved to plot PSF residual across chip over on eday.
+    Ypos = np.empty([])       # But they need to be saved to plot PSF residual across the chip with the Calc_1pt code.
     i=0
     for f in Fields:
         print("Reading in field %s of %s"%(i,len(Fields)))
@@ -166,7 +168,8 @@ if Calc_PH:
         if True in (RA>300) and True in (RA<10):
             # RA's cross RA=0, must be more canny in defining RA_binning
             RA[ RA>300 ] -= 360 # Not a general solution; works for KiDS-S as RA[RA>300].max() = 328  
-        
+
+        # Scroll through the Res*Res patches of the data, calculating the Jacknife ingredients:
         RA_coarse = np.linspace(RA.min(), RA.max(), Res+1)
         Dec_coarse = np.linspace(Dec.min(), Dec.max(), Res+1)
         for i in range(Res*Res):
@@ -212,6 +215,7 @@ if Calc_PH:
                 
                         
     else:
+        # Just calculate the PH terms across the whole data set.
         print("Calculating PH terms")
         print("On term 1")
         meanr1, php1, phm1, weight1 = Run_TreeCorr( RA, Dec,

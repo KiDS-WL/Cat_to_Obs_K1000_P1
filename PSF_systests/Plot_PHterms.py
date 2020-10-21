@@ -1,6 +1,6 @@
 # 14/05/2020: B. M. Giblin, Edinburgh
-# Plot the additive systematic to \xi+ as predicted in the
-# Pauli-Henriksson model detailed in 3.4 of Giblin, Heymans et al. (2020).
+# Plot the additive & multiplicative systematics to \xi+ as predicted in the
+# Pauli-Henriksson model detailed in eqn 10 of Giblin, Heymans, Asgari et al. (2020).
 
 #import sys
 #sys.path.insert(0, './')
@@ -36,18 +36,20 @@ font = {'family' : 'serif',
 plt.rc('font', **font)
 plt.rcParams["mathtext.fontset"] = "cm"
 
+# Which Lensfit version catalogue were the PHterms calculated for?
 LFver = ["321"] #["309b",  "319b", "319c", "319d", "321"] # "319",
-
+# boundaries of the KiDS-1000 cosmic shear redshift bins.
 zbounds = [0.1, 0.3, 0.5, 0.7, 0.9, 1.2 ]
 num_zbins = len(zbounds)-1
 num_zbins_tot = np.sum( range(num_zbins+1) )    # Number source bins including cross-bins
 
+# "T-quantities" here refers to the (delta)T_(PSF/gal) estimates - the PSF sizes defined in Giblin et al. (2020).
 # Arrays to store T-quantities (2nd dimensions is len 2,
-# where 0=mean, 1=error
-deltaT_ratio = np.zeros([ len(LFver), 2, num_zbins ])
-Tg_invsq = np.zeros_like(deltaT_ratio)
-deltaT_ratio_tot = np.zeros([ len(LFver), 2, num_zbins_tot ])
-Tg_invsq_tot = np.zeros_like(deltaT_ratio_tot)
+# where 0=mean, 1=error)
+deltaT_ratio = np.zeros([ len(LFver), 2, num_zbins ])          # deltaT_PSF/T_gal for the 5 zbins
+Tg_invsq = np.zeros_like(deltaT_ratio)                         # 1/T_gal^2 for the 5 zbins
+deltaT_ratio_tot = np.zeros([ len(LFver), 2, num_zbins_tot ])  # same as above for all auto & cross bins
+Tg_invsq_tot = np.zeros_like(deltaT_ratio_tot)                 # " "
 
 Read_Tvalues = True # If True, read in pre-saved values of gal & PSF size quantities 
 if Read_Tvalues:
@@ -60,44 +62,46 @@ else:
         print('Calculating T-quantities for each ZB bin')
         nboot = 30
         for lfv in range(len(LFver)):
+                # The following function avg's the T_gal,T_PSF & (T_PSF-T_gal) across the survey and redshifts:
                 deltaT_ratio[lfv], Tg_invsq[lfv], deltaT_ratio_tot[lfv], Tg_invsq_tot[lfv] = Calc_Important_Tquantities(LFver[lfv],zbounds, nboot)
                 np.savetxt('LFver%s/PHterms/deltaTratio_TgInvSq_MeansAndErrors_%stomobins.dat' %(LFver[lfv],num_zbins_tot),
                            np.c_[ deltaT_ratio_tot[lfv,0,:], deltaT_ratio_tot[lfv,1,:],
                                   Tg_invsq_tot[lfv,0,:], Tg_invsq_tot[lfv,1,:] ],
                            header='# < deltaT_PSF / T_gal >, SIGMA[ deltaT_PSF / T_gal ], < T_gal^-2 > , SIGMA[ T_gal^-2  ]')
-        
-# Read in the alpha values for each shear component and tomo-bin
+
+# alpha is the PSF leakage defined in eqn 3.17 of Jarvis et al. (2016).
+# In this code, is only used in the Jarvis prescription for the systematic to xi+.
+# Read in the alpha values for each shear component and tomo-bin:
 Use_alpha_per_bin = True
 if Use_alpha_per_bin:
         from Functions_4_Plotting_PSFstats import Read_alpha_per_bin
-        alpha, alpha_err = Read_alpha_per_bin(["321", "309c"]) # Read in alpha values for both LFver
+        alpha, alpha_err = Read_alpha_per_bin(["321", "309c"])   # Read in alpha values for both LFver
 else:
-        alpha = np.zeros([ len(LFver), num_zbins_tot ])+0.03     # worse case scenario PSF leakage is 0.03;
+        alpha = np.zeros([ len(LFver), num_zbins_tot ])+0.03     # worse case scenario PSF leakage is ~0.03
         alpha_err=np.zeros([ len(LFver), num_zbins_tot ])
 
-ThBins = 9
-Res = 7
+ThBins = 9  # number of theta bins used by TreeCorr in PHterms.
+Res = 7     # Res*Res is the number of patches used in jackknife realisations.
 # Read in the mean and error on the PH stats + the labels for plotting.
 Plot_Labels, theta, php_mean, php_err = Read_rho_Or_PH(LFver, 'ph', ThBins, Res) 
 #sys.exit()
 
-# To get a rough idea of size of rho stats, read in the xi+- of some data to overplot 
-#data_dir = 'xi_pm_Vectors_4_Overplotting/'  # '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/xi_pm/'
-#data_ZBlabel = '0.7-0.9'					# ZBcut on the vector you overplot... '0.7-0.9', '0.1-0.3' '0.1-2.0'
-#theta_data, xip_data = np.loadtxt('%s/KAll.BlindA.xi_pm.ZBcut%s.dat' %(data_dir, data_ZBlabel), usecols=(0,1), unpack=True)
 
 # Read in a covariance
 def Linc_Cov():
+        # Originally used this approx. cov from Chieh-An Lin before changing to the KiDS-1000 one
+        # provided by Marika Asgari.
         Linc_Rescale = 600. / 878.83	# Linc says I should rescale his cov by approx. this factor
-                                # to get the effective area right. This probs isn't 100% accurate.
+                                        # to get the effective area right. This probs isn't 100% accurate.
         Cov_inDIR = './Lincs_CovMat'
         # eday address: '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/Lincs_CovMat/'
         cov = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR) * Linc_Rescale 
-							# [0:9, 0:9] This extracts xi+ Cov in lowest bin
-							# [81:90, 81:90] This pulls out the middle bin: 3-3
+							# [0:9, 0:9] This extracts xi+ Cov in lowest zbin
+							# [81:90, 81:90] This pulls out the middle zbin: 3-3
         return cov
 
 def Marika_Cov(mCov):
+        # The KiDS-1000 cosmic shear covariance used in Asgari et al. (2020)
         # if mCov is True, reads covariance include m-uncertainty
         # else reads cov excluding this.
         if mCov:
@@ -110,9 +114,14 @@ def Marika_Cov(mCov):
         cov = f[1].data
         return theta_cov, cov #[81:90, 81:90]
 
-                                                        
+
+
+
+# THE FOLLOWING FUNCTIONS ARE DIFFERENT PRESCRIPTIONS FOR THE SYSTEMATIC TO THE XI+ SHEAR CORRELATION FUNCTION: delta_xip
+
+
 def Calc_delta_xip_J16(alphas, T_ratio, rho, rho_err): 		# !!! Jarvis (2016) expression for PSF systematic
-	xip_theory = Read_In_Theory_Vector('fid', theta_data)	
+	xip_theory = Read_In_Theory_Vector('fid', theta_data)	# fiducial cosmology xi+ theory vector
 	xip_theory = np.reshape(xip_theory, (num_zbins_tot,len(theta))) # Reshape to be [num_zbins,ntheta]
 
 	# Calculate the additive shear bias for each lensfit version and in each tomographic bin (ie- value of alpha)
@@ -128,11 +137,12 @@ def Calc_delta_xip_J16(alphas, T_ratio, rho, rho_err): 		# !!! Jarvis (2016) exp
 
 
 
-def Calc_delta_xip_H20(ph, ph_err): 		# !!! Heymans' (2020) derivation for PSF systematic
+def Calc_delta_xip_H20(ph, ph_err): 		# !!! The Paulin-Henriksson model appearing in Giblin (2020) eqn 10.
+                                                # Credit to Catherine Heymans for its derivation
         theta_theory, xip_theory = Read_In_Theory_Vector('fid')	
         xip_theory = np.reshape(xip_theory, (num_zbins_tot,len(theta_theory))) # Reshape to be [num_zbins,ntheta]
 
-        # Calculate the additive shear bias for each lensfit version and in each tomographic bin (ie- value of alpha)
+        # Calculate the additive shear bias for each lensfit version and in each tomographic bin 
         delta_xip_total = np.zeros([ len(LFver), num_zbins_tot, ThBins ])
         delta_xip_terms = np.zeros([ len(LFver), num_zbins_tot, ThBins, 4 ]) # Store the separate ingredients of the total delta_xip
 
@@ -176,7 +186,7 @@ def Calc_delta_xip_cterms():
 
 def Calc_delta_xip_Bacon():
         # The Bacon et al. (2010) PSF systematic: alpha^2 * xi_+^{PSF,PSF}
-        # for the 15 tomographic bins.
+        # for the 15 tomographic bins (eqn 13. of Giblin et al. 2020).
         # Note this exists only for LFver svn_309c.
         Bacon_DIR = '/disk09/KIDS/K1000_TWO_PT_STATS/OUTSTATS/CSys/'
         delta_xip = np.zeros([ num_zbins_tot, ThBins ])
@@ -193,19 +203,7 @@ def Calc_delta_xip_Bacon():
         return theta_dxi, delta_xip, delta_xip_err
                                            
 
-
-def Set_Heymans_Constraints(rho):
-        #cov = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[0:135, 0:135] * Linc_Rescale
-        cov = Linc_Cov()
-        lfv = 0
-        delta_xip, _ = Calc_delta_xip_J16( alpha, T_ratio, rho )
-        delta_xip = delta_xip[lfv]
-        delta_chi2 = np.dot( np.transpose(delta_xip), 
-			np.dot( np.linalg.inv(cov), delta_xip ))
-        return delta_chi2
-
-
-
+# Function that is called just to set the theta limits and scale of plots
 def Set_Scales(ax):
 	ax.set_xscale('log')
 	ax.set_xlim([0.5,350.])
@@ -214,15 +212,18 @@ def Set_Scales(ax):
 
 
 
-# This plots the various ingredients of 
+# This plots the various ingredients of delta_xip
+# (produces Figure 3 of Giblin et al. 2020).
+# Input: which redshift bin to produce the plot for?
 def Plot_deltaxips_Only(zbin):
         #cov = Linc_Cov()[81:90, 81:90]*0.16    # This pulls out the middle bin: 3-3, scales it by some factor to make it ~2D analysis.
         theta_cov, cov = Marika_Cov(True)
-        cov = cov[81:90, 81:90]*0.16
+        cov = cov[81:90, 81:90]*0.16 # Pulls out final zbin covariance - contact C. Heymans for info on factor 0.16.
         
         lfv = 0
         #zbin= -1 # Plot the delta_xip for this z-bin alone.	
-        
+
+        # Return the various delta_xip prescriptions
         delta_xip_H, err_delta_xip_H, delta_xip_terms_H, err_delta_xip_terms_H = Calc_delta_xip_H20( php_mean, php_err )
         theta_dxip_c, delta_xip_c, err_delta_xip_c = Calc_delta_xip_cterms( )
         theta_dxip_B, delta_xip_B, err_delta_xip_B = Calc_delta_xip_Bacon()
@@ -246,35 +247,38 @@ def Plot_deltaxips_Only(zbin):
         Req = np.sqrt( np.diagonal(cov) ) / 2.
         ax.fill_between(theta_cov, y1=abs(Req)*-1, y2=abs(Req)*1, facecolor='yellow') 
 
-	# Plot the individual ingreidents of the delta_xip in Catherine's model
-        #ax.errorbar( 10**(np.log10(theta)-0.05), delta_xip_terms_H[lfv,zbin,:,0],
-        #             yerr=err_delta_xip_terms_H[lfv,zbin,:,0],
-        #             color='lime', linewidth=2, linestyle=':', 
-	#	     label=r'$ 2 \left[{\frac{\overline{\delta T_{\rm PSF}}}{T_{\rm gal}}}\right] \left< e_{\rm obs}^{\rm perfect} e_{\rm obs}^{\rm perfect} \right>$' )
+	# Plot the individual ingreidents of the delta_xip in the PH model
+        ax.errorbar( 10**(np.log10(theta)-0.05), delta_xip_terms_H[lfv,zbin,:,0],
+                     yerr=err_delta_xip_terms_H[lfv,zbin,:,0],
+                     color='lime', linewidth=2, linestyle=':', 
+		     label=r'$ 2 \left[{\frac{\overline{\delta T_{\rm PSF}}}{T_{\rm gal}}}\right] \left< e_{\rm obs}^{\rm perfect} e_{\rm obs}^{\rm perfect} \right>$' )
         
-        #ax.errorbar( theta, delta_xip_terms_H[lfv,zbin,:,1],
-        #             yerr=err_delta_xip_terms_H[lfv,zbin,:,1],
-        #             color='green', linewidth=2, linestyle='-.',
-	#	     label=r'$\left[ \,\overline{\frac{1}{T_{\rm gal}}}\,\right]^2 \left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (e_{\rm PSF} \, \delta T_{\rm PSF}) \right>$' )
+        ax.errorbar( theta, delta_xip_terms_H[lfv,zbin,:,1],
+                     yerr=err_delta_xip_terms_H[lfv,zbin,:,1],
+                     color='green', linewidth=2, linestyle='-.',
+		     label=r'$\left[ \,\overline{\frac{1}{T_{\rm gal}}}\,\right]^2 \left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (e_{\rm PSF} \, \delta T_{\rm PSF}) \right>$' )
         
-        #ax.errorbar( 10**(np.log10(theta)+0.025), delta_xip_terms_H[lfv,zbin,:,2],
-        #             yerr=err_delta_xip_terms_H[lfv,zbin,:,2],
-        #             color='cyan', linewidth=2, linestyle='-',
-	#	     label=r'$2 \left[ \,\overline{\frac{1}{T_{\rm gal}}}\,\right]^2  \left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (\delta e_{\rm PSF} \, T_{\rm PSF}) \right>$' )
+        ax.errorbar( 10**(np.log10(theta)+0.025), delta_xip_terms_H[lfv,zbin,:,2],
+                     yerr=err_delta_xip_terms_H[lfv,zbin,:,2],
+                     color='cyan', linewidth=2, linestyle='-',
+		     label=r'$2 \left[ \,\overline{\frac{1}{T_{\rm gal}}}\,\right]^2  \left< (e_{\rm PSF} \, \delta T_{\rm PSF}) \,  (\delta e_{\rm PSF} \, T_{\rm PSF}) \right>$' )
 
-        #ax.errorbar( 10**(np.log10(theta)-0.025), delta_xip_terms_H[lfv,zbin,:,3],
-        #             yerr=err_delta_xip_terms_H[lfv,zbin,:,3],
-        #             color='blue', linewidth=2, linestyle='--',
-        #             label=r'$\left[ \,\overline{\frac{1}{T_{\rm gal}}}\,\right]^2 \left< (\delta e_{\rm PSF} \, T_{\rm PSF}) \,  (\delta e_{\rm PSF} \,T_{\rm PSF}) \right>$' )
+        ax.errorbar( 10**(np.log10(theta)-0.025), delta_xip_terms_H[lfv,zbin,:,3],
+                     yerr=err_delta_xip_terms_H[lfv,zbin,:,3],
+                     color='blue', linewidth=2, linestyle='--',
+                     label=r'$\left[ \,\overline{\frac{1}{T_{\rm gal}}}\,\right]^2 \left< (\delta e_{\rm PSF} \, T_{\rm PSF}) \,  (\delta e_{\rm PSF} \,T_{\rm PSF}) \right>$' )
 
+        # Plot the overall PH delta_xip systematic (eqn 10 of Giblin+20)
         ax.errorbar( 10**(np.log10(theta)+0.05), delta_xip_H[lfv,zbin,:],
                      yerr=err_delta_xip_H[lfv,zbin,:], color='lawngreen', linewidth=3, #'red', 2
-                     label=r'PH08') #label=r'$\delta\xi_+^{\rm sys}$' )
-        
-        ax.errorbar( theta_dxip_B, delta_xip_B[zbin,:], yerr=err_delta_xip_B[zbin,:],
-                     color='orange', linewidth=3, #2
-                     label=r'B03') #label=r'$\alpha^2 \xi^{\rm PSF,PSF}$' )
-        
+                     label=r'$\delta\xi_+^{\rm sys}$' ) # label=r'PH08')
+
+        # Plot the Bacon et al. systematic (eqn 13 of Giblin+20)
+        #ax.errorbar( theta_dxip_B, delta_xip_B[zbin,:], yerr=err_delta_xip_B[zbin,:],
+        #             color='orange', linewidth=3, #2
+        #             label=r'$\alpha^2 \xi^{\rm PSF,PSF}$' ) #label=r'B03')
+
+        # Plot the flux-dependent PSF residual systematic: (Sec. 3.4.1 of Giblin+20). 
         ax.errorbar( theta_dxip_c, delta_xip_c[lfv,zbin,:], yerr=err_delta_xip_c[lfv,zbin,:],
                      color='magenta', linewidth=3, #2
                      label=r'$\langle \delta\epsilon^{\rm PSF}(x,y) \, \delta\epsilon^{\rm PSF}(x,y) \rangle$' )
@@ -285,8 +289,8 @@ def Plot_deltaxips_Only(zbin):
         #fontsize=19)
         # bbox_to_anchor=(0.5, 1.5)
         plt.subplots_adjust(hspace=0)
-        plt.savefig('/home/bengib/Poster_Plot.png')
-        #plt.savefig('LFver%s/PHterms/Plot_deltaxip_CovPatches%sx%s_zbin%s.png'%(LFver[0],Res,Res,zbin))
+        #plt.savefig('/home/bengib/Poster_Plot.png')
+        plt.savefig('LFver%s/PHterms/Plot_deltaxip_CovPatches%sx%s_zbin%s.png'%(LFver[0],Res,Res,zbin))
         plt.show()
         return
 #for i in range(num_zbins_tot):
@@ -298,9 +302,10 @@ Plot_deltaxips_Only(num_zbins_tot-1)
 # This function will calculate chi^2 values for many noise realisations under 4 hypotheses:
 # null : the chi^2 values obtained for the correct cosmology given no systematics
 # sys: the chi^2 values obtained for the correct cosmology given the systematic bias \delta\xi_+
-# hi/lo: the chi^2 values obtained for a cosmology that is ~0.004 higher in S_8 than the truth.
+# hi/lo: the chi^2 values obtained for a cosmology that is ~sigma_shift*sigma higher/lower in S_8 than the truth.
+# where sigma_shift is an input argument; we've tried the following values for sigma_shift:  (0.05,0.1,0.2,0.4).
 # This funcion evaluates if the shift (null-->sys) is subdominant to the shift (null-->hi/lo)
-# Turns out it is, therefor systematic is subdominant to this tiny change in cosmology.
+# first argument 'rho' is the delta_xip systematic array.
 
 def Investigate_chi2(rho, sigma_shift):
         #cov_All = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[0:135,0:135] * Linc_Rescale
@@ -325,9 +330,10 @@ def Investigate_chi2(rho, sigma_shift):
         # BUT the covariance & theory predictions are defined at the MID-point of the theta bins ([0.71,210.3] arcmin)
         # As it's very hard to get everything sampled at the same theta, we're settling to just interpolate
         # the WEIGHTED-MID-point sampled correlations to the MID-point theta values,
-        # (and we're doing it this way round because lord knows how to interpolate a 2D covariance).
+        # (and we're doing it this way round because it's easier than interpolating a 2D covariance).
 
         lfv = 0
+        # !!! CHANGE THIS LINES TO PICK WHICH delta_xip PRESCRIPTION YOU WISH TO TEST.
         #delta_xip, _ = Calc_delta_xip_J16( alpha, T_ratio, rho, rho )
         delta_xip,_,_,_ = Calc_delta_xip_H20( rho, rho )
         #theta_dxip, delta_xip,_ = Calc_delta_xip_cterms( )
@@ -383,6 +389,7 @@ ntrials = 1  # NOTE: Only set this to >1 if np.random.seed is commented out in t
 delta_chi2_sys = np.zeros([len(sigma_shifts), ntrials])
 delta_chi2_hi = np.zeros_like(delta_chi2_sys)
 delta_chi2_lo =	np.zeros_like(delta_chi2_sys)
+# Uncomment these lines to run through multiple sigma_shift values
 #for j in range(len(sigma_shifts)):
 #        for i in range(ntrials):
 #                delta_chi2_sys[j,i], delta_chi2_hi[j,i], delta_chi2_lo[j,i] = Investigate_chi2(php_mean, sigma_shifts[j])
@@ -391,24 +398,6 @@ print(" It took %.0f seconds." %(t2-t1))
 
 
 sys.exit()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
