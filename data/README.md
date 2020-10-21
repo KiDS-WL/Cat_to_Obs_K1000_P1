@@ -19,6 +19,11 @@ The KiDS-1000 cosmological analyses were blinded through the analysis of three d
 * kids/xipm: finely binned xi_\pm measurements per tomographic bin combination (ascii)
 * kids also contains 15 tomographic-bin complication ascii files for the three statistics analysed in [Asgari, Lin, Joachimi et al. 2020][1], xi_\pm (broad), COSEBIs and band powers.
 
+## Covariance Matrices
+The KiDS-1000 Cosmic Shear and 3x2pt covariance is described in [Joachimi, Lin, Asgari, Troester, Heymans et al. 2020][2].  The analytical covariance code will be made public shortly (please contact Benjamin Joachimi if you want early access). 
+* covariance/inputs/blindC : initial ascii covariance matrix for the 2x2pt bandpower data vector, and the xi_pm cosmic shear data vector
+* covariance/inputs/iterative_covariance/blindC : final ascii covariance matrix for the 2x2pt bandpower data vector, and the xi_pm cosmic shear data vector
+
 
 
 [1]: https://arxiv.org/pdf/2007.15633.pdf "Asgari et al."
