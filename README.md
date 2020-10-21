@@ -14,6 +14,7 @@ We provide a brief summary of each directory, referring the user to the director
 * Flinc_theory_inputs: [SALMO][5] mock inputs
 * GGL_LensCats: Creating KiDS-overlap Lens Catalogues from the BOSS and 2dFLenS master catalogues
 * PSFRES_CORRMAP : Chip-dependent 2D PSF residual model
+* src: Code to convert finely binned xi_\pm measurements into COSEBIs and Bandpower estimates
 
 
 
