@@ -1,0 +1,38 @@
+21/10/2020, most scripts written by C. Heymans et al. 2D GGL measurement codes by B. Giblin.
+
+Codes:
+
+1. calc_xi_w_treecorr.py
+input two KiDS fits shear catalogue names and this script calculates xi+/- correlation between them with treecorr.
+
+2. calc_gt_w_treecorr.py
+same as above, but inputs are source shear catalogue and lens&random position catalogue fits file names, and output
+is gamma_t.
+
+3. create_tomocats.py
+reads in a shear catalogue fits file name and saves an output shear catalogue with the designated redshift cut applied.
+
+4. doall_calc2pt.sh
+master script to execute the above scripts for the KiDS catalogues.
+
+5. cuillinrun_calc2pt.sh
+script to sbatch launch doall_calc2pt.sh job to cuillin workers
+
+6. cuillinrun_calc2pt_mocks.sh
+same as above but for running on Chieh-An Lin's mock catalogues of KiDS-1000 instead of the data itself.
+
+IN 2D_GGL/
+
+7. Run_2D_GGL_K1000.py
+Reads in KiDS-1000 shear catalogue and BOSS lens catalogue, applies designated redshift cuts to each and calculates
+the 2D gamma_t signal in lots of patches out to 20 arcmin, stacks the patches.
+Also can measure the 1D angular gamma_t with this same code.
+This produces the measurements that go into Fig. 10 in Giblin et al. (2020). Using the 2D GGL signal to detect
+additive shear systematics that vanish in the 1D angular GGL signal.
+
+8. Plot_2D_GGL_Results.py
+Plot the results from Run_GGL_K1000.py, producing Fig. 10 in Giblin et al. (2020).
+
+9. Functions_2DGGL.py
+Contains simple function that return elements in an array falling with a prescribed (ra1-ra2, dec1-dec2) patch.
+Used by Run_2D_GGL_K1000.py.
