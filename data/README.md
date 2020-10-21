@@ -7,21 +7,23 @@ The KiDS-1000 cosmological analyses were blinded through the analysis of three d
 * boss/nofz: BOSS and 2dFLenS n(z) for GGL predictions
 
 ## KiDS-1000 data
-* kids/cosebis: Ascii E and B mode COSEBIS for each tomographic bin combination (*to do add Blind C*)
 * kids/ellipticity_dispersion: sigma_e per tomographic bin
 * kids/fits: fits data cubes for KCAP/CosmoSIS that contain the data vectors, initial covariance and n(z) as used in systematic tests
 * kids/fits_iterative_covariance: fits data cubes for KCAP/CosmoSIS that contain the data vectors, final covariance and n(z) used for the final analysis
 * kids/mock_data: mock data for pipeline tests
 * kids/multiplicative_bias: m-calibration values from Kannawadi et al re-analysis of SOM sample
+* kids/nofz: the SOM-calibrated n(z) and delta_z covariance matrix
+* kids/number_density: neff for the KiDS-1000 area defined by the healpix nside 4096 mask used by the analytical covariance
+* kids/number_of_galaxy_pairs: weighted pair counts for xi_pm (fine and broad) and gamma_t
+* kids/psf_systematic_corrected: testing the impact of a PSF residual on the cosmological parameter inference
+* kids/xipm: finely binned xi_\pm measurements per tomographic bin combination (ascii)
+* in addition there are 15 tomographic-bin complication ascii files for the three statistics analysed in [Asgari, Lin, Joachimi et al. 2020][1], xi_\pm (broad), COESBIs and band powers
 
 
 
-* sigma_e in kids/ellipticity_dispersion
-* n(z)    in kids/nofz/SOM_N_of_Z
-* n_eff   in kids/number_density
-* nPairs  in kids/number_of_galaxy_pairs
+[1] https://arxiv.org/pdf/2007.15633.pdf "Asgari et al."
 
-For nPairs you have the pair count for the broad 9-bin xi-files e.g npair_blindA_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid_nTheta9.ascii,   and the fine binned GT and XI npairs, e.g pairCounts_K1000_blindA_Flag_SOM_Fid_NTheta326_nbTomo7.dat
+
 
 
 
