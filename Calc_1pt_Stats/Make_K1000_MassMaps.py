@@ -114,7 +114,7 @@ elif float(ZBlo)<float(ZBhi):
         w=w[idx]
         ZB=ZB[idx]
 
-
+# Function turns the shear component arrays into healpix maps.
 def Make_Arrays_Into_Healpix(nside, ra_array, dec_array, weight_array, other_array):
     phi = ra_array*np.pi/180. # in rads
     theta = (90. - dec_array)*np.pi/180. # in rads
@@ -176,7 +176,8 @@ else:
 
 mask = kappa_hp==hp.UNSEEN
 
-
+# For large nsides and low smoothing, may have many artefact holes developing in the healpix maps.
+# To make the maps prettier, this function fills the holes.
 def Fix_Holes(Map):
     t1 = time.time()
     print("Filling in tiny holes in survey footprint which are due to pixelisation. This takes ~70s with nside4096.")
