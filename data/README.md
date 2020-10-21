@@ -17,12 +17,11 @@ The KiDS-1000 cosmological analyses were blinded through the analysis of three d
 * kids/number_of_galaxy_pairs: weighted pair counts for xi_pm (fine and broad) and gamma_t
 * kids/psf_systematic_corrected: testing the impact of a PSF residual on the cosmological parameter inference
 * kids/xipm: finely binned xi_\pm measurements per tomographic bin combination (ascii)
-
-In addition the kids directory contains 15 tomographic-bin complication ascii files for the three statistics analysed in [Asgari, Lin, Joachimi et al. 2020][1], xi_\pm (broad), COESBIs and band powers.
-
+* kids also contains 15 tomographic-bin complication ascii files for the three statistics analysed in [Asgari, Lin, Joachimi et al. 2020][1], xi_\pm (broad), COESBIs and band powers.
 
 
-[1] https://arxiv.org/pdf/2007.15633.pdf "Asgari et al."
+
+[1]: https://arxiv.org/pdf/2007.15633.pdf "Asgari et al."
 
 
 
