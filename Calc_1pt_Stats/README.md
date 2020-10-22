@@ -4,10 +4,10 @@ Codes written primarily by B. Giblin, hacked by C. Heymans.
 
 1. Plot_1pt_Tests.py:
 This code reads in the shear catalogue and the PSF data catalogue for KiDS-1000 and produces plots including:
- - avg PSF ellipticity and residual PSF ellipticity VS (X,Y) position on CCD (Fig. 2, Giblin et al. 2020).
- - avg galaxy ellipticity VS (X,Y). 
- - avg y VS avg x : e.g., alpha (PSF leakage) VS tomo redshift bin (Fig. 6 of Giblin+20). 
- - avg magnitude VS ZB
+   - avg PSF ellipticity and residual PSF ellipticity VS (X,Y) position on CCD (Fig. 2, Giblin et al. 2020).
+   - avg galaxy ellipticity VS (X,Y). 
+   - avg y VS avg x : e.g., alpha (PSF leakage) VS tomo redshift bin (Fig. 6 of Giblin+20). 
+   - avg magnitude VS ZB
  etc.
 
 2. Plot_Star_Col-Col.py:
