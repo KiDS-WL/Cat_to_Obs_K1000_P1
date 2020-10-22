@@ -1,0 +1,3 @@
+ntheta_minus = 9
+theta_max_minus = 300.0
+theta_min_minus = 0.5

@@ -1,0 +1,2 @@
+nbin_a = 5
+nbin_b = 5

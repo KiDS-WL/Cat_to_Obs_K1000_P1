@@ -27,7 +27,7 @@ if(XY_or_chip=='X_Y'):  # square
     fig = plt.figure(figsize=(8, 6))
     grid = ImageGrid(fig, 111,          # as in plt.subplot(111)
                  nrows_ncols=(2,2),
-                 axes_pad=0.25,
+                 axes_pad=0.3,
                  share_all=True,
                  cbar_location="right",
                  cbar_mode="edge",
@@ -38,7 +38,7 @@ elif(XY_or_chip=='chip'): # row
     fig = plt.figure(figsize=(6, 6))
     grid = ImageGrid(fig, 111,          # as in plt.subplot(111)
                  nrows_ncols=(1,4),
-                 axes_pad=0.25,
+                 axes_pad=0.3,
                  share_all=True,
                  cbar_location="right",
                  cbar_mode="edge",
@@ -55,9 +55,11 @@ rcParams['pdf.use14corefonts'] = True
 
 font = {'family' : 'serif',
         'weight' : 'normal',
-        'size'   : 19}
+        'size'   : 14}
 
 plt.rc('font', **font)
+#This makes episilons appear as epsilons rather than varepsilons
+plt.rcParams["mathtext.fontset"] = "cm"
 
 #============================================================
 #Now read in the data
@@ -103,11 +105,18 @@ for j in range (1,3):  # what do we want to bin?  And we may want to fix the col
 
     if(j==1):   # data
 
-        de1 = pe1_data 
-        de2 = pe2_data
-        cmin=-0.015
-        cmax= 0.015
-        labinfo = '$\epsilon^*$'
+        if(XY_or_chip=='X_Y'):
+            de1 = pe1_data 
+            de2 = pe2_data
+            cmin=-0.015
+            cmax= 0.015
+        else:
+            de1 = pe1_data/10.0
+            de2 = pe2_data/10.0
+            cmin=-0.001
+            cmax= 0.001
+
+        labinfo = '$\epsilon^{\mathrm{PSF}}$'
 
     elif(j==2):  # ellipticity residuals
 
@@ -115,7 +124,7 @@ for j in range (1,3):  # what do we want to bin?  And we may want to fix the col
         de2 = pe2_data - pe2_mod 
         cmin=-0.001
         cmax= 0.001
-        labinfo = '$\delta\epsilon^*$'
+        labinfo = '$\delta\epsilon^{\mathrm{PSF}}$'
 
 #    elif(j==3): # you might also want to look at size residuals and size
                  # but to make pretty publication plots I comment this part out
@@ -166,8 +175,9 @@ for j in range (1,3):  # what do we want to bin?  And we may want to fix the col
                                 xedges[0], xedges[32]],
                         aspect='equal',interpolation='none', cmap=cmap, clim=(cmin,cmax)) 
 
-        thecb = ax.cax.colorbar(im)  
-        thecb.set_label_text(labinfo,size=15)
+        thecb = ax.cax.colorbar(im)
+        thecb.ax.tick_params(labelsize=10) 
+        #thecb.set_label_text(labinfo,size=15)
 
         # lets make the axes a little bit thicker
         for axis in ['top','bottom','left','right']:
@@ -175,19 +185,26 @@ for j in range (1,3):  # what do we want to bin?  And we may want to fix the col
         ax.tick_params(width=1.25)
 
 # And fix the labels with a nice large font size 
-grid[0].set_title('$\epsilon_1^*$',size=15)
-grid[1].set_title('$\epsilon_2^*$',size=15)
 
 if(XY_or_chip=='X_Y'):
-    grid[0].set_ylabel('Y',size=14)     
-    grid[2].set_ylabel('Y',size=14)   
-    grid[2].set_xlabel('X',size=14)     
-    grid[3].set_xlabel('X',size=14) 
+    grid[0].set_title(r'$\epsilon_1^{\, \mathrm{PSF}}$',size=18)
+    grid[1].set_title(r'$\epsilon_2^{\, \mathrm{PSF}}$',size=18)
+    grid[0].set_ylabel(r'$\mathrm{Y \,\, [pixels]}$',size=14)     
+    grid[2].set_ylabel(r'$\mathrm{Y \,\, [pixels]}$',size=14)   
+    grid[2].set_xlabel(r'$\mathrm{X \,\, [pixels]}$',size=14)     
+    grid[3].set_xlabel(r'$\mathrm{X \,\, [pixels]}$',size=14) 
 else:
-    grid[0].set_ylabel('Chip ID',size=14) 
-    grid[2].set_xlabel('$r$-band magnitude            ',size=14) 
-    grid[2].set_title('$\delta\epsilon_1^*$',size=15)
-    grid[3].set_title('$\delta\epsilon_2^*$',size=15)
+    grid[0].set_title(r'$\epsilon_1^{\, \mathrm{PSF}}/10$',size=16)
+    grid[1].set_title(r'$\epsilon_2^{\, \mathrm{PSF}}/10$',size=16)
+    grid[0].set_ylabel('Chip ID',size=12) 
+    grid[2].set_xlabel('$r$-band magnitude            ',size=12)
+    grid[2].set_title(r'$\delta\epsilon_1^{\mathrm{PSF}}$',size=16)
+    grid[3].set_title(r'$\delta\epsilon_2^{\mathrm{PSF}}$',size=16)
 
+grid[0].tick_params(labelsize=10)
+grid[1].tick_params(labelsize=10)
+grid[2].tick_params(labelsize=10)
+grid[3].tick_params(labelsize=10)
+    
 plt.savefig('PLOTS/epsf_and_depsf_%s_V1.0.0_%s_%s.png' % (patch, LFVER, XY_or_chip))
 plt.show()
