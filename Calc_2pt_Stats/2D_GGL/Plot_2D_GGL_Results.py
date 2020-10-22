@@ -101,7 +101,7 @@ ang_vals[:nrow] *= -1
 
 # Plot the gamma_{t,x} 2D and 1D
 cmap = plt.cm.rainbow
-f = plt.figure(figsize = (10,24))
+f = plt.figure(figsize = (8,8))
 gs1 = gridspec.GridSpec(4, 2)
 
 #vmin = -0.002 	#gamma_t_2D.min()
@@ -116,14 +116,14 @@ ax1 = plt.subplot(gs1[0], adjustable='box')
 cplot = ax1.imshow(gamma_t_2D, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
 					origin='lower', extent=[ang_vals[0],ang_vals[-1],ang_vals[0],ang_vals[-1]])
 
-ax1.set_ylabel(r'$\Delta\theta_y \, [\rm{arcmin}]$')
+ax1.set_ylabel(r'$\Delta\theta_y$' + '\n' + r'$[\rm{arcmin}]$')
 ax1.set_title(r'$\epsilon_{\rm t}^{\rm{obs}}$')
 
 # gamma_x^2D w/ lenses
 ax2 = plt.subplot(gs1[1], adjustable='box')
 cplot = ax2.imshow(gamma_x_2D, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
 					origin='lower', extent=[ang_vals[0],ang_vals[-1],ang_vals[0],ang_vals[-1]])  
-ax2.set_ylabel(r'BOSS$_{2D}$'+'\n')
+ax2.set_ylabel(r'BOSS'+'\n'+r'$2D$') #r'BOSS$_{2D}$'+'\n')
 ax2.yaxis.tick_right()
 ax2.set_title(r'$\epsilon_\times^{\rm{obs}}$')
 
@@ -133,13 +133,13 @@ ax2.set_title(r'$\epsilon_\times^{\rm{obs}}$')
 ax3 = plt.subplot(gs1[2], adjustable='box')
 cplot = ax3.imshow(gamma_t_1D, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
 					origin='lower', extent=[ang_vals[0],ang_vals[-1],ang_vals[0],ang_vals[-1]])
-ax3.set_ylabel(r'$\Delta\theta_y \, [\rm{arcmin}]$')
+ax3.set_ylabel(r'$\Delta\theta_y$' + '\n' + r'$[\rm{arcmin}]$')
 
 # gamma_x^1D w/ lenses
 ax4 = plt.subplot(gs1[3], adjustable='box')
 cplot = ax4.imshow(gamma_x_1D, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
 					origin='lower', extent=[ang_vals[0],ang_vals[-1],ang_vals[0],ang_vals[-1]]) 
-ax4.set_ylabel(r'BOSS$_{1D}$'+'\n')
+ax4.set_ylabel(r'BOSS'+'\n'+r'$1D$')  #r'BOSS$_{1D}$'+'\n')
 ax4.yaxis.tick_right()
 
 # ----------- ROW 3 -----------
@@ -149,7 +149,7 @@ ax5 = plt.subplot(gs1[4], adjustable='box')
 Delta_gamma_t = gamma_t_2D - gamma_t_1D
 cplot = ax5.imshow(Delta_gamma_t, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
 					origin='lower', extent=[ang_vals[0],ang_vals[-1],ang_vals[0],ang_vals[-1]]) 
-ax5.set_ylabel(r'$\Delta\theta_y \, [\rm{arcmin}]$')
+ax5.set_ylabel(r'$\Delta\theta_y$' + '\n' + r'$[\rm{arcmin}]$')
 
 # Delta gamma_x
 ax6 = plt.subplot(gs1[5], adjustable='box')
@@ -157,7 +157,7 @@ ax6 = plt.subplot(gs1[5], adjustable='box')
 Delta_gamma_x = gamma_x_2D - gamma_x_1D
 cplot = ax6.imshow(Delta_gamma_x, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
 					origin='lower', extent=[ang_vals[0],ang_vals[-1],ang_vals[0],ang_vals[-1]]) 
-ax6.set_ylabel(r'BOSS$_{2D - 1D}$' + '\n')
+ax6.set_ylabel(r'BOSS'+'\n'+r'$2D-1D$') #r'BOSS$_{2D - 1D}$' + '\n')
 ax6.yaxis.tick_right()
 
 # ----------- ROW 4 -----------
@@ -165,14 +165,14 @@ ax6.yaxis.tick_right()
 ax7 = plt.subplot(gs1[6], adjustable='box')
 cplot = ax7.imshow(gamma_tr_2D, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
 					origin='lower', extent=[ang_vals[0],ang_vals[-1],ang_vals[0],ang_vals[-1]]) 
-ax7.set_ylabel(r'$\Delta\theta_y \, [\rm{arcmin}]$')
+ax7.set_ylabel(r'$\Delta\theta_y$' + '\n' + r'$[\rm{arcmin}]$')
 ax7.set_xlabel(r'$\Delta\theta_x \, [\rm{arcmin}]$')
 
 # gamma_x^2D w/ randoms
 ax8 = plt.subplot(gs1[7], adjustable='box')
 cplot = ax8.imshow(gamma_xr_2D, cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax, 
 					origin='lower', extent=[ang_vals[0],ang_vals[-1],ang_vals[0],ang_vals[-1]]) 
-ax8.set_ylabel(r'randoms$_{2D}$'+'\n')
+ax8.set_ylabel(r'randoms'+'\n'+r'$2D$')   #r'randoms$_{2D}$'+'\n')
 ax8.yaxis.tick_right()
 ax8.set_xlabel(r'$\Delta\theta_x \, [\rm{arcmin}]$')
 
@@ -184,10 +184,29 @@ plt.setp(ax4.get_xticklabels(), visible=False)
 plt.setp(ax5.get_xticklabels(), visible=False)
 plt.setp(ax6.get_xticklabels(), visible=False)
 
+# Get rid of the middle x-tick on bottom rows,
+# or else the text overlaps
+plt.sca(ax7) 
+plt.xticks([-2.5,0,2.5], ['-2.5','','2.5'])
+plt.sca(ax8)
+plt.xticks([-2.5,0,2.5], ['-2.5','','2.5'])
+
 plt.setp(ax2.get_yticklabels(), visible=False)
 plt.setp(ax4.get_yticklabels(), visible=False)
 plt.setp(ax6.get_yticklabels(), visible=False)
 plt.setp(ax8.get_yticklabels(), visible=False)
+
+
+# On bottom row, set every other x-tick to be invisible
+#for tmp_ax in [ax7, ax8]:
+#    for thing in tmp_ax.get_xticklabels():
+#        if thing not in tmp_ax.get_xticklabels()[::2]:
+#            thing.set_visible(False)
+        
+#for thing in ax8.get_xticklabels():
+#    if thing not in ax8.get_xticklabels()[::2]:
+#        thing.set_visible(False)
+        
 
 f.subplots_adjust(hspace=0, wspace=0)
 f.subplots_adjust(right=0.8)
