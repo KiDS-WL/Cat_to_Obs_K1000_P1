@@ -7,7 +7,7 @@ See the last column of table 1 in [Asgari, Lin, Joachimi et al. (2020)][3] for t
 
 The python script: add_sigma_m_cov_to_xipm.py in ../blindC/ takes the theoretical xipm saved in chains/ and adds the sigma_m contribution to the xipm covariance matrix.
 
-This directory contains the files for our initial analysis using a fiducial cosmology taken from the KV450+BOSS analysis of [Troester et al. 2020][4].   The directory input_for_xipm_sigma_m_covariance_iterative updates the input cosmology to the best-fit cosmology from the first 3x2pt analysis with the fiducial cosmology.
+The input_for_xipm_sigma_m_covariance directory contains the files for our initial analysis using a fiducial cosmology taken from the KV450+BOSS analysis of [Troester et al. 2020][4].   This directory updates the input cosmology to the best-fit cosmology from the first 3x2pt analysis with the fiducial cosmology.
 
 
 [1]: https://arxiv.org/abs/2007.01844 "Joachimi et al."
