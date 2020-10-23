@@ -3,6 +3,9 @@ import numpy as np
 import cosmology
 import astropy.io.fits as fits
 #From Hendrik
+# 25/05/2020: Edited by B. Giblin,
+# now includes the delta-z shift and error to the nofz
+# if a third input argument containing "_nofzUpp" or "_nofzLow" is input.
 
 #from astropy.cosmology import WMAP9 as cosmo
 #import matplotlib.pyplot as plt
@@ -26,7 +29,57 @@ norm_lens = np.sum(lens_hist[0])
 
 lens_hist_norm = lens_hist[0] / norm_lens
 
-source_hist = np.loadtxt(sys.argv[2])
+# Annoyingly, the K1000 source data binned using SOM-z's are FITS files,
+# whereas the DIR-binned K1000 data & MICE data are ascii catalogues,
+# necessitating the following if statement:
+if '.fits' in sys.argv[2]:
+    source_cat = sys.argv[2]
+    tmp = fits.open(source_cat)
+    zs = tmp[1].data['binstart']
+    nzs = tmp[1].data['density']
+    source_hist = np.column_stack(( zs, nzs ))
+else:
+    source_hist = np.loadtxt(sys.argv[2])
+
+# Apply the delta-z shifts and errors if
+# a third input argument says to.
+try:
+    nofz_shift=sys.argv[3]
+except IndexError:
+    nofz_shift=""
+
+if "_nofz" in nofz_shift:
+    # Read in delta-z shifts and errors
+    dz,dz_err = np.loadtxt('nofz_shifts_perbin_mean_err.asc', usecols=(0,1), unpack=True)
+    tbin = int(source_cat.split('TOMO')[-1].split('_')[0]) # Extracted tomo bin number
+
+    # Here we figure out what kind of shift is applied:
+    # Up means we find the n(z-A*dz_err), and shift it UP to redshift z
+    # Down means we find n(z+A*dz_err), and shift DOWN to redshift z.
+    # Mix means we shift EVEN tomo bins UP and ODD tomo bins DOWN.
+
+    shift_size = int( nofz_shift.split('sig')[0][-1] ) # How many sigma shifts to apply to n(z)
+    if "Up" in nofz_shift:
+        shift_size *= -1.
+
+    # If "Down" is in nofz_shift, then we leave shift_size as it is (+ve number).
+    
+    elif "Mix" in nofz_shift:
+        # Then we're shifting UP if it's an even bin, or DOWN if it's an odd bin:
+        if (tbin-1) % 2 ==0:
+            shift_size *= -1.
+
+    # Apply the shift:
+    new_zs = source_hist[:,0] + shift_size * dz_err[tbin-1] # forget the mean shift # +shift_size*dz[tbin-1]
+    if "Up" in nofz_shift:
+        # Get rid of the ~1 element that goes negative from this shift
+        new_zs[new_zs<0.] = 0.
+
+    # Interp old nofz to new shifted redshifts
+    new_nzs = np.interp( new_zs, source_hist[:,0], source_hist[:,1] )
+    # Replace old source histogram with the shifted version
+    source_hist[:,1] = new_nzs
+        
 z_source_max = source_hist[-1,0]
 
 no_z_source_bins = np.shape(source_hist)[0]

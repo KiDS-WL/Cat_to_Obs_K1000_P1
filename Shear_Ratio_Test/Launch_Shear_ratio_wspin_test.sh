@@ -1,19 +1,17 @@
 #!/bin/bash
 
-#SBATCH -n 2
+#SBATCH -n 1
 #SBATCH -p all
 #SBATCH -t 7-00:00
 #SBATCH --job-name=Shear_Spin_Ratio
 #SBATCH --requeue
 #SBATCH --mail-type=ALL
 #SBATCH --constraint="3TBdatadisk"
-#SBATCH --mem=300000
-
+#SBATCH --mem=150000
 JZBIN=$1
-###### NB: Normally -mem=150000
+paramfile=param_files/params_K1000_GAMA_BlindC_SOMFid.dat
 
-###################### mem is in MB
+./run_shear_ratio_w_spin.sh $JZBIN $paramfile
 
-./run_shear_ratio_w_spin.sh $JZBIN
 
 
