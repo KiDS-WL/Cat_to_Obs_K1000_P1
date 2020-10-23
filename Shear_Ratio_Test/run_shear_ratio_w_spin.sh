@@ -8,6 +8,7 @@ echo "Source bin: " $JZBIN
 ntheta_bins=4
 theta_min=2 #arcmin
 theta_max=30 #arcmin
+
 nspins_start=0
 nspins_end=500
 paramfile=$2     #param_files/params_K1000_BOSS_BlindB_SOMFid.dat

@@ -164,6 +164,7 @@ for tomobin in tomo_bins:
     for speczbin in spec_bins:
         print("Reading tomo bin %s, spec bin %s" %(tomobin+1, speczbin+1))
         gtfile='%s/GT_6Z_source_%s_%sZ_lens_%s%s.asc' %(INDIR,(tomobin+1), numz_tag,(speczbin+1), DFLAG)
+
         gtdat=ascii.read(gtfile)
 
         measurements['thetas_'+str(speczbin)+"_"+str(tomobin)] = gtdat['meanr']
@@ -224,7 +225,7 @@ nmatrix = nspecz*ntomo*ntheta
 gtlens=np.zeros([ntheta,ncycle])
 diag=np.zeros(nmatrix)
 covdiag=np.zeros([nmatrix,nmatrix])
-#INDIRcov='Output/SOURCE-MICE2_KV450_LENS-MICE2_BOSS_PzEstimated_SNTrue_magoff/'
+
 INDIRcov=INDIR
 for tomobin in tomo_bins:
     for speczbin in spec_bins:
@@ -245,12 +246,12 @@ for tomobin in tomo_bins:
             else:
                 # There's more bins to read in
                 gtprev = np.copy(gtlens)
+
         else:    
             gtall = np.vstack((gtprev,gtlens))
             gtprev= np.copy(gtall)
             print(len(gtall))
 cov_gt=np.cov(gtall)
-
 
 if Cov_Method == "Analytical":
     # Construct the analytical covariance matrix
@@ -287,7 +288,6 @@ if Cov_Method == "Analytical":
     # Replace the spin or patch covariance with the analytical one.
     cov_gt = np.copy ( cov_gt_a )
             
-    
 
 if Include_mCov:
     # Here we include the uncertainty due to the m-correction
@@ -486,20 +486,21 @@ params_0=result['x']
 # the sqrt of the inverse Hessian matrix diag is the error on the fitted parameters
 # https://stackoverflow.com/questions/43593592/errors-to-fit-parameters-of-scipy-optimize
 params_0err=np.sqrt( np.diag(result['hess_inv']) )
-#np.savetxt(OUTDIR+'/%sx%s_FitParams_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
-#                                                          Include_Magnification,Include_IA,
-#                                                          save_tag,nofz_shift), params_0)
-#np.savetxt(OUTDIR+'/%sx%s_FitParamsErr_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
-#                                                             Include_Magnification,Include_IA,
-#                                                             save_tag,nofz_shift), params_0err)
-#np.savetxt(OUTDIR+'/%sx%s_FitModel_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
-#                                                         Include_Magnification,Include_IA,
-#                                                         save_tag,nofz_shift),
-#           np.transpose(np.vstack(( thetas,func(params_0) )) ) )
+# Save the best-fit SRT parameters & their errors, and the best-fit gamma_t model:
+np.savetxt(OUTDIR+'/%sx%s_FitParams_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+                                                          Include_Magnification,Include_IA,
+                                                          save_tag,nofz_shift), params_0)
+np.savetxt(OUTDIR+'/%sx%s_FitParamsErr_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+                                                             Include_Magnification,Include_IA,
+                                                             save_tag,nofz_shift), params_0err)
+np.savetxt(OUTDIR+'/%sx%s_FitModel_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+                                                         Include_Magnification,Include_IA,
+                                                         save_tag,nofz_shift),
+           np.transpose(np.vstack(( thetas,func(params_0) )) ) )
 # Save the p-value to be read in and plotted by the code Compare_BFParams_And_Models.py
-#np.savetxt(OUTDIR+'/%sx%s_pvalue_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
-#                                                       Include_Magnification,Include_IA,
-#                                                 save_tag,nofz_shift), np.c_[p_value])
+np.savetxt(OUTDIR+'/%sx%s_pvalue_Mag%s_IA%s%s%s.dat'%(SOURCE_TYPE,LENS_TYPE,
+                                                       Include_Magnification,Include_IA,
+                                                 save_tag,nofz_shift), np.c_[p_value])
 
 ######### plots ###
 

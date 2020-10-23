@@ -1,0 +1,17 @@
+These files contain the effective weighted n(z) for 2dFLenS and BOSS.
+The code that created them is
+https://github.com/KiDS-WL/Cat_to_Obs_K1000_P1/blob/ggl_lenscats/GGL_LensCats/BOSS_2dFLenS_n_of_z_calc_and_plot.py
+
+Any questions:  Catherine
+
+The two lens bins are:
+z1: 0.2<z<0.5
+z2: 0.5<z<0.75
+
+In 2dFLenS_weighted_n_of_z*.txt  the gri weights are included such that the n(z) matches BOSS more closely
+
+In BOSS_and_2dFLenS_n_of_z*.txt we do not use any weights for 2dFLenS, but include the BOSS completeness weights
+
+Everything apart from BOSS_NGP_n_of_z*.txt limits the sample to be contained within the KiDS-gri footprint.   The NGP file contains all BOSS galaxies in the NGP.
+
+

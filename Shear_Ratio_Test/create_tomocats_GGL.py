@@ -10,7 +10,7 @@ from astropy.io import fits
 
 # Read in user input to set the zmin zmax incatfile outcatfile
 if len(sys.argv) <5: 
-    print "Usage: %s zmin zmax catalogue.fits tomocat.fits" % sys.argv[0] 
+    print("Usage: %s zmin zmax catalogue.fits tomocat.fits" % sys.argv[0]) 
     sys.exit(1)
 else:
     zmin = float(sys.argv[1]) 

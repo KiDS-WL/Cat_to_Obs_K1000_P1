@@ -14,7 +14,7 @@ from astropy.io import fits
 import numpy as np
 import matplotlib.pyplot as plt
 
-DFLAG ='' # !!! TEMPORARY FLAG TO CALC DATA GT FROM MICE OCTANT, NOT FIDUCIAL MICE.
+DFLAG ='' # !!! FLAG TO CALC DATA GT FROM MICE OCTANT, NOT FIDUCIAL MICE.
 
 Cov_Method = "Spin" #"Spin"  # The method for calculating the gamma_t realisations for use in covariance estimation
                      # "Spin" means do many spin realisations of the source ellipticities (ie - shape noise only)
@@ -122,6 +122,7 @@ else:
 if not os.path.exists(OUTDIR):
     os.makedirs(OUTDIR)
     os.makedirs(OUTDIR+'/SPIN')
+
 
 # Because we're rotating the observed ellipticities of the sources
 # for the spin test we won't use the built
@@ -261,8 +262,10 @@ for IZBIN in range (izin,izin+1):   #1,2,3,4,5
 
     gamma_t = ls.xi*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi
     gamma_x = ls.xi_im*(nlns.weight/nlns.tot)/(nrns.weight/nrns.tot) - rs.xi_im
+
     # This next line produces data used in the computation of the analytical covariance matrix
     #npairs_weighted_simple = (ls.weight)*(ls.weight)/(ls_wsq.weight)
+
     print("Writing out", outfile_main)
     
     #Use treecorr to write out the output file and praise-be once more for Jarvis and his well documented code

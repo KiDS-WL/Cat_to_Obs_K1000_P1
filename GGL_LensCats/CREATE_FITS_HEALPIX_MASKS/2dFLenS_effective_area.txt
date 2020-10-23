@@ -1,0 +1,4 @@
+2dFLenS-SGP effective area = 510.803964 sq. degrees
+2dFLenS-KiDS-S 9-band effective area = 341.888289 sq. degrees
+2dFLenS-KiDS-S gri effective area = 355.283139 sq. degrees
+
