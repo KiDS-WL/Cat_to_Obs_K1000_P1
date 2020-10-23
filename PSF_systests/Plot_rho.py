@@ -1,11 +1,17 @@
+# 14/05/2020: B. M. Giblin, Edinburgh.
+# Plot the rho statistics and additive systematic to \xi+ as predicted in
+# e.g., Zuntz+2017, Mandelbaum+2018
+
 import numpy as np
 import pylab as plt
+from astropy.io import fits
 from matplotlib import rc
 from matplotlib import rcParams
 import matplotlib.gridspec as gridspec
 from scipy.ndimage.filters import gaussian_filter
 from scipy.stats import chi2
 from scipy.stats import multivariate_normal as multi_norm
+from scipy.stats import binned_statistic_2d
 from scipy.optimize import curve_fit
 from scipy.integrate import simps
 from scipy.stats import ks_2samp	# For KS tests
@@ -41,31 +47,139 @@ Which_Data = "Data"			# "Data" for K1000 or "Theory" for HaloFit
 Smooth_Scale = 0.8
 # ------------------------------------------------ #
 
-
 # Define quantities needed for delta_xip
 LFver = ["321"] #["309b",  "319b", "319c", "319d", "321"] # "319",
 
-T_ratio = 1. 	         # average T_PSF / T_gal Ratio
-                         # Will ultimately get this column from Lance's updated Lensfit cats [I think?]
-deltaT_ratio= -0.0014    # average deltaT_PSF / T_PSF
-                         # Just calculated this for LFver321, North field (South gives -0.0010)
+T_ratio = 0.9976 	 # average T_PSF / T_gal Ratio
+T_ratio_err = 0.0795
+deltaT_ratio= -0.0012    # average deltaT_PSF / T_PSF
+deltaT_ratio_err = 0.0263
+                         # These numbers are quite accurate, but use 'Calculate_Important_Tquantities()'
+                         # below to calc them directly from the catalogues if you want proof.
 
-                         
-def Calc_Important_Tquantities():
-	# Read in N and S catalogues
-	RA_N, Dec_N, e0PSF_N, e1PSF_N, delta_e0PSF_N, delta_e1PSF_N, TPSF_N, delta_TPSF_N, Xpos_N, Ypos_N = np.load('LFver%s/Catalogues/PSF_Data_N.npy'%LFver[0]).transpose()
-	RA_S, Dec_S, e0PSF_S, e1PSF_S, delta_e0PSF_S, delta_e1PSF_S, TPSF_S, delta_TPSF_S, Xpos_S, Ypos_S = np.load('LFver%s/Catalogues/PSF_Data_S.npy'%LFver[0]).transpose()
-	# Append them together
-	delta_e0PSF = np.append( delta_e0PSF_N, delta_e0PSF_S )
-	delta_e1PSF = np.append( delta_e1PSF_N, delta_e1PSF_S )
-	TPSF = np.append( TPSF_N, TPSF_S )
-	delta_TPSF = np.append( delta_TPSF_N, delta_TPSF_S )
 
-	# Calc important quantities
-	delta_Tratio = np.mean( delta_TPSF / TPSF )      # Comes out ~-0.0012
-	delta_Tratio_err = np.std( delta_TPSF / TPSF )   # Comes out ~0.02 (delta_Tratio consistent with zero).
-	return
+def interpolate2D(X, Y, grid): #(It's linear)
+	# This function does simple 2D linear interpolation to find values of 'grid' at positions (X,Y)
+	# This is faster over, eg, scipy and numpy functions, which have to be performed in a loop.
+	Xi = X.astype(np.int)
+	Yi = Y.astype(np.int) # these round down to integer
 
+	VAL_XYlo = grid[Yi, Xi] + (X - Xi)*( grid[Yi, Xi+1] - grid[Yi, Xi] )
+	VAL_XYhi = grid[Yi+1,Xi] + (X - Xi)*( grid[Yi+1,Xi+1] - grid[Yi+1, Xi] )
+	VAL_XY = VAL_XYlo + (Y - Yi)*( VAL_XYhi - VAL_XYlo )  
+	
+	return VAL_XY
+
+def Select_Patch(Q, ra, dec, rlo, rhi, dlo, dhi):
+    # return the elements in Q corresponding to INSIDE the (ra,dec) range 
+    idx_ra = np.where(np.logical_and(ra<rhi, ra>rlo))[0]
+    idx_dec = np.where(np.logical_and(dec<dhi, dec>dlo))[0]
+    idx = np.intersect1d(idx_ra, idx_dec) 
+    return Q[idx]
+
+def MeanQ_VS_XY(Q, w, X,Y,num_XY_bins):
+        # we want the weighted mean of Q and also calibrated.  Calculate the sum 2D binned value of Q*w and m*w,
+        # and then divide
+        sumQw_grid, yedges, xedges, binnum = binned_statistic_2d(Y, X, Q*w, statistic='sum', bins=num_XY_bins)
+        sum_w_grid, yedges, xedges, binnum = binned_statistic_2d(Y, X, w, statistic='sum', bins=num_XY_bins)
+        AvQ_grid=sumQw_grid/sum_w_grid
+        return AvQ_grid,sum_w_grid,yedges,xedges
+
+
+def Bootstrap_Error(nboot, samples, weights):
+	N = len(samples)
+	bt_samples = np.zeros(nboot)		 		# Will store mean of nboot resamples
+	for i in range(nboot):
+		idx = np.random.randint(0,N,N)			# Picks N random indicies with replacement
+		bt_samples[i] = np.sum( weights[idx]*samples[idx] ) /np.sum (weights[idx])
+	return np.std( bt_samples )
+
+def Calc_Important_Tquantities(zmin,zmax):
+        # Read in N and S catalogues
+        
+        bgdir='/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/PSF_systests'
+        RA_N, Dec_N, e0PSF_N, e1PSF_N, delta_e0PSF_N, delta_e1PSF_N, TPSF_N, delta_TPSF_N, Xpos_N, Ypos_N = np.load('%s/LFver%s/Catalogues/PSF_Data_N.npy'%(bgdir,LFver[0])).transpose()
+        RA_S, Dec_S, e0PSF_S, e1PSF_S, delta_e0PSF_S, delta_e1PSF_S, TPSF_S, delta_TPSF_S, Xpos_S, Ypos_S = np.load('%s/LFver%s/Catalogues/PSF_Data_S.npy'%(bgdir,LFver[0])).transpose()
+
+        # Append them together
+        RA = np.append(RA_N, RA_S)
+        Dec = np.append(Dec_N, Dec_S)
+        delta_e0PSF = np.append( delta_e0PSF_N, delta_e0PSF_S )
+        delta_e1PSF = np.append( delta_e1PSF_N, delta_e1PSF_S )
+        TPSF = np.append( TPSF_N, TPSF_S )
+        delta_TPSF = np.append( delta_TPSF_N, delta_TPSF_S )
+        
+	# Calc important quantities:
+	# First < delta T_PSF / T_PSF >
+        delta_Tratio = np.mean( delta_TPSF / TPSF )      # Comes out =-0.00128
+        # This gives the variance of the PSF residual size ratio
+        # delta_Tratio_err = np.std( delta_TPSF / TPSF )   
+        # but we want the error on the mean measurement
+        delta_Tratio_err = np.std( delta_TPSF / TPSF )/np.sqrt(len(TPSF))   # Comes out = 7.8e-6
+        
+        # Secondly: < T_PSF / T_gal > and < delta T_PSF / Tgal>
+        # Need to interpolate delta_T_PSF to galaxy positions - read in (RA,Dec) of sources
+        def Read_GalData(NorS):
+                # Instead use the Master catalogue:
+                data_DIR = '/disk09/KIDS/KIDSCOLLAB_V1.0.0/K1000_CATALOGUES_PATCH/'
+                f = fits.open('%s/K1000_%s_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_THELI_INT.cat' %(data_DIR,NorS))
+                RA_g = f[1].data['ALPHA_J2000']
+                Dec_g= f[1].data['DELTA_J2000']
+                Z_g  = f[1].data['Z_B']
+                
+                #From 3.4.1: We estimate the average unconvolved galaxy size Tgal, by taking the lensfit- weighted average of the exponential disk scalelength (squared),
+                #as determined from each best-fit galaxy model. We note that this choice results in inconsistent definitions for PSF size and galaxy size, but
+                #argue this is an improvement on the alternative approach of setting TPSF/Tgal = 1
+
+                #Calculated the integrals with wolfram - turns out we need a factor of 4 to make these equivalent
+                #https://docs.google.com/document/d/1kylhRNInqzofQtZDiLrH-GH5RwhEBB04OZ0HW8pRZOo/edit?usp=sharing
+
+                T_g = 4*f[1].data['bias_corrected_scalelength_pixels']**2
+                T_PSF = f[1].data['PSF_Q11'] + f[1].data['PSF_Q22'] # The PSF size at the location of the galaxy
+                weight= f[1].data['recal_weight_A']*f[1].data['Flag_SOM_Fid_A'] #Include SOM Flag in the weight 
+                
+                idx = ( (Z_g>zmin) & (Z_g<zmax) ) # Redshift cut - need to calculate this for the different tomo bins
+                return RA_g[idx], Dec_g[idx], T_g[idx], T_PSF[idx], weight[idx]
+        RA_Ng, Dec_Ng, T_Ngal, T_NPSF, weight_N = Read_GalData('N')
+	#RA_Sg, Dec_Sg, T_Sgal, T_SPSF, weight_S = Read_GalData('S') # Haven't saved the S catalogue apparently
+        
+        # To grid up the survey, decide on a suitable angular size a pixel should be:
+        # Use the dimensions of the PSF DATA, not gal data, as PSF spans wider (RA,Dec)
+        ang_pxl = 5. / 60. # 5 arcmin in degrees
+        nbins_x = int( ( RA_N.max()-RA_N.min() ) / ang_pxl )
+        nbins_y = int( ( Dec_N.max()-Dec_N.min() ) / ang_pxl )
+	# pixel coordinates of the PSF objects
+        X_N = nbins_x * (RA_N - RA_N.min()) / (RA_N.max()-RA_N.min()) 
+        Y_N = nbins_y * (Dec_N - Dec_N.min()) / (Dec_N.max()-Dec_N.min()) 
+
+        # Turn delta_TPSF into a grid:
+        delta_TPSF_grid,count_grid, _,_ = MeanQ_VS_XY(delta_TPSF_N, np.ones_like(delta_TPSF_N), X_N,Y_N, [nbins_y,nbins_x])
+        delta_TPSF_grid = np.nan_to_num( delta_TPSF_grid, nan=0. ) # Lots of nans due to 0/0
+        # Need to append TPSF_grid with final row and column to avoid interp error
+        delta_TPSF_grid = np.c_[ delta_TPSF_grid, delta_TPSF_grid[:,-1] ] 
+        delta_TPSF_grid = np.r_[ delta_TPSF_grid, [delta_TPSF_grid[-1,:]] ] 
+
+        # pixel coordinates of galaxies
+        X_Ng = nbins_x * (RA_Ng - RA_N.min()) / (RA_N.max()-RA_N.min()) 
+        Y_Ng = nbins_y * (Dec_Ng - Dec_N.min()) / (Dec_N.max()-Dec_N.min()) 
+	
+        # Finally get delta_T_PSF at the position of the galaxies
+        delta_TPSF_atgal = interpolate2D(X_Ng, Y_Ng, delta_TPSF_grid)
+
+        T_ratio = np.average( T_NPSF/ T_Ngal, weights=weight)    #
+        # This is a weighted mean, so lets use a bootstrap estimate for the error on the mean
+        #T_ratio_err = np.std( T_NPSF / T_Ngal ) #
+        nboot=30
+        T_ratio_err=Bootstrap_Error(nboot, T_NPSF/T_Ngal, weight)
+        
+        delta_TPSF_over_Tgal = np.average( delta_TPSF_atgal/ T_Ngal, weights=weight)    # 
+        delta_TPSF_over_Tgal_err = Bootstrap_Error(nboot, delta_TPSF_atgal/T_Ngal, weight)
+        print ('%8.3e,%8.3e,%8.3e,%8.3e'%(T_ratio, T_ratio_err, delta_TPSF_over_Tgal, delta_TPSF_over_Tgal_err))
+        return delta_Tratio, delta_Tratio_err, T_ratio, T_ratio_err, delta_TPSF_over_Tgal, delta_TPSF_over_Tgal_err
+delta_Tratio, delta_Tratio_err, T_ratio, T_ratio_err, delta_TPSF_over_Tgal, delta_TPSF_over_Tgal_err= Calc_Important_Tquantities(0.1,0.3)
+# TO DO 1 (BG) - carry through tomography-dependent ratio values through to the final result
+# Bins 2,3,4 look pretty similar, but 1 and 5 are quite different
+# TO DO 2 (BG) - add in the South - the PSF is quite different in the South - North on its own isn't fully representative
 
 # Read in the alpha values for each shear component and tomo-bin
 Use_alpha_per_bin = True                        # If True, use an alpha per bin
@@ -175,7 +289,9 @@ theta_data, xip_data = np.loadtxt('%s/KAll.BlindA.xi_pm.ZBcut%s.dat' %(data_dir,
 # Read in a covariance 
 Linc_Rescale = 600. / 878.83	# Linc says I should rescale his cov by approx. this factor
 								# to get the effective area right. This probs isn't 100% accurate.
-Cov_inDIR = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/Lincs_CovMat/'
+Cov_inDIR = './Lincs_CovMat'
+            # eday address: '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/Lincs_CovMat/'
+
 Cov_Mat_uc_Survey = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[81:90, 81:90] * Linc_Rescale * 0.16		
 																	# [0:9, 0:9] This extracts xi+ Cov in lowest bin
 																	# [81:90, 81:90] This pulls out the middle bin: 3-3
@@ -185,7 +301,9 @@ def Read_In_Theory_Vector(hi_lo_fid):
 	#indir_theory = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/outputs/test_output_S8_%s_test/shear_xi_plus/' %hi_lo_fid
 	#theta_theory = np.loadtxt('%s/theta.txt' %indir_theory) * (180./np.pi) * 60.	# Convert long theta array in radians to arcmin
 
-	indir_theory = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/new_outputs/test_output_S8_%s_test/chain/output_test_A/shear_xi_plus_binned/' %hi_lo_fid
+	indir_theory = '/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/new_outputs/test_output_S8_%s_test/chain/output_test_A/shear_xi_plus_binned/' %hi_lo_fid
+        # '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/new_outputs/test_output_S8_%s_test/chain/output_test_A/shear_xi_plus_binned/' %hi_lo_fid
+
 	xip_theory_stack = np.zeros( [num_zbins_tot,len(theta_data)] )									# Will store all auto & cross xi_p for the 5 tomo bins
 	idx = 0
 	for i in range(1,6):
@@ -226,8 +344,12 @@ def Calc_delta_xip_H20(T_ratio, rho, rho_err): 		# !!! Heymans' (2020) derivatio
 	err_delta_xip = np.zeros_like( delta_xip_total )
 	for lfv in range(len(LFver)):
 		for j in range(num_zbins_tot):
-			delta_xip_terms[lfv,j,:,0] = 2*xip_theory[j,:]*T_ratio*deltaT_ratio
-			delta_xip_terms[lfv,j,:,1] = T_ratio**2 *(rho[lfv,0,:])
+
+			delta_xip_terms[lfv,j,:,0] = 2*xip_theory[j,:]*delta_TPSF_over_Tgal
+                        #TO DO 4 (BG) - we need to update the rho calculation in so the prefactor is 1/T_gal^2 rather than T_ratio**2
+                        #The current set-up ignores potential cross correlation between the residuals and PSF Size
+                        #" we choose to keep all terms that may couple within the correlation function"
+                        #delta_xip_terms[lfv,j,:,1] = T_ratio**2 *(rho[lfv,0,:])
 			delta_xip_terms[lfv,j,:,2] = T_ratio**2 *(rho[lfv,2,:])
 			delta_xip_terms[lfv,j,:,3] = T_ratio**2 *(2*rho[lfv,3,:])
 			delta_xip_total[lfv,j,:] = delta_xip_terms[lfv,j,:,0]+delta_xip_terms[lfv,j,:,1]+delta_xip_terms[lfv,j,:,2]+delta_xip_terms[lfv,j,:,3]
@@ -390,7 +512,6 @@ def Plot_2Panel(rho, rho_err, pm, lfv):
 	delta_xip = delta_xip[lfv]
 	err_delta_xip = err_delta_xip[lfv]
 
-
 	fig = plt.figure(figsize = (10,10))
 	gs1 = gridspec.GridSpec(2, 1)
 	colors = [ 'magenta', 'darkblue', 'red', 'orange', 'lawngreen', 'cyan' ] 	
@@ -419,11 +540,8 @@ def Plot_2Panel(rho, rho_err, pm, lfv):
 	plt.savefig('LFver%s/rho1/Plot_Overall-rho%s_CovPatches%sx%s_Require%s_%sxip.png'%(LFver[lfv],pm,Res,Res, Requirement, Which_Data))
 	#plt.show()
 	return
+
 #Plot_2Panel(rhop_mean, rhop_err, '+', -1)
-
-	
-	
-
 
 # This plots the various ingredients of 
 def Plot_deltaxips_Only():
@@ -470,7 +588,6 @@ def Plot_deltaxips_Only():
 	plt.show()
 	return
 Plot_deltaxips_Only()
-
 
 
 # This plots 1 panel showing the fractional size of the \delta\xi_+
