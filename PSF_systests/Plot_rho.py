@@ -291,6 +291,7 @@ Linc_Rescale = 600. / 878.83	# Linc says I should rescale his cov by approx. thi
 								# to get the effective area right. This probs isn't 100% accurate.
 Cov_inDIR = './Lincs_CovMat'
             # eday address: '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/Lincs_CovMat/'
+
 Cov_Mat_uc_Survey = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[81:90, 81:90] * Linc_Rescale * 0.16		
 																	# [0:9, 0:9] This extracts xi+ Cov in lowest bin
 																	# [81:90, 81:90] This pulls out the middle bin: 3-3
@@ -302,6 +303,7 @@ def Read_In_Theory_Vector(hi_lo_fid):
 
 	indir_theory = '/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/new_outputs/test_output_S8_%s_test/chain/output_test_A/shear_xi_plus_binned/' %hi_lo_fid
         # '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/new_outputs/test_output_S8_%s_test/chain/output_test_A/shear_xi_plus_binned/' %hi_lo_fid
+
 	xip_theory_stack = np.zeros( [num_zbins_tot,len(theta_data)] )									# Will store all auto & cross xi_p for the 5 tomo bins
 	idx = 0
 	for i in range(1,6):
@@ -342,6 +344,7 @@ def Calc_delta_xip_H20(T_ratio, rho, rho_err): 		# !!! Heymans' (2020) derivatio
 	err_delta_xip = np.zeros_like( delta_xip_total )
 	for lfv in range(len(LFver)):
 		for j in range(num_zbins_tot):
+
 			delta_xip_terms[lfv,j,:,0] = 2*xip_theory[j,:]*delta_TPSF_over_Tgal
                         #TO DO 4 (BG) - we need to update the rho calculation in so the prefactor is 1/T_gal^2 rather than T_ratio**2
                         #The current set-up ignores potential cross correlation between the residuals and PSF Size
@@ -540,7 +543,6 @@ def Plot_2Panel(rho, rho_err, pm, lfv):
 
 #Plot_2Panel(rhop_mean, rhop_err, '+', -1)
 
-
 # This plots the various ingredients of 
 def Plot_deltaxips_Only():
 	lfv = 0
@@ -548,7 +550,6 @@ def Plot_deltaxips_Only():
 
 	delta_xip_H, err_delta_xip_H, delta_xip_terms_H = Calc_delta_xip_H20( T_ratio, rhop_mean, rhop_err )
 	delta_xip_c, err_delta_xip_c = Calc_delta_xip_cterms( )
-
 
 	fig = plt.figure(figsize = (10,6))
 	gs1 = gridspec.GridSpec(1, 1)

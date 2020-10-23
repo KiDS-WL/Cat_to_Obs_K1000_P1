@@ -325,10 +325,10 @@ def Read_In_Theory_Vector(hi_lo_fid):
     # hi_lo_fid must be one of 'high', 'low' or 'fid'
 
     # THESE LINES PULL FROM THE OLD THEORY PREDICTIONS (KV450 nofz)                                                                        
-    #indir_theory = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/outputs/test_output_S8_%s_test/shear_xi_plus/' %hi_lo_fid                                                                                                                                          
+    #indir_theory = '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/Predictions_xi_variousS8/outputs/test_output_S8_%s_test/shear_xi_plus/' %hi_lo_fid                                                                                                                                          
     #theta_theory = np.loadtxt('%s/theta.txt' %indir_theory) * (180./np.pi) * 60.   # Convert long theta array in radians to arcmin        
 
-    indir_theory = '/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/ForBG/new_outputs/test_output_S8_%s_test/chain/output_test_A/shear_xi_plus_binned/' %hi_lo_fid
+    indir_theory = '/home/bengib/KiDS1000_NullTests/Codes_4_KiDSTeam_Eyes/Predictions_xi_variousS8/new_outputs/test_output_S8_%s_test/chain/output_test_A/shear_xi_plus_binned/' %hi_lo_fid
     theta_theory = np.loadtxt('%s/theta_bin_1_1.txt' %indir_theory)
     xip_theory_stack = np.zeros( [num_zbins_tot,len(theta_theory)] )
     # ^This will store all auto & cross xi_p for the 5 tomo bins                                                                           

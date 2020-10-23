@@ -114,7 +114,7 @@ do
   for type in {0..1} 
   do
     mockcat=galCat_run${los}_type${type}.fits
-    ./doall_calc2pt.sh -m Pkk -u $mockcat -d $LDIR -o $ODIR -t "300 0.06 300" -n "1 0.0 3.0" -i 1 -j 1
+    ./doall_calc2pt.sh -m Pkk -u $mockcat -o $ODIR -t "300 0.06 300" -n "1 0.0 3.0" -i 1 -j 1
   done
 done   
 =runmelater

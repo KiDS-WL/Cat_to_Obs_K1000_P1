@@ -69,6 +69,8 @@ font = {'family' : 'serif',
 
 #plt.rcParams["mathtext.fontset"] = "cm" # This makes episilons appear as epsilons rather than varepsilons  
 plt.rc('font', **font)
+#This makes episilons appear as epsilons rather than varepsilons
+plt.rcParams["mathtext.fontset"] = "cm"
 
 #============================================================
 #Now read in the data
@@ -115,7 +117,6 @@ gridpos=-1
 for j in range (1,nrows+1):  # what do we want to bin?  And we may want to fix the colour scale limits (cmin,cmax)
 
     if(j==1):   # <ePSF>
-
         de1 = pe1_data 
         de2 = pe2_data
         cmin=-0.015
@@ -198,8 +199,9 @@ for j in range (1,nrows+1):  # what do we want to bin?  And we may want to fix t
                                 xedges[0], xedges[32]],
                         aspect='equal',interpolation='none', cmap=cmap, clim=(cmin,cmax)) 
 
-        thecb = ax.cax.colorbar(im)  
-        thecb.set_label_text(labinfo,size=15)
+        thecb = ax.cax.colorbar(im)
+        thecb.ax.tick_params(labelsize=10) 
+        #thecb.set_label_text(labinfo,size=15)
 
         # lets make the axes a little bit thicker
         for axis in ['top','bottom','left','right']:
@@ -217,11 +219,19 @@ if(XY_or_chip=='X_Y'):
     
     grid[4].set_xlabel(r'$X \, [\times 10^3 \, \rm{pixels}]$',size=14)     
     grid[5].set_xlabel(r'$X \, [\times 10^3 \, \rm{pixels}]$',size=14) 
-else:
-    grid[0].set_ylabel('Chip ID',size=14) 
-    grid[2].set_xlabel('$r$-band magnitude            ',size=14) 
-    grid[2].set_title('$\delta\epsilon_1^*$',size=15)
-    grid[3].set_title('$\delta\epsilon_2^*$',size=15)
 
+else:
+    grid[0].set_title(r'$\epsilon_1^{\, \mathrm{PSF}}/10$',size=16)
+    grid[1].set_title(r'$\epsilon_2^{\, \mathrm{PSF}}/10$',size=16)
+    grid[0].set_ylabel('Chip ID',size=12) 
+    grid[2].set_xlabel('$r$-band magnitude            ',size=12)
+    grid[2].set_title(r'$\delta\epsilon_1^{\mathrm{PSF}}$',size=16)
+    grid[3].set_title(r'$\delta\epsilon_2^{\mathrm{PSF}}$',size=16)
+
+grid[0].tick_params(labelsize=10)
+grid[1].tick_params(labelsize=10)
+grid[2].tick_params(labelsize=10)
+grid[3].tick_params(labelsize=10)
+    
 plt.savefig('PLOTS/epsf_and_depsf_%s_V1.0.0_%s_%s.png' % (patch, LFVER, XY_or_chip))
 plt.show()

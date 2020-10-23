@@ -8,7 +8,7 @@ import glob
 import os
 import sys
 
-Calc_rhos = True         # Runs TreeCorr to calc rho1-5 if True.
+Calc_rhos = False         # Runs TreeCorr to calc rho1-5 if True.
 PreReadCat = False       # If True, read in a pre-saved shear catalogue
 Splitup_Fields = True    # If True, splits sky survey into Res*Res patches
 Res = 7                  # Splits the Field into Res*Res pieces and calculates rho's for each.
@@ -106,7 +106,8 @@ else:
             delta_e0PSF = np.append(delta_e0PSF, tmp_delta_e0PSF)
             delta_e1PSF = np.append(delta_e1PSF, tmp_delta_e1PSF)
         i+=1
-    # There's something weird with element 0: RA=745... Delete it.
+    # Delete the first element which came from initialisaing
+    # the arrays with np.empty 
     RA = np.delete(RA, 0)
     Dec = np.delete(Dec, 0)
     Xpos = np.delete(Xpos, 0)
