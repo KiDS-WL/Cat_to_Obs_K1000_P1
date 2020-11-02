@@ -12,7 +12,7 @@ For the shear ratio test we need finer lens bins than normal so we have a specia
 
 ## The Shear Ratio Test
 
-* Shear_ratio_wspin_test.py:  the workhorse code that makes all the measurements
+* **Shear_ratio_wspin_test.py**:  the workhorse code that makes all the measurements
 Calculate the gamma_t measurement between source and lens samples specified in the input parameter file.
 It also	calculates the predictions for the covariance of the gamma_t via different methods
 (in Giblin+2020 we use spin-shear realisations).	
@@ -23,39 +23,37 @@ The TreeCorr memory leak should	now be fixed. **@Ben - you sure you want to say 
    - DFLAG: only used if running test with MICE mocks. If	set to '_Octant' it will use the MICE octant-sized simulation
    as the data catalogue in the	test.
    Default is to leave DFLAG='' which uses the 343 sqdeg KV450-like MICE catalogue.
-   
- (In input parameter file):
-   - SOURCE_TYPE:	change to using the KiDS-1000 or MICE mock catalogues for the sources.
-   - LENS_TYPE: same as above but for the	lens sample (with MICE lenses, can have BOSS-like or GAMA-like lenses).
-   - Mag_OnOff: turn the magnification on/off in the MICE mocks.
-   - Pz_TrueEstimated: whether the source redshift n(z) is the truth or the estimated in the MICE mocks.
-   - SN: galaxy shape noise on or off.
-
-
-* run_shear_ratio_w_spin.sh:
+   - (In input parameter file):
+    - SOURCE_TYPE:	change to using the KiDS-1000 or MICE mock catalogues for the sources.
+    - LENS_TYPE: same as above but for the	lens sample (with MICE lenses, can have BOSS-like or GAMA-like lenses).
+    - Mag_OnOff: turn the magnification on/off in the MICE mocks.
+    - Pz_TrueEstimated: whether the source redshift n(z) is the truth or the estimated in the MICE mocks.
+    - SN: galaxy shape noise on or off.
+    
+* **run_shear_ratio_w_spin.sh**:
    For a given source bin (specified on command line), this code runs Shear_ratio_wspin_test.py recursively for several lens bins.
    Accepts a parameter file which specifies whether to run this for KiDS-1000 or MICE mocks (more on that below).
 
 ## Calculating the Covariance
 
-4. calc_spin_test_cov.py - creates a covariance matrix from all the spin trials
+* **calc_spin_test_cov.py**: creates a covariance matrix from all the spin trials.
 Once the predictions for the covariance estimation have been made by run_shear_ratio_w_spin.sh / Shear_ratio_wspin_test.py,
 this code reads them in, calculates the covariance matrix and saves it.
 
 ## Calculating the expected redshift-scaling
 
-* Dls_over_Ds.py: given a lens and source n(z), this code calculates the shear ratio for a fixed cosmology (using cosmology.py).   Options are included to shift the source n(z) by an error +/- delta_z, and also to include and n(z) with an artifical high-z outlier population included.
-* run_Dls_over_Ds.sh: is the master script that creates the Dls/Ds files, running over all variant combinations of the source and lens bins.
+* **Dls_over_Ds.py**: given a lens and source n(z), this code calculates the shear ratio for a fixed cosmology (using cosmology.py).   Options are included to shift the source n(z) by an error +/- delta_z, and also to include and n(z) with an artifical high-z outlier population included.
+* **run_Dls_over_Ds.sh**: is the master script that creates the Dls/Ds files, running over all variant combinations of the source and lens bins.
 
 ## ADD SUITABLE TITE
-5. GGL_shear_ratio_test_zall.py  -
+* **GGL_shear_ratio_test_zall.py**  -
 This makes Figure 11 of Giblin et al. (2020).
 **@Ben - could you add more here on what this code does - i.e takes all the gamma_t (lens_i, source_j) measurements from shear_ratio_wspin_test and the covariance and scaling parameters from Dls_over_Ds and combines them together to.....**
 
 
 ## Magnification and Intrinsic Galaxy Alignments
 
-* Compare_BFParams_And_Models.py
+* **Compare_BFParams_And_Models.py**:
    This code was used to read in the best-fit gamma_t model and corresponding B_ij model parameters (eqn 18 Giblin+2020)
    and compare them for different cases. These cases included:
    - n(z) systematically shifted up or down (or incoherently shifted, up/down depending on zbin).
@@ -70,7 +68,7 @@ This makes Figure 11 of Giblin et al. (2020).
    especially when IA-uncertainty is included.
    Conclusion: SRT is not a very good test.
 
-* Make_MockMagnifiedgt.py
+* **Make_MockMagnifiedgt.py**:
   This was used to artificially add a magnification contribution to a mock gamma_t, with a free parameter per lens bin,
   alpha, dictating the strength of the added contribution.
   This was used to check that the code, GGL_shear_ratio_test_zall.py, could correctly fit the alpha-per-lens bin
