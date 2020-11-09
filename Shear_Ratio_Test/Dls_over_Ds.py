@@ -5,7 +5,7 @@ import astropy.io.fits as fits
 #From Hendrik
 # 25/05/2020: Edited by B. Giblin,
 # now includes the delta-z shift and error to the nofz
-# if a third input argument containing "_nofzUpp" or "_nofzLow" is input.
+# if a third input argument containing "_nofzUpp" or "_nofzDown" is input.
 
 #from astropy.cosmology import WMAP9 as cosmo
 #import matplotlib.pyplot as plt

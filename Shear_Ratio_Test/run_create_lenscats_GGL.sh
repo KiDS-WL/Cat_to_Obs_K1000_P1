@@ -5,7 +5,7 @@
 
 
 
-# MAYBE READ THE FOLLOWING FROM PARAMS FILE?
+# INPUT PARAMATERS
 # -----------------------------------------------------------------------
 # Set the input catalogue based on the data type (BOSS-data/BOSS-randoms OR K1000/MICE mocks)
 
