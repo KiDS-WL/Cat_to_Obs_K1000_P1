@@ -87,19 +87,6 @@ Plot_Labels, theta, php_mean, php_err = Read_rho_Or_PH(LFver, 'ph', ThBins, Res)
 #sys.exit()
 
 
-# Read in a covariance
-def Linc_Cov():
-        # Originally used this approx. cov from Chieh-An Lin before changing to the KiDS-1000 one
-        # provided by Marika Asgari.
-        Linc_Rescale = 600. / 878.83	# Linc says I should rescale his cov by approx. this factor
-                                        # to get the effective area right. This probs isn't 100% accurate.
-        Cov_inDIR = './Lincs_CovMat'
-        # eday address: '/disk2/ps1/bengib/KiDS1000_NullTests/Codes_4_My_Eyes/Lincs_CovMat/'
-        cov = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR) * Linc_Rescale 
-							# [0:9, 0:9] This extracts xi+ Cov in lowest zbin
-							# [81:90, 81:90] This pulls out the middle zbin: 3-3
-        return cov
-
 def Marika_Cov(mCov):
         # The KiDS-1000 cosmic shear covariance used in Asgari et al. (2020)
         # if mCov is True, reads covariance include m-uncertainty
@@ -216,7 +203,6 @@ def Set_Scales(ax):
 # (produces Figure 3 of Giblin et al. 2020).
 # Input: which redshift bin to produce the plot for?
 def Plot_deltaxips_Only(zbin):
-        #cov = Linc_Cov()[81:90, 81:90]*0.16    # This pulls out the middle bin: 3-3, scales it by some factor to make it ~2D analysis.
         theta_cov, cov = Marika_Cov(True)
         cov = cov[81:90, 81:90]*0.16 # Pulls out final zbin covariance - contact C. Heymans for info on factor 0.16.
         
@@ -308,8 +294,6 @@ Plot_deltaxips_Only(num_zbins_tot-1)
 # first argument 'rho' is the delta_xip systematic array.
 
 def Investigate_chi2(rho, sigma_shift):
-        #cov_All = np.loadtxt('%s/Raw_Cov_Mat_Values.dat' %Cov_inDIR)[0:135,0:135] * Linc_Rescale
-        #cov_All = Linc_Cov()[0:135,0:135] # pulls out only the xi+ elements.   
         theta_cov, cov_All = Marika_Cov(False)
         cov_All = cov_All[0:135,0:135]
         # [0:135,0:135] pulls out only the xi+ elements.   
