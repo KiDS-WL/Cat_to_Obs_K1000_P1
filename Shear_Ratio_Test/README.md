@@ -12,7 +12,7 @@ to mean shifts, or artificially injected with high-z outliers (we experimented w
 test, SRT, could statistically detect such things).
 
 Depending on if you are running the SRT on MICE simulations or KiDS data, different information needs to be specified.
-e.g., for MICE simulations, and example parameter file might look like this:
+e.g., for MICE simulations, an example parameter file might look like this:
 - Source_Type = MICE2_KV450       # specify KV450-like MICE-simulated sources
 - Lens_Type = MICE2_BOSS          # specify BOSS-like MICE-sim lenses
 - Random_Type = MICE2_BOSS_random # BOSS-like MICE-sim randoms
