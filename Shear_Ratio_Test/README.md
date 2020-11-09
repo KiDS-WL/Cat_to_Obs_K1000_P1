@@ -63,11 +63,11 @@ It also	calculates the predictions for the covariance of the gamma_t via differe
    as the data catalogue in the	test.
    Default is to leave DFLAG='' which uses the 343 sqdeg KV450-like MICE catalogue.
    - (In input parameter file):
-    - SOURCE_TYPE:	change to using the KiDS-1000 or MICE mock catalogues for the sources.
-    - LENS_TYPE: same as above but for the	lens sample (with MICE lenses, can have BOSS-like or GAMA-like lenses).
-    - Mag_OnOff: turn the magnification on/off in the MICE mocks.
-    - Pz_TrueEstimated: whether the source redshift n(z) is the truth or the estimated in the MICE mocks.
-    - SN: galaxy shape noise on or off.
+   - SOURCE_TYPE:	change to using the KiDS-1000 or MICE mock catalogues for the sources.
+   - LENS_TYPE: same as above but for the	lens sample (with MICE lenses, can have BOSS-like or GAMA-like lenses).
+   - Mag_OnOff: turn the magnification on/off in the MICE mocks.
+   - Pz_TrueEstimated: whether the source redshift n(z) is the truth or the estimated in the MICE mocks.
+   - SN: galaxy shape noise on or off.
     
 * **run_shear_ratio_w_spin.sh**:
    For a given source bin (specified on command line), this code runs Shear_ratio_wspin_test.py recursively for several lens bins.
