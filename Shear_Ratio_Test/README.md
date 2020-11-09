@@ -27,7 +27,8 @@ Alternatively, for a KiDS-data analysis, the input parameter file might look lik
  - Blind = C                       # The KiDS Blind ID (A/B/C)
  - SOMFLAGNAME = Fid               # Which SOM version does the n(z) correspond to (Fid/noDEEP2 - see Hildebrandt+20 for more info).
  - OL_Tag = _OutlierPeaksInBins12  # If blank, it's just the estimated n(z). One the other hand...
-                                # ... _OutlierPeaksInBins12 means artificial peaks at z=1.4 were added to reshift bins 1 and 2.
+                                   # ... _OutlierPeaksInBins12 means artificial peaks at z=1.4 were added to reshift bins 1 and 2.
+ 
  More on these arguments below. Many example parameter files can be found in param_files/*.dat
  Get_Input.py is used to read in arguments by a number of the Python codes listed here.
 
