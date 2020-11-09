@@ -10,27 +10,24 @@ The parameter file specifies information like the lens and source samples to be 
 e.g. whether they are simulated or actual KiDS data, and whether the n(z)'s used in the modelling have been subjected
 to mean shifts, or artificially injected with high-z outliers (we experimented with such things to see if the shear-ratio
 test, SRT, could statistically detect such things).
-
 Depending on if you are running the SRT on MICE simulations or KiDS data, different information needs to be specified.
 e.g., for MICE simulations, and example parameter file might look like this:
-Source_Type = MICE2_KV450       # specify KV450-like MICE-simulated sources
-Lens_Type = MICE2_BOSS          # specify BOSS-like MICE-sim lenses
-Random_Type = MICE2_BOSS_random # BOSS-like MICE-sim randoms
-Mag_OnOff = off                 # switch the magnification on/off in the mocks
-Pz_TrueEstimated = True         # Use the True n(z) or the Estimated n(z)
-SN = False                      # Did the source galaxies have intrinsic shape noise or not.
-
+- Source_Type = MICE2_KV450       # specify KV450-like MICE-simulated sources
+- Lens_Type = MICE2_BOSS          # specify BOSS-like MICE-sim lenses
+- Random_Type = MICE2_BOSS_random # BOSS-like MICE-sim randoms
+- Mag_OnOff = off                 # switch the magnification on/off in the mocks
+- Pz_TrueEstimated = True         # Use the True n(z) or the Estimated n(z)
+- SN = False                      # Did the source galaxies have intrinsic shape noise or not.
 Alternatively, for a KiDS-data analysis, the input parameter file might look like this:
-Source_Type = K1000             # KiDS-1000 sources
-Lens_Type = BOSS_data           # BOSS lenses (could set to GAMA_data alternatively)
-Random_Type = BOSS_random       # BOSS randoms (could set to GAMA_random alternatively)
-Blind = C                       # The KiDS Blind ID (A/B/C)
-SOMFLAGNAME = Fid               # Which SOM version does the n(z) correspond to (Fid/noDEEP2 - see Hildebrandt+20 for more info).
-OL_Tag = _OutlierPeaksInBins12  # If blank, it's just the estimated n(z). One the other hand...
+ - Source_Type = K1000             # KiDS-1000 sources
+ - Lens_Type = BOSS_data           # BOSS lenses (could set to GAMA_data alternatively)
+ - Random_Type = BOSS_random       # BOSS randoms (could set to GAMA_random alternatively)
+ - Blind = C                       # The KiDS Blind ID (A/B/C)
+ - SOMFLAGNAME = Fid               # Which SOM version does the n(z) correspond to (Fid/noDEEP2 - see Hildebrandt+20 for more info).
+ - OL_Tag = _OutlierPeaksInBins12  # If blank, it's just the estimated n(z). One the other hand...
                                 # ... _OutlierPeaksInBins12 means artificial peaks at z=1.4 were added to reshift bins 1 and 2.
-
-More on these arguments below. Many example parameter files can be found in param_files/*.dat
-Get_Input.py is used to read in arguments by a number of the Python codes listed here.
+ More on these arguments below. Many example parameter files can be found in param_files/*.dat
+ Get_Input.py is used to read in arguments by a number of the Python codes listed here.
 
 
 ## Creating Lens and Source catalogues
