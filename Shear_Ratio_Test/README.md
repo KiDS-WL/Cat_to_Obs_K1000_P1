@@ -16,7 +16,7 @@ For the shear ratio test we need finer lens bins than normal so we have a specia
 Calculate the gamma_t measurement between source and lens samples specified in the input parameter file.
 It also	calculates the predictions for the covariance of the gamma_t via different methods
 (in Giblin+2020 we use spin-shear realisations).	
-The TreeCorr memory leak should	now be fixed. **@Ben - you sure you want to say something like this?  This is for public view?**
+
  Arguments:
    - Cov_Method: option to change	the covariance being calculated	from multiple spun-shear realistions
    to instead read in the octant-sized MICE simulation and split this into n patches (with n~16).
@@ -48,7 +48,33 @@ this code reads them in, calculates the covariance matrix and saves it.
 ## ADD SUITABLE TITE
 * **GGL_shear_ratio_test_zall.py**  -
 This makes Figure 11 of Giblin et al. (2020).
-**@Ben - could you add more here on what this code does - i.e takes all the gamma_t (lens_i, source_j) measurements from shear_ratio_wspin_test and the covariance and scaling parameters from Dls_over_Ds and combines them together to.....**
+It does this by reading in the gamma_t^ij measurements corresponding to the i'th/j'th lens/source bin pairs,
+reading in the covariance produced by calc_spin_test_cov.py,
+reading in the Dls/Ds luminosity distance ratios (ls=lens-to-source, s=source) prouced by Dls_over_Ds.py,
+and it fits a model given by eqns 18 and 19 of Giblin et al. (2020).
+The model has one free amplitude parameter per lens bin.
+On top of this, there's loads of extra options you can toggle. These include:
+- Include_mCov (True/False)            # Include the uncertainty due to the m-correction
+- Include_mBias (True/False)           # If True, read in and bias the gamma_t by *(1 + m + f_mBias * m_err)
+                                       # where f_mBias, the level of bias to apply, can be set in the code).
+- Include_Hartlap (True/False)         # Inflate the covariance by the Hartlap scaling factor, to account for noise in taking inverse.
+- Include_Magnification (True/False)   # If True, include extra param in gamma_t model: strength of magnifcation effect on gt.
+- Include_IA = True                    # If True, read in the kcap prediction for the IA-only <g_t> and inflate the cov diag by
+- f_IA = 0                             # +(f_IA* gt_IA)^2 ; f_IA is our uncert. on IA amplitude.
+- A_IA = 1                             # A_IA*gt_IA is added to the fitted model if Include_IA is True.
+
+- nofz_shift="_ModnofzUpDown"          # Only for K1000: use the Dls/Ds values for the nofz which has been
+                                       # shifted up ('_nofzUp'), down ('_nofzDown') by +/-(delta_z+delta_z_err)
+                                       # OR 5sig shift-up ('_nofzUp5sig'), down ('_nofzDown5sig') by (+/- 5*delta_z_err)
+                                       # "_nofzMix5sig" means alternate bins are shifted up/down by (+/- 5*delta_z_err).
+                                       # For no shift, set to ''.
+                                       # Finally, to include the uncert. on the nofz's in the SRT modelling,
+                                       # set nofz_shift to "_ModnofzUpDown"
+- Cov_Method="Spin"/"Patch"            # Spin means the cov was calculated from many gamma_t realisations
+                                       # with the source galaxy ellipticities randomised.
+                                       # "Patch" means the cov came from the MICE octant-sized simulation, split into ~16 patches.
+
+GGL_shear_ratio_test_zall.py gets its input data from the following codes:
 
 
 ## Magnification and Intrinsic Galaxy Alignments
