@@ -2,13 +2,52 @@
 
 The code in this directory performs the KiDS-1000 shear ratio test described in Section 4.3 of [Giblin, Heymans, Asgari et al. 2020][1].   The code was originally written by H. Hildebrandt & B. Giblin, and hacked by B. Giblin and C. Heymans.
 
-## Creating Lens and Source catalogues
+## General parameter file reader
 
-**@Ben - Add code/directory description here - e.g what are the LENSCAT/SOURCECAT directories?**  
+* **Get_Input.py**:
+This contains a python class used to read & return the information contained in an parameter file.
+The parameter file specifies information like the lens and source samples to be used in the shear-ratio test,
+e.g. whether they are simulated or actual KiDS data, and whether the n(z)'s used in the modelling have been subjected
+to mean shifts, or artificially injected with high-z outliers (we experimented with such things to see if the shear-ratio
+test, SRT, could statistically detect such things).
+
+Depending on if you are running the SRT on MICE simulations or KiDS data, different information needs to be specified.
+e.g., for MICE simulations, and example parameter file might look like this:
+Source_Type = MICE2_KV450       # specify KV450-like MICE-simulated sources
+Lens_Type = MICE2_BOSS          # specify BOSS-like MICE-sim lenses
+Random_Type = MICE2_BOSS_random # BOSS-like MICE-sim randoms
+Mag_OnOff = off                 # switch the magnification on/off in the mocks
+Pz_TrueEstimated = True         # Use the True n(z) or the Estimated n(z)
+SN = False                      # Did the source galaxies have intrinsic shape noise or not.
+
+Alternatively, for a KiDS-data analysis, the input parameter file might look like this:
+Source_Type = K1000             # KiDS-1000 sources
+Lens_Type = BOSS_data           # BOSS lenses (could set to GAMA_data alternatively)
+Random_Type = BOSS_random       # BOSS randoms (could set to GAMA_random alternatively)
+Blind = C                       # The KiDS Blind ID (A/B/C)
+SOMFLAGNAME = Fid               # Which SOM version does the n(z) correspond to (Fid/noDEEP2 - see Hildebrandt+20 for more info).
+OL_Tag = _OutlierPeaksInBins12  # If blank, it's just the estimated n(z). One the other hand...
+                                # ... _OutlierPeaksInBins12 means artificial peaks at z=1.4 were added to reshift bins 1 and 2.
+
+More on these arguments below. Many example parameter files can be found in param_files/*.dat
+Get_Input.py is used to read in arguments by a number of the Python codes listed here.
+
+
+## Creating Lens and Source catalogues
 
 * create_tomocats_GGL.py:
 For the shear ratio test we need finer lens bins than normal so we have a special script to create these
 
+* SOURCECATS/Make_K1000_nofz.py
+This reads in the redshifts estimated from the KiDS-1000 SOM (Hildebrandt+20) and saves n(z) histograms in SOURCECATS/SOM_NofZ/
+This code is where artificial high redshift peaks can be implanted in specified redshift bins, in order to see the effect these have on the SRT results.
+The save n(z) histogram files are read in by Dls_over_Ds.py and used to calculate luminosity distance ratios, which in turn are used in the gamma_t model which is fit in GGL_shear_ratio_test_zall.py. 
+
+* create_lenscats_GGL.py:
+Creates lens/randoms catalogues and saves the outputs saved in LENSCATS/ with a different subdirectory for each type of lens/randoms (i.e. whether they're real BOSS/GAMA data or from MICE mocks).
+
+* run_create_lenscats_GGL.sh:
+Where you set the input arguments of create_lenscats_GGL.py and set it running.
 
 ## The Shear Ratio Test
 
@@ -45,7 +84,6 @@ this code reads them in, calculates the covariance matrix and saves it.
 * **Dls_over_Ds.py**: given a lens and source n(z), this code calculates the shear ratio for a fixed cosmology (using cosmology.py).   Options are included to shift the source n(z) by an error +/- delta_z, and also to include and n(z) with an artifical high-z outlier population included.
 * **run_Dls_over_Ds.sh**: is the master script that creates the Dls/Ds files, running over all variant combinations of the source and lens bins.
 
-## ADD SUITABLE TITE
 * **GGL_shear_ratio_test_zall.py**  -
 This makes Figure 11 of Giblin et al. (2020).
 It does this by reading in the gamma_t^ij measurements corresponding to the i'th/j'th lens/source bin pairs,
@@ -74,7 +112,6 @@ On top of this, there's loads of extra options you can toggle. These include:
                                        # with the source galaxy ellipticities randomised.
                                        # "Patch" means the cov came from the MICE octant-sized simulation, split into ~16 patches.
 
-GGL_shear_ratio_test_zall.py gets its input data from the following codes:
 
 
 ## Magnification and Intrinsic Galaxy Alignments
