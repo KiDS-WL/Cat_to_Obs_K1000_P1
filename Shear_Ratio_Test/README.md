@@ -34,18 +34,18 @@ Alternatively, for a KiDS-data analysis, the input parameter file might look lik
 
 ## Creating Lens and Source catalogues
 
-* create_tomocats_GGL.py:
+* **create_tomocats_GGL.py**:
 For the shear ratio test we need finer lens bins than normal so we have a special script to create these
 
-* SOURCECATS/Make_K1000_nofz.py
+* **SOURCECATS/Make_K1000_nofz.py**:
 This reads in the redshifts estimated from the KiDS-1000 SOM (Hildebrandt+20) and saves n(z) histograms in SOURCECATS/SOM_NofZ/
 This code is where artificial high redshift peaks can be implanted in specified redshift bins, in order to see the effect these have on the SRT results.
 The save n(z) histogram files are read in by Dls_over_Ds.py and used to calculate luminosity distance ratios, which in turn are used in the gamma_t model which is fit in GGL_shear_ratio_test_zall.py. 
 
-* create_lenscats_GGL.py:
+* **create_lenscats_GGL.py**:
 Creates lens/randoms catalogues and saves the outputs saved in LENSCATS/ with a different subdirectory for each type of lens/randoms (i.e. whether they're real BOSS/GAMA data or from MICE mocks).
 
-* run_create_lenscats_GGL.sh:
+* **run_create_lenscats_GGL.sh**:
 Where you set the input arguments of create_lenscats_GGL.py and set it running.
 
 ## The Shear Ratio Test
