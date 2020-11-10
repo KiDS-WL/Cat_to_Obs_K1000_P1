@@ -1,8 +1,0 @@
-a_vir_bin_1 = 3.8
-a_vir_bin_2 = 3.0
-b1_bin_1 = 2.1
-b1_bin_2 = 2.3
-b2_bin_1 = 0.2
-b2_bin_2 = 0.5
-gamma3_bin_1 = 0.9
-gamma3_bin_2 = 0.1
