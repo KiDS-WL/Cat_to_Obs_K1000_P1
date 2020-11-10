@@ -16,7 +16,7 @@ We provide a brief summary of each directory, referring the user to the director
 * Flinc_theory_inputs: [SALMO][5] mock inputs
 * GGL_LensCats: Creating KiDS-overlap Lens Catalogues from the BOSS and 2dFLenS master catalogues
 * PSFRES_CORRMAP : Chip-dependent 2D PSF residual model
-* PSF_systests: PSF Systematics: quantifying and testing the impact of the Paulin-Henriksson and Bacon systematics model.
+* PSF_systests: quantifying and testing the impact of the Paulin-Henriksson and Bacon PSF systematics model.
 * data: KiDS-1000 BOSS and 2dFLenS 3x2pt data and covariances in ascii and CosmoSIS-friendly fits format
 * src: Code to convert finely binned xi_\pm measurements into COSEBIs and Bandpower estimates
 
