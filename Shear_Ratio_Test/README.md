@@ -57,17 +57,15 @@ It also	calculates the predictions for the covariance of the gamma_t via differe
 (in Giblin+2020 we use spin-shear realisations).	
 
  Arguments:
-    - Cov_Method: option to change	the covariance being calculated	from multiple spun-shear realistions
-   to instead read in the octant-sized MICE simulation and split this into n patches (with n~16).
-    - DFLAG: only used if running test with MICE mocks. If	set to '_Octant' it will use the MICE octant-sized simulation
-   as the data catalogue in the	test.
-   Default is to leave DFLAG='' which uses the 343 sqdeg KV450-like MICE catalogue.
+   - Cov_Method: option to change	the covariance being calculated	from multiple spun-shear realistions to instead read in the octant-sized MICE simulation and split this into n patches (with n~16).
+   - DFLAG: only used if running test with MICE mocks. If	set to '_Octant' it will use the MICE octant-sized simulation as the data catalogue in the	test.
+     - Default is to leave DFLAG='' which uses the 343 sqdeg KV450-like MICE catalogue.
    - (In input parameter file):
-   - SOURCE_TYPE:	change to using the KiDS-1000 or MICE mock catalogues for the sources.
-   - LENS_TYPE: same as above but for the	lens sample (with MICE lenses, can have BOSS-like or GAMA-like lenses).
-   - Mag_OnOff: turn the magnification on/off in the MICE mocks.
-   - Pz_TrueEstimated: whether the source redshift n(z) is the truth or the estimated in the MICE mocks.
-   - SN: galaxy shape noise on or off.
+     - SOURCE_TYPE:	change to using the KiDS-1000 or MICE mock catalogues for the sources.
+     - LENS_TYPE: same as above but for the	lens sample (with MICE lenses, can have BOSS-like or GAMA-like lenses).
+     - Mag_OnOff: turn the magnification on/off in the MICE mocks.
+     - Pz_TrueEstimated: whether the source redshift n(z) is the truth or the estimated in the MICE mocks.
+     - SN: galaxy shape noise on or off.
     
 * **run_shear_ratio_w_spin.sh**:
    For a given source bin (specified on command line), this code runs Shear_ratio_wspin_test.py recursively for several lens bins.
@@ -86,9 +84,9 @@ this code reads them in, calculates the covariance matrix and saves it.
 
 * **GGL_shear_ratio_test_zall.py**  -
 This makes Figure 11 of Giblin et al. (2020).
-It does this by reading in the gamma_t^ij measurements corresponding to the i'th/j'th lens/source bin pairs,
+It does this by reading in the gamma_t^ij measurements corresponding to the i'th/j'th lens/source bin pairs calculated by Shear_ratio_wspin_test.py
 reading in the covariance produced by calc_spin_test_cov.py,
-reading in the Dls/Ds luminosity distance ratios (ls=lens-to-source, s=source) prouced by Dls_over_Ds.py,
+reading in the Dls/Ds luminosity distance ratios (ls=lens-to-source, s=source) produced by Dls_over_Ds.py,
 and it fits a model given by eqns 18 and 19 of Giblin et al. (2020).
 The model has one free amplitude parameter per lens bin.
 On top of this, there's loads of extra options you can toggle. These include:
@@ -126,10 +124,10 @@ On top of this, there's loads of extra options you can toggle. These include:
    - performing the SRT for all 5 source bins, or just the 3 highest source bins.
    - Including/neglecting the uncertainty due to the intrinsic alignment in the covariance.
    - whether an extra parameter per lens bin was included to model the contribution of magnification to the gamma_t
-   The results of these tests are discussed to some extent in Sect. 4.3.2 of Giblin+2020.
-   Concluded that the SRT is highly insensitive to these calibration errors given the statistical power of Stage-III surveys,
-   especially when IA-uncertainty is included.
-   Conclusion: SRT is not a very good test.
+   
+   The results of these tests are discussed to some extent in Sect. 4.3.2 of Giblin+2020.   We concluded that the SRT is highly insensitive 
+   to these calibration errors given the statistical power of Stage-III surveys, especially when IA-uncertainty is included.
+   The SRT is therefore not a very good standalone test.
 
 * **Make_MockMagnifiedgt.py**:
   This was used to artificially add a magnification contribution to a mock gamma_t, with a free parameter per lens bin,
