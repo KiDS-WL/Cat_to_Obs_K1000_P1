@@ -1,8 +1,0 @@
-is_auto = True
-nbin = 5
-nbin_a = 5
-nbin_b = 5
-sample_a = 'SOURCE'
-sample_b = 'SOURCE'
-save_name = ''
-sep_name = 'ell'

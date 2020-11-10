@@ -1,2 +1,0 @@
-nbin_a = 2
-nbin_b = 5

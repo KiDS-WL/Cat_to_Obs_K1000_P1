@@ -1,5 +1,0 @@
-b_modes = False
-nbin_a = 2.0
-nbin_b = 5.0
-theta_max = 0.08726646259971647
-theta_min = 0.0001454441043328608
