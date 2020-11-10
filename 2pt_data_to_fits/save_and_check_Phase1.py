@@ -210,7 +210,7 @@ def mkdir_mine(dirName):
 
 
 # Folder and file names for nofZ, for the sources it will depend on the blind
-blind = 'A'
+blind = 'C'
 cat_version = 'V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid'
 name_tag    = 'no_m_bias' # with_m_bias # no_m_bias # bmodes
 
@@ -322,7 +322,7 @@ def saveFitsCOSEBIs_KIDS1000():
     elif(name_tag=='with_m_bias'):
         covName   = FolderNameCov+'/outputs/Covariance_blind'+blind+'_nMaximum_20_0.50_300.00_nBins5.ascii'
     elif(name_tag=='bmodes'):
-        covName   = FolderNameCov+'/outputs/Covariance_blind'+blind+'_nMaximum_20_0.50_300.00_nBins5_NoiseJustForNoise.ascii'
+        covName   = FolderNameCov+'/outputs/Covariance_blind'+blind+'_nMaximum_20_0.50_300.00_nBins5_NoiseOnly.ascii'
     else:
         print('not a recognised name_tag, will not produce anything')
         return
@@ -645,76 +645,76 @@ def unitaryTest(name1, name2):
 # plot things here
 
 # exit()
-# saveFitsCOSEBIs_KIDS1000()
+saveFitsCOSEBIs_KIDS1000()
 # saveFitsXIPM_sys_corrected_list_KIDS1000()
 
-saveFitsBP_list_KIDS1000()
-saveFitsXIPM_list_KIDS1000()
+# saveFitsBP_list_KIDS1000()
+# saveFitsXIPM_list_KIDS1000()
 
 # exit()
 FolderPlots=FolderNameInputs+'/plots'
 mkdir_mine(FolderPlots)
 
 
-# filename=FolderNameInputs+"/kids/fits/cosebis_KIDS1000_Blind"+blind+"_"+name_tag+"_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
-# title='KiDS'
-# savename=FolderPlots+'/only_source'+'_blind'+blind+'.pdf'
-# plot_redshift(filename,title,savename)
+filename=FolderNameInputs+"/kids/fits/cosebis_KIDS1000_Blind"+blind+"_"+name_tag+"_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
+title='KiDS'
+savename=FolderPlots+'/only_source'+'_blind'+blind+'.pdf'
+plot_redshift(filename,title,savename)
 
-# title='COSEBIs'
-# savename=FolderPlots+'/COSEBIs_covariance_'+name_tag+'_blind'+blind+'.pdf'
-# plot_covariance(filename,title,savename)
-
-
-# savename=FolderPlots+'/COSEBIs_correlation_matrix_'+name_tag+'_blind'+blind+'.pdf'
-# plot_correlation_mat(filename,title,savename)
+title='COSEBIs'
+savename=FolderPlots+'/COSEBIs_covariance_'+name_tag+'_blind'+blind+'.pdf'
+plot_covariance(filename,title,savename)
 
 
-# extname='En'
-# savename=FolderPlots+'/COSEBIs_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
-# plot_data(filename,title,extname,savename)
+savename=FolderPlots+'/COSEBIs_correlation_matrix_'+name_tag+'_blind'+blind+'.pdf'
+plot_correlation_mat(filename,title,savename)
+
+
+extname='En'
+savename=FolderPlots+'/COSEBIs_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
+plot_data(filename,title,extname,savename)
 
 
 # BP
-filename=FolderNameInputs+"/kids/fits/bp_KIDS1000_Blind"+blind+"_"+name_tag+"_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
-title= 'KiDS1000-BOSS'
-savename=FolderPlots+'/KiDS1000_nofz_'+name_tag+'_blind'+blind+'.pdf'
-plot_redshift(filename,title,savename)
+# filename=FolderNameInputs+"/kids/fits/bp_KIDS1000_Blind"+blind+"_"+name_tag+"_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
+# title= 'KiDS1000-BOSS'
+# savename=FolderPlots+'/KiDS1000_nofz_'+name_tag+'_blind'+blind+'.pdf'
+# plot_redshift(filename,title,savename)
 
-savename=FolderPlots+'/BP_covariance_'+name_tag+'_blind'+blind+'.pdf'
-plot_covariance(filename,title,savename)
+# savename=FolderPlots+'/BP_covariance_'+name_tag+'_blind'+blind+'.pdf'
+# plot_covariance(filename,title,savename)
 
-savename=FolderPlots+'/BP_correlation_matrix_'+name_tag+'_blind'+blind+'.pdf'
-plot_correlation_mat(filename,title,savename)
+# savename=FolderPlots+'/BP_correlation_matrix_'+name_tag+'_blind'+blind+'.pdf'
+# plot_correlation_mat(filename,title,savename)
 
-file=open(bp_filename)
-bp=np.loadtxt(file)
+# file=open(bp_filename)
+# bp=np.loadtxt(file)
 
-extname='PeeE'
-savename=FolderPlots+'/BP_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
-plot_data(filename,title,extname,savename)
+# extname='PeeE'
+# savename=FolderPlots+'/BP_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
+# plot_data(filename,title,extname,savename)
 
-extname='PneE'
-savename=FolderPlots+'/BP_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
-plot_data(filename,title,extname,savename)
+# extname='PneE'
+# savename=FolderPlots+'/BP_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
+# plot_data(filename,title,extname,savename)
 
-# xipm
-filename=FolderNameInputs+"/kids/fits/xipm_KIDS1000_Blind"+blind+"_"+name_tag+"_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
-title= 'Xipm'
-savename=FolderPlots+'/xipm_nofz_'+name_tag+'_blind'+blind+'.pdf'
-plot_redshift(filename,title,savename)
+# # xipm
+# filename=FolderNameInputs+"/kids/fits/xipm_KIDS1000_Blind"+blind+"_"+name_tag+"_V1.0.0A_ugriZYJHKs_photoz_SG_mask_LF_svn_309c_2Dbins_v2_goldclasses_Flag_SOM_Fid.fits"
+# title= 'Xipm'
+# savename=FolderPlots+'/xipm_nofz_'+name_tag+'_blind'+blind+'.pdf'
+# plot_redshift(filename,title,savename)
 
-savename=FolderPlots+'/xipm_covariance_'+name_tag+'_blind'+blind+'.pdf'
-plot_covariance(filename,title,savename)
+# savename=FolderPlots+'/xipm_covariance_'+name_tag+'_blind'+blind+'.pdf'
+# plot_covariance(filename,title,savename)
 
-savename=FolderPlots+'/xipm_correlation_matrix_'+name_tag+'_blind'+blind+'.pdf'
-plot_correlation_mat(filename,title,savename)
+# savename=FolderPlots+'/xipm_correlation_matrix_'+name_tag+'_blind'+blind+'.pdf'
+# plot_correlation_mat(filename,title,savename)
 
-extname='xip'
-savename=FolderPlots+'/xip_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
-plot_data(filename,title,extname,savename)
+# extname='xip'
+# savename=FolderPlots+'/xip_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
+# plot_data(filename,title,extname,savename)
 
-extname='xim'
-savename=FolderPlots+'/xim_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
-plot_data(filename,title,extname,savename)
+# extname='xim'
+# savename=FolderPlots+'/xim_data_'+extname+'_'+name_tag+'_blind'+blind+'.pdf'
+# plot_data(filename,title,extname,savename)
 

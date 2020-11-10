@@ -14,7 +14,7 @@ rcParams['pdf.use14corefonts'] = True
 
 font = {'family' : 'serif',
         'weight' : 'normal',
-        'size'   : 12}
+        'size'   : 14}
 
 plt.rc('font', **font)
 
@@ -128,7 +128,7 @@ for iz in range(0,ntomobin):
         #ax.plot(thetatheory,thetatheory*xipdata*0.03,color='blue',label='$3\%$ of $\\xi_+(\\theta)$')
 
     ax.annotate(tomochar, xy=(0.09,0.15),xycoords='axes fraction',
-                    size=12, ha='right', va='top')
+                    size=14, ha='right', va='top')
         #ax.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
         #ax.set_yscale('log')
     ax.set_xscale('log')        
@@ -149,9 +149,9 @@ for iz in range(0,ntomobin):
     ax.label_outer()
 
 #add labels
-axes[0].legend(fontsize=15,ncol=2,loc='upper center',frameon=False,bbox_to_anchor=(0.42, 1.6))
-axes[2].set_ylabel('$\\xi_+ \\sqrt{\\theta}\,\,\,\,\,\,  [10^{-5} \, {\\rm arcmin}^{0.5}\,]$',fontsize=16)
-axes[4].set_xlabel('$\\theta \,\,({\\rm arcmin})$',fontsize=16)
+axes[0].legend(fontsize=16,ncol=2,loc='upper center',frameon=False,bbox_to_anchor=(0.42, 1.6))
+axes[2].set_ylabel('$\\xi_+ \\sqrt{\\theta}\,\,\,\,\,\,  [10^{-5} \, {\\rm arcmin}^{0.5}\,]$',fontsize=18)
+axes[4].set_xlabel('$\\theta \,\,({\\rm arcmin})$',fontsize=18)
 
 
 

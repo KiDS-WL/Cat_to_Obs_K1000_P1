@@ -15,7 +15,7 @@ rcParams['pdf.use14corefonts'] = True
 
 font = {'family' : 'serif',
         'weight' : 'normal',
-        'size'   : 14}
+        'size'   : 16}
 
 plt.rc('font', **font)
 
@@ -154,16 +154,16 @@ for iz in range(0,ntomobin):
         ax.fill_between(theta, fact*np.sqrt(diag_for_izjz)/xiptheory *-1.0, fact*np.sqrt(diag_for_izjz)/xiptheory, color='lightblue',label='$0.1 \\sigma_{\\xi_+}}$',linestyle=':',alpha=0.3)
 
 
-        ax.annotate(tomochar, xy=(0.15,0.1),xycoords='axes fraction',
-                    size=12, ha='right', va='top')
+        ax.annotate(tomochar, xy=(0.19,0.1),xycoords='axes fraction',
+                    size=14, ha='right', va='top')
         #ax.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
         #ax.set_yscale('log')
         ax.set_xscale('log')        
         #ax.set_ylim(-9e-6,9e-6)
         if iz<1 or jz<2:
-            ax.set_ylim(-0.3,0.3)
+            ax.set_ylim(-0.3,0.35)
         elif iz==1:
-            ax.set_ylim(-0.12,0.12)
+            ax.set_ylim(-0.12,0.15)
         else:
             ax.set_ylim(-0.09,0.09)
         ax.set_xlim(0.5,300.0)
@@ -179,12 +179,12 @@ for iz in range(0,ntomobin):
         ax.label_outer()
 
 #add labels
-axes[0,2].legend(fontsize=14,ncol=1,loc='upper right',frameon=True)
-axes[2,0].set_ylabel('$\\xi_+^{\\rm sys}/\\xi_+^{\\Lambda {\\rm CDM}}$',fontsize=18)
+axes[0,2].legend(fontsize=16,ncol=1,loc='upper right',frameon=True)
+axes[2,0].set_ylabel('$\\xi_+^{\\rm sys}/\\xi_+^{\\Lambda {\\rm CDM}}$',fontsize=21)
 
-axes[4,0].set_xlabel('$\\theta$ (arcmin)',fontsize=15)
-axes[4,1].set_xlabel('$\\theta$ (arcmin)',fontsize=15)
-axes[4,2].set_xlabel('$\\theta$ (arcmin)',fontsize=15)
+axes[4,0].set_xlabel('$\\theta$ (arcmin)',fontsize=17)
+axes[4,1].set_xlabel('$\\theta$ (arcmin)',fontsize=17)
+axes[4,2].set_xlabel('$\\theta$ (arcmin)',fontsize=17)
 
 
 

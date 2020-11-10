@@ -31,21 +31,18 @@ if len(sys.argv) <8:
     print ("Usage: %s Patch Blind ZBmin ZBmax nbootstrap cattail Flag_SOM" % sys.argv[0]) 
     sys.exit(1)
 else:
-    NorS=sys.argv[1]  # N for North, S for South, or 'All' for both.
-    Blind=sys.argv[2] # Just put 'A' 	
-    ZBlo=np.float(sys.argv[3])  # If numbers are inputted, this Z_B cut is applied to data
-    ZBhi=np.float(sys.argv[4])  # For no ZBcut, put 'None' for both of these
-    nboot=np.int(sys.argv[5]) # this is the number of bootstrap realisations to run
-    tail=sys.argv[6] # catalogue version identifier
-    Flag_SOM_col=sys.argv[7] # Flag SOM ID (e.g Flag_SOM_Fid)
 
+	NorS=sys.argv[1]            # N for North, S for South, or 'All' for both.
+	Blind=sys.argv[2]           # Blind, 'A', 'B', 'C'
+	ZBlo=np.float(sys.argv[3])  # If numbers are inputted, this Z_B cut is applied to data
+	ZBhi=np.float(sys.argv[4])  # For no ZBcut, put 'None' for both of these
+	nboot=np.int(sys.argv[5])   # this is the number of bootstrap realisations to run
+	tail=sys.argv[6]            # catalogue version identifier
+    Flag_SOM_col=sys.argv[7] # Flag SOM ID (e.g Flag_SOM_Fid)
 
 Read_Cat_Or_Pickle = "Cat" 
 #Read_Cat_Or_Pickle = "Pickle" 	# Set to "Cat" to read from fitsfile catalogue (~680s for N&S)
-                      # Or "Pickle" to read smaller pickled version (~20s for N&S)
-
-# to do - I get different results (only slightly) if I use pickle or cat.... must be some precision issue?
-
+                                # Or "Pickle" to read smaller pickled version (~20s for N&S)
 DIRECT = os.getcwd() 
 
 def Pickle_Data(ra,dec,ace1,ace2,acw,ZB, Xpos,Ypos,MAG, PSFe1,PSFe2,TPSF,SNR):
@@ -199,6 +196,7 @@ elif float(ZBlo)<float(ZBhi):
 else:
 	print("ZBlo %s is not lower than ZBhi %s. Amend this or set them both to None.")
 	sys.exit()
+
 # Save the weighted additive bias - and the weighted m-correction to apply to the bias (in the metacal case)
 np.savetxt('%s/Catalogues/K%s.Blind%s.ccorr_e1_e2.%s_%s.dat'%(DIRECT,NorS,Blind,ZBlabel,tail), 
            np.c_[ np.average(ace1,weights=acw),np.average(ace2,weights=acw) ])
