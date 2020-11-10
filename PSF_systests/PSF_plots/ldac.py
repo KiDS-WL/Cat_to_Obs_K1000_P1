@@ -205,19 +205,19 @@ class LDACCat(object):
         # First check if both tables have the same number of
         # columns:
         if len(a.keys()) != len(b.keys()):
-            print "Tables do not have the same number of columns / keywords!"
-            print "First table has " + str(len(a.keys())) + \
-                " colums / keywords."
-            print "Second table has " + str(len(b.keys())) + \
-                " colums / keywords."
+            print( "Tables do not have the same number of columns / keywords!" )
+            print( "First table has " + str(len(a.keys())) + \
+                " colums / keywords.")
+            print( "Second table has " + str(len(b.keys())) + \
+                " colums / keywords.")
             return None
 
         # Now let's check if all kewords from the first table are also
         # present in the second table and also at the same place!
         for i in range(len(a.keys())):
             if b.has_key(a.keys()[i]) == False:
-                print "Key " + str(a.keys()[i]) + \
-                    " is not present in the second table!"
+                print( "Key " + str(a.keys()[i]) + \
+                    " is not present in the second table!")
                 return None
         
         arows = a.hdu.data.shape[0]
@@ -503,9 +503,9 @@ def openObjects(hdulist, table='OBJECTS'):
             pass
 
     if tablehdu is None:
-        print "Table %s not present in catalogue %s" % (table,
-                                                        hdulist.filename())
-        print "Creating an empty LDAC table"
+        print( "Table %s not present in catalogue %s" % (table,
+                                                        hdulist.filename()))
+        print( "Creating an empty LDAC table" )
 
     return LDACTable(tablehdu)
 
