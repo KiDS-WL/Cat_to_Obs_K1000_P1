@@ -112,6 +112,12 @@ On top of this, there's loads of extra options you can toggle. These include:
 
 ## Magnification and Intrinsic Galaxy Alignments
 
+* **magnifcation_gt.ini**:
+   This is an input .ini file for kcap/cosmosis. It produces gamma_t predictions including magnification. The strength of the magnification is controlled by an argument alpha_binned set inside this file. This ini file needs n(z) files for the source and lens samples which are produced by...:
+
+* **MakeNofZForCosmosis_LensAndSource.py**:
+  This accesses  either the K1000 SOM redshift info, or the BOSS redshift info, and saves a fits file containing the n(z) info with fits column names that magnifcation_gt.ini is expecting.
+
 * **Compare_BFParams_And_Models.py**:
    This code was used to read in the best-fit gamma_t model and corresponding B_ij model parameters (eqn 18 Giblin+2020)
    and compare them for different cases. These cases included:

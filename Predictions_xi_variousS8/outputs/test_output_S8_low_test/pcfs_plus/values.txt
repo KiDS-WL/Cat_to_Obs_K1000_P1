@@ -1,3 +1,0 @@
-ntheta_plus = 9
-theta_max_plus = 300.40262468
-theta_min_plus = 0.5

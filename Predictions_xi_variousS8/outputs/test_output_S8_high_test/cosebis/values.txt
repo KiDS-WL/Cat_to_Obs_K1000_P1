@@ -1,4 +1,0 @@
-b_modes = False
-n_mode = 5
-theta_max = 300.0
-theta_min = 0.5

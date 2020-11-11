@@ -1,3 +1,0 @@
-b_modes = False
-theta_max = 0.11548261884029147
-theta_min = 7.27220521664304e-05
