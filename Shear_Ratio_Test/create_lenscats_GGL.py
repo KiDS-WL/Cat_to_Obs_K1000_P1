@@ -67,14 +67,14 @@ else:
     ALPHA_J2000,DELTA_J2000,Z,WEICOMP=np.loadtxt(infile, usecols=(0,1,2,3), unpack=True)
 
     
-# HACK. ONLY PICK THE BIG LENSES!!!
+# HACK. UNCOMMENT THIS TO ONLY PICK THE MASSIVE LENSES.
 #heavies = np.where( f[iext].data['lmstellar'] > 11.5 )
 #ALPHA_J2000 = ALPHA_J2000[heavies]
 #DELTA_J2000=DELTA_J2000[heavies]
 #Z=Z[heavies]
 #WEICOMP=np.ones_like(Z) #WEICOMP[heavies]
 #print(WEICOMP)
-# HACK. ONLY PICK THE BIG LENSES!!! 
+# END OF HACK.
 
 if "MICE2" in infile and "random" in outfile:
     print("We are making MICE randoms. The outfile is %s"%outfile)
@@ -91,9 +91,6 @@ if "MICE2" in infile and "random" in outfile:
     #DELTA_J2000 = np.random.uniform( DELTA_J2000.min(), DELTA_J2000.max(), f*len(DELTA_J2000) )
     ALPHA_J2000 = np.copy( ra_rand )
     WEICOMP = np.ones( f*len(WEICOMP) )
-    #Z = np.random.uniform( Z.min(), Z.max(), f*len(Z) ) # 20/12/2019: GIBLIN THIS MIGHT NOT BE RIGHT!
-    # WHAT REDSHIFT DISTRIBUTION IS RIGHT FOR THE RANDOMS????
-    
 
 
 #This is the tomographic selection that we want to apply

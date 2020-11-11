@@ -50,10 +50,8 @@ JZBIN=1
 for tomochar in 01t03 03t05 05t07 07t09 09t12
 do
     if [ "$SOURCE_TYPE" == "K1000" ]; then
-	# This is the old DIR-Estimated n(z)
-	#source_nofz=/home/cech/public_html/KiDS/KiDS-VIKING-450/BLINDED_NZ/KiDS_2018-07-26_deepspecz_photoz_10th_BLIND_specweight_1000_4_ZB${tomochar}_blind${BLIND}_Nz.asc
 
-	# This is the new SOM-Estimated n(z)
+	# This is the SOM-Estimated n(z)
 	if [ "$OL_Tag" == "" ]; then
 	    source_nofz_DIR=/disk09/KIDS/K1000_TWO_PT_STATS/SOM_NofZ
 	else

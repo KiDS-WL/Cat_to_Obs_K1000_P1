@@ -5,11 +5,11 @@ The code in this directory performs the KiDS-1000 shear ratio test described in 
 ## General parameter file reader
 
 * **Get_Input.py**:
-This contains a python class used to read & return the information contained in an parameter file.
+This contains a python class used to read & return the information contained in a parameter file.
 The parameter file specifies information like the lens and source samples to be used in the shear-ratio test,
 e.g. whether they are simulated or actual KiDS data, and whether the n(z)'s used in the modelling have been subjected
 to mean shifts, or artificially injected with high-z outliers (we experimented with such things to see if the shear-ratio
-test, SRT, could statistically detect such things).
+test, SRT, could statistically detect these effects).
 
 Depending on if you are running the SRT on MICE simulations or KiDS data, different information needs to be specified.
 e.g., for MICE simulations, an example parameter file might look like this:
@@ -35,9 +35,6 @@ Alternatively, for a KiDS-data analysis, the input parameter file might look lik
 
 ## Creating Lens and Source catalogues
 
-* **create_tomocats_GGL.py**:
-For the shear ratio test we need finer lens bins than normal so we have a special script to create these
-
 * **SOURCECATS/Make_K1000_nofz.py**:
 This reads in the redshifts estimated from the KiDS-1000 SOM (Hildebrandt+20) and saves n(z) histograms in SOURCECATS/SOM_NofZ/
 This code is where artificial high redshift peaks can be implanted in specified redshift bins, in order to see the effect these have on the SRT results.
@@ -57,7 +54,7 @@ It also	calculates the predictions for the covariance of the gamma_t via differe
 (in Giblin+2020 we use spin-shear realisations).	
 
  Arguments:
-   - Cov_Method: option to change	the covariance being calculated	from multiple spun-shear realistions to instead read in the octant-sized MICE simulation and split this into n patches (with n~16).
+   - Cov_Method: option to change the covariance being calculated from A) multiple spun-shear realistions, or B) read in the octant-sized MICE simulation and split this into n patches (with n~16). 
    - DFLAG: only used if running test with MICE mocks. If	set to '_Octant' it will use the MICE octant-sized simulation as the data catalogue in the	test.
      - Default is to leave DFLAG='' which uses the 343 sqdeg KV450-like MICE catalogue.
    - (In input parameter file):
@@ -106,10 +103,11 @@ On top of this, there's loads of extra options you can toggle. These include:
                                        # For no shift, set to ''.
                                        # Finally, to include the uncert. on the nofz's in the SRT modelling,
                                        # set nofz_shift to "_ModnofzUpDown"
-  - Cov_Method="Spin"/"Patch"            # Spin means the cov was calculated from many gamma_t realisations
+  - Cov_Method="Spin"/"Patch"/"Analytical"
+				       # Spin means the cov was calculated from many gamma_t realisations
                                        # with the source galaxy ellipticities randomised.
                                        # "Patch" means the cov came from the MICE octant-sized simulation, split into ~16 patches.
-
+				       # "Analytical" means an analytical cov is computed from the shape noise & lens/random weights.
 
 
 ## Magnification and Intrinsic Galaxy Alignments
@@ -135,6 +133,9 @@ On top of this, there's loads of extra options you can toggle. These include:
   This was used to check that the code, GGL_shear_ratio_test_zall.py, could correctly fit the alpha-per-lens bin
   when the option to include extra parameters to model magnification was turned on in that code. 
   
-  
+## Additional ascii files - data from Table 1 of Giblin et al. (2020)
+ - **mbias_perbin_mean_err.asc**: This contains the multiplicative shear bias and its uncertainty, for each of the 5 redshift bins used in the cosmic shear analysis. This is used by GGL_shear_ratio_test_zall.py to bias the gamma_t if specified to do so in that code.
+ - **sigma_e_AllBlinds.asc**: This contains the standard deviations of the Gaussian distribution of galaxy ellipticities, per reshift bin and per blind. This is used by GGL_shear_ratio_test_zall.py to produce an analytical estimate of the gamma_t covariance matrix if specified to do so in that code.
+ - **nofz_shifts_perbin_mean_err.asc**: This contains the mean n(z) shift and its error per redshift bin. This is read in by Dls_over_Ds.py and used to shift the n(z)'s before calculating the luminosity distance ratios, if specified to do so by the input arguments to that code.
   
   [1]: https://arxiv.org/pdf/2007.01845.pdf "Giblin et al."

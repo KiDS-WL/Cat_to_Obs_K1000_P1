@@ -26,21 +26,6 @@ if [ "$LENS_TYPE" == "BOSS_data" ] || [ "$LENS_TYPE" == "BOSS_random" ]; then
     LENS_HI_EDGES=(0.3 0.4 0.5 0.6 0.7)  # Made a separate array for upper edges of bins
                                          # since bash is chronically bad adding floats 
 
-    echo "--------------------------------------------------------------"
-    echo " TLDR; you can't use this script to make BOSS_data or BOSS_random catalogues."
-    echo "--------------------------------------------------------------"
-    echo "WHY? The BOSS_random catalogue, /disk09/KIDS/K1000_TWO_PT_STATS/GGLCATS/BOSS_random_z1.fits"
-    echo "does not have 'Z' info in it. Also there does not seem to be an overall"
-    echo "BOSS_data cat in the above directory on which we can make the cuts."
-    echo "This means we can't use this script to make the cats for each bin."
-    echo "I have got around this just by copying the ready-made cats in"
-    echo "/disk09/KIDS/K1000_TWO_PT_STATS/GGLCATS/BOSS_*_5Z_*.fits"
-    echo "to my LENSCAT directory. This is a hack, and relies on the binning"
-    echo "in these ready-made cats to be 0.2-0.7 in intervals of 0.1."
-    echo "Really it would be better to have Shear_ratio_wspin_test.py"
-    echo "read these cats directly. Note to self to fix this. Now exiting."
-    exit
-
 elif [ "$LENS_TYPE" == "GAMA_data" ] || [ "$LENS_TYPE" == "GAMA_random" ]; then
     LENS_LO_EDGES=(0.0 0.1 0.2 0.3 0.4)
     LENS_HI_EDGES=(0.1 0.2 0.3 0.4 0.5)
