@@ -297,7 +297,6 @@ def Investigate_chi2(rho, sigma_shift):
         theta_cov, cov_All = Marika_Cov(False)
         cov_All = cov_All[0:135,0:135]
         # [0:135,0:135] pulls out only the xi+ elements.   
-
         
         # And deviations in this signal from those with high/low values of S_8
         # 'higher/lower' are a 0.004 change in S_8 (0.2 sigma_k1000)
@@ -306,15 +305,6 @@ def Investigate_chi2(rho, sigma_shift):
         theta_hi, xip_theory_stack_hi = Read_In_Theory_Vector('high%ssigma' %sigma_shift)		# High S_8
         theta_low, xip_theory_stack_lo = Read_In_Theory_Vector('low%ssigma' %sigma_shift)		# Low S_8
         theta_fid, xip_theory_stack_fid = Read_In_Theory_Vector('fid')		# Fiducial S_8
-        # Note: I've checked and theta_(hi,fid,low) & theta_cov are all identical.
-
-        # !!! A NOTE ON THETA BINNING !!!
-        # The delta-xips (e.g., Calc_delta_xip_H20, Calc_delta_xip_cterms, Calc_delta_xip_Bacon)...
-        # ... are all defined at the WEIGHTED-MID-point of the theta bins ([0.79,224.3] arcmin)
-        # BUT the covariance & theory predictions are defined at the MID-point of the theta bins ([0.71,210.3] arcmin)
-        # As it's very hard to get everything sampled at the same theta, we're settling to just interpolate
-        # the WEIGHTED-MID-point sampled correlations to the MID-point theta values,
-        # (and we're doing it this way round because it's easier than interpolating a 2D covariance).
 
         lfv = 0
         # !!! CHANGE THIS LINES TO PICK WHICH delta_xip PRESCRIPTION YOU WISH TO TEST.
@@ -325,9 +315,6 @@ def Investigate_chi2(rho, sigma_shift):
         #theta_dxip, delta_xip,_ = Calc_delta_xip_Bacon()
         for i in range(num_zbins_tot):
                 delta_xip[i,:] = np.interp( theta_fid, theta, delta_xip[i,:] )
-                # NB: theta_dxip (returned by Calc_delta_xip_cterms)
-                # differs from theta (returned by Paulin-Henriksson correlations(
-                # by only ~1% so probably safe to treat them as the same.
         delta_xip = np.ndarray.flatten( delta_xip )
         
         n_noise = 5000
@@ -379,119 +366,4 @@ delta_chi2_lo =	np.zeros_like(delta_chi2_sys)
 #                delta_chi2_sys[j,i], delta_chi2_hi[j,i], delta_chi2_lo[j,i] = Investigate_chi2(php_mean, sigma_shifts[j])
 t2 = time.time()
 print(" It took %.0f seconds." %(t2-t1))
-
-
-sys.exit()
-
-
-
-
-
-
-
-# The rest of this function is unnecessary - converting the chi2 distr.'s
-# into CDFs and doing a KS test of the similarities.
-# All we care about is the shift in the mean of the chi^2 distr.'s.
-def Investigate_chi2_2ndHalf_Unneccessary():
-	# Plot the chi^2 distribution
-	f, ((ax1)) = plt.subplots(1, 1, figsize=(10,9))
-	ax1.plot(bins_chi2_hi, histo_chi2_hi, color='magenta', linewidth=3)
-	ax1.plot(bins_chi2_sys, histo_chi2_sys, color='orange', linewidth=3)
-	ax1.plot(bins_chi2_null, histo_chi2_null, color='cyan', linewidth=3)
-
-	#ax1.plot( chi2_array, pdf_bf, color='blue', linestyle=':', linewidth=3, label=r'$\rm{DOF}=%.1f \pm %.1f$'%(dof_bf,np.sqrt(dof_err)) )
-
-	# Mark the mean of the chi2 distributions to see how distinguishable they are.
-	ax1.plot( [mean_chi2_hi,mean_chi2_hi], [0., histo_chi2_null.max()], 
-				color='magenta', linestyle='--', linewidth=3, label=r'$\langle \chi^2_{\Delta S_8} \rangle$' )
-	ax1.plot( [mean_chi2_sys,mean_chi2_sys], [0., histo_chi2_null.max()], 
-				color='orange', linestyle='--', linewidth=3, label=r'$\langle \chi^2_{\rm sys} \rangle$' )
-	ax1.plot( [mean_chi2_null,mean_chi2_null], [0., histo_chi2_null.max()], 
-				color='cyan', linestyle='--', linewidth=3, label=r'$\langle \chi^2_{\rm null} \rangle$' )
-
-	#ax1.set_xlim([ chi2_null.min(), chi2_null.max() ])
-	ax1.set_xlabel(r'$\chi^2$')
-	ax1.set_ylabel(r'PDF$(\chi^2)$')
-	ax1.legend(loc='best', frameon=True)
-	#plt.savefig('LFver%s/rho1/Plot_PDF-chi2.png'%(LFver[0]))
-	plt.show()
-
-
-	# The following bits of code are no longer used - they compare the chi^2 distributions
-	# via a P-value analysis. Instead of doing this, we now just look at the means of the chi^2 distributions
-	# (done above). 
-	# -------------------------------------------------------------------------------------------- #
-
-	# Fit for the effective DoF of the chi^2 distribution
-	def chi2pdf_model(chi2_array, *dof):
-		chi2_pdf = chi2.pdf( chi2_array, dof ) / simps( chi2.pdf( chi2_array, dof ), chi2_array)
-		# Interpolate the chi^2 to bins of histogram.
-		return np.interp( bins_chi2_null, chi2_array, chi2_pdf )	
-
-	chi2_array = np.linspace( 0., 400., 1000 )		# Arbitrary array spanning a suitable range of chi2 values
-	p0 = [100]										# Arbitrary first guess at the DoF
-	dof_bf, dof_err = curve_fit(chi2pdf_model, 
-					chi2_array, histo_chi2_null, p0=p0)	# Best fit dof.
-	pdf_bf = chi2.pdf( chi2_array, dof_bf ) / simps( chi2.pdf( chi2_array, dof_bf ), chi2_array)
-
-
-	# Get the P-values for the chi2_null, chi2_sys, chi2_hi/lo hypotheses, for each noise realisation
-	P_null = chi2.cdf( chi2_null, dof_bf )
-	P_sys = chi2.cdf( chi2_sys, dof_bf )	
-	P_hi = chi2.cdf( chi2_hi, dof_bf )	
-	P_lo = chi2.cdf( chi2_lo, dof_bf )	
-
-
-	def Plot_Pvalue_Histo(P, label):
-		# Plot the distribution of P-values for the noise-realisations
-		if len(P.shape) == 1:
-			P = np.reshape(P, (1,len(P)))
-
-		colours = ['magenta', 'dimgrey', 'orange', 'cyan', 'darkblue']		
-		f, ((ax1)) = plt.subplots(1, 1, figsize=(10,9))
-		dummy, bin_edges = np.histogram(P[0,:], 100)		# Use this just to get bin edges used for all distributions
-		bins_P = bin_edges[:-1] + (bin_edges[1]-bin_edges[0])/2.
-		histo_P = np.zeros([ P.shape[0], len(bins_P) ])
-		cumul_P = np.zeros([ P.shape[0], len(bins_P) ])
-		for i in range(P.shape[0]):
-			histo_P[i,:] = np.histogram(P[i,:], bin_edges)[0]
-			cumul_P[i,:] = np.cumsum(histo_P[i,:])
-			ax1.bar(bins_P, histo_P[i,:], width=(bins_P[1]-bins_P[0]), color=colours[i], 
-					edgecolor=colours[i], alpha=0.5, label=label[i])
-			#ax1.step(bins_P, cumul_P[i,:], color=colours[i], label=label[i])
-
-		ax1.set_xlabel(r'$P$') # -P_{\rm null}
-		ax1.set_ylabel(r'PDF$(P)$')
-		#ax1.set_ylabel(r'CDF$(P)$')		
-		ax1.legend(loc='best', frameon=False)
-		#plt.savefig('LFver%s/rho1/Plot_PDF-Pvalues_%s.png'%(LFver[0], label))
-		#plt.show()
-		return histo_P, cumul_P
-	P_stack = np.vstack(( P_hi, P_lo, P_sys, P_null ))
-	histo_P_stack, cumul_P_stack = Plot_Pvalue_Histo(P_stack, [r'high $S_8$', r'low $S_8$', 'sys', 'null'] )
-
-	# Do KS tests between the P-values of the chi^2's of the hi/lo/null and systematic hypotheses
-	# Could compare the PDFs or the CDFs. Turns out it makes a big difference
-	# with PDFs varying wildly with the noise realisations, and the CDFs 
-	# being completely indistinguishable due to the ~flatness of the PDFs.
-	# This is part of the reason we no longer do this P-value analysis.
-	# "-------------------PDF KS Values---------------------" 
-	KS_sys_null = ks_2samp(histo_P_stack[2,:], histo_P_stack[3,:])
-	KS_hi_null = ks_2samp(histo_P_stack[0,:], histo_P_stack[3,:])
-	KS_lo_null = ks_2samp(histo_P_stack[1,:], histo_P_stack[3,:])
-	# "-------------------CDF KS Values---------------------" 
-	#KS_sys_null = ks_2samp(cumul_P_stack[2,:], cumul_P_stack[3,:])
-	#KS_hi_null = ks_2samp(cumul_P_stack[0,:], cumul_P_stack[3,:])
-	#KS_lo_null = ks_2samp(cumul_P_stack[1,:], cumul_P_stack[3,:])
-	# "------------------------------------------------------"
-
-	# -------------------------------------------------------------------------------------------- #
-
-
-	return histo_P_stack, KS_sys_null, KS_hi_null, KS_lo_null
-#histo_P_stack, KS_sys_null, KS_hi_null, KS_lo_null = Investigate_chi2(php_mean)
-#t2 = time.time()
-#print(" It took %.0f seconds." %(t2-t1))
-
-
 
