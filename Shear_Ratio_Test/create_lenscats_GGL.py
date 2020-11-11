@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------
-# File Name:           create_tomocats_GGL.py
+# File Name:           create_lenscats_GGL.py
 # Author:              Catherine Heymans (heymans@roe.ac.uk)
 # Description:         short python script to select BOSS galaxies in fine tomographic
 #                      bins for shear ratio test using data created by
