@@ -9,5 +9,7 @@ This directory contains input files for kcap to produce xi+/- predictions at var
 
  * **inputs/xi_variousS8.ini**: the input kcap file that specifies the pipeline. <cosmol_tag> can be set in this file to change which valuesFile is accessed.
 
- * **inputs/Run_all.ini **: not sure what this is - I think it is from Marika...? It uses the nofz.fits available in this directory.
+ * **inputs/Run_all.ini **: runs the test sampler producing predictions for all two point statsitics. 
+ 
+ * **inputs/nofz.fits **: a fits file that includes the redshift distribution of the galaxies. 
 
