@@ -1,7 +1,7 @@
 
 ## Cosmic Shear Predictions for a range of S_8 values
 
-This directory contains input and output files from KCAP, producing two-point shear correlation function xi+/- predictions at various values of S_8. These are read in by PSF_systests/Plot_PHterms.py to compare the impact of PSF-related biases on the xi+ to the changed caused by varying S_8.
+This directory contains input and output files from KCAP (CosmoSIS), producing two-point shear correlation function xi+/- predictions at various values of S_8. These are read in by PSF_systests/Plot_PHterms.py to compare the impact of PSF-related biases on the xi+ to the changed caused by varying S_8.
 
 ### inputs:
 
@@ -17,6 +17,6 @@ This directory contains input and output files from KCAP, producing two-point sh
  * **inputs/nofz.fits**: a fits file that includes the redshift distribution of the galaxies. 
 
 ### outputs:
-Outputs of this kcap script are saved in subdirectories labelled: Preditions/kcap_xi/outputs/test_output_S8_<cosmol_tag>_test/
+Outputs of this KCAP (CosmoSIS) script are saved in subdirectories labelled: Preditions/kcap_xi/outputs/test_output_S8_<cosmol_tag>_test/
 
 In each subdirectory, there are further subdirectories for, e.g., the xi+/- predictions (/shear_xi_plus and /shear_xi_minus), COSEBIs (/cosebis), band powers (bandpower_shear_e), the cosmological parameters (/cosmological_parameters), linear and non-linear matter power spectra (matter_power_lin and matter_power_nl) etc.
