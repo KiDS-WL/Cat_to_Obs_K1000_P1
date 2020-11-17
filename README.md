@@ -13,7 +13,6 @@ We provide a brief summary of each directory, referring the user to the director
 * 2pt_data_to_fits: Creating data fits tables for KCAP/CosmoSIS
 * Calc_1pt_Stats: Calculating 1pt Statistics from the KiDS-1000 shear and photo-z catalogues
 * Calc_2pt_Stats: Calculating 2pt Statistics from the KiDS-1000 shear and photo-z catalogues
-* Flinc_theory_inputs: [SALMO][5] mock inputs
 * GGL_LensCats: Creating KiDS-overlap Lens Catalogues from the BOSS and 2dFLenS master catalogues
 * PSFRES_CORRMAP : Chip-dependent 2D PSF residual model
 * PSF_systests: quantifying and testing the impact of the Paulin-Henriksson and Bacon PSF systematics model.
