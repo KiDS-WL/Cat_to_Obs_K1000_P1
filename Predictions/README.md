@@ -8,7 +8,7 @@ Theoretical predictions for the full 3x2pt data vector, derived at the best-fit 
 ### kcap_xi
 Cosmic shear predictions for a range of different S_8 values, used to determine the impact of low-level PSF systematics, as described in [Giblin, Heymans, Asgari et al. 2020][2]. 
 
-## Flinc_theory_inputs
+### Flinc_theory_inputs
 Theoretical predictions for the mock KiDS surveys built using [SALMO][5] (Speedy Acquisition for Lensing and Matter Observables). 
 
 
