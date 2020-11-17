@@ -18,6 +18,7 @@ We provide a brief summary of each directory, referring the user to the director
 * PSFRES_CORRMAP : Chip-dependent 2D PSF residual model
 * PSF_systests: quantifying and testing the impact of the Paulin-Henriksson and Bacon PSF systematics model.
 * Predictions: theoretical models for the 3x2pt data vector.
+* Shear_Ratio_Test: scripts to run the shear ratio test presented in [Giblin, Heymans, Asgari et al. 2020][1]
 * data: KiDS-1000 BOSS and 2dFLenS 3x2pt data and covariances in ascii and CosmoSIS-friendly fits format
 * src: Code to convert finely binned xi_\pm measurements into COSEBIs and Bandpower estimates
 
