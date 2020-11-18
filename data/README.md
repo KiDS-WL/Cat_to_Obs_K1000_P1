@@ -28,11 +28,13 @@ The KiDS-1000 Cosmic Shear and 3x2pt covariance is described in Appendix E of [J
 * covariance/inputs/input_for_xipm_sigma_m_covariance: theoretical xi_pm used to carry through the uncertainty on the shear calibration to the covariance matrix
 * covariance/outputs: initial and final ascii covariance matrix for the COSEBIs cosmic shear data vector
 
-
+## Data Plots
+Maybe you don't want the data in CosmoSIS format?   No problem, take a look at the Data_Plots directory which contains the data and covariance in ascii format.   The python plotting scripts will guide you in how to incorporate the data into whatever format you want to work with it.  These scripts were used to create the figures in [Heymans, Tröster et al. 2020][4].
 
 [1]: https://arxiv.org/pdf/2007.15633.pdf "Asgari et al. KiDS-1000"
 [2]: https://arxiv.org/pdf/2007.01844.pdf "Joachimi et al."
 [3]: https://arxiv.org/abs/1910.05336 "Asgari et al. KV450"
+[4]: https://arxiv.org/abs/2007.15632 "Heymans et al."
 
 
 
