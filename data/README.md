@@ -3,7 +3,7 @@
 The KiDS-1000 cosmological analyses were blinded through the analysis of three different shear catalogues, Blind A, B and C.   Blind C was revealed as the truth after we completed our analysis.   In this repo to avoid any confusion we only provide the unblinded Blind C data, but you will find options in the scripts to create Blinds A and B.
 
 ## BOSS Sanchez et al 2017 Anisotropic Clustering
-* boss/Sanchez_etal_2017:  clustering data and covariance matrix
+* boss/Sanchez_etal_2017:  clustering data and covariance matrix from [Sanchez et al 2017][0]
 * boss/nofz: BOSS and 2dFLenS n(z) for GGL predictions
 
 ## KiDS-1000 data
@@ -31,6 +31,7 @@ The KiDS-1000 Cosmic Shear and 3x2pt covariance is described in Appendix E of [J
 ## Data Plots
 Maybe you don't want the data in CosmoSIS format?   No problem, take a look at the Data_Plots directory which contains the data and covariance in ascii format.   The python plotting scripts will guide you in how to incorporate the data into whatever format you want to work with it.  These scripts were used to create the figures in [Heymans, Tröster et al. 2020][4].
 
+[0]: https://arxiv.org/abs/1607.03147 "Sanchez et al."
 [1]: https://arxiv.org/pdf/2007.15633.pdf "Asgari et al. KiDS-1000"
 [2]: https://arxiv.org/pdf/2007.01844.pdf "Joachimi et al."
 [3]: https://arxiv.org/abs/1910.05336 "Asgari et al. KV450"
