@@ -1,4 +1,4 @@
-## Fits format KiDS-1000 data
+## Fits format KiDS-1000 data (fiducial covariance)
 
 These fits cubes are in CosmoSIS format and include the tomographic data vector, covariance matrix and the n(z)'s.   The naming convention is as follows:
 
