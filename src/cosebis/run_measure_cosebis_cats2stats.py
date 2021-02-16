@@ -109,7 +109,7 @@ if(binning=='log'):
 # 
     #If asked to check, check if the mid points are close enough
     if(DontCheckBinEdges==False):
-        if((abs(theta_mid/theta[good_args]-1)>(delta_theta/10.)).all()):
+        if((abs(theta_mid/theta[good_args]-1)>(delta_theta/10.)).any()):
             print("The input thetas of the 2pt correlation function data must exactly span the user defined theta_min/max.   This data is incompatible, exiting now ...")
             exit()
 #
