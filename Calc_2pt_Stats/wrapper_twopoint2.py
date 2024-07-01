@@ -20,13 +20,14 @@ import wrapper_twopoint as wtp
 class TwoPointBuilder:
     
     def __init__(self,
-                  nbTomoN=2, nbTomoG=5, 
-                  N_theta=9, theta_min=0.5, theta_max=300,
+                  nbTomoN=2, nbTomoG=3, nbObs=1,
+                  N_theta=12, theta_min=0.5, theta_max=300,
                   N_ell=8, ell_min=100, ell_max=1500,
                   nbModes=5,
                   prefix_Flinc=None,
                   prefix_CosmoSIS=None,
-                  verbose=True):
+                  verbose=True,
+                  nnAuto=False):
     
         ## File prefixes
         self.prefix_Flinc    = 'data/mockFootprint/' if prefix_Flinc is None else prefix_Flinc
@@ -38,6 +39,7 @@ class TwoPointBuilder:
         ## Tomographic bins
         self.nbTomoN = nbTomoN
         self.nbTomoG = nbTomoG
+        self.nbObs   = nbObs
         
         ## Define angular bin parameters
         self.N_theta   = N_theta
@@ -48,9 +50,11 @@ class TwoPointBuilder:
         self.ell_max   = ell_max
         self.nbModes   = nbModes
         
+        self.nnAuto     = nnAuto
         self.verbose    = verbose
         self.mean       = None
         self.cov        = None
+        self.nobs       = None
         self.kernelList = None
         
         self.setAngBins()
@@ -69,10 +73,14 @@ class TwoPointBuilder:
         return
     
     def setNbPairs(self):
-        self.__nbPairsNN  = self.nbTomoN * (self.nbTomoN+1) // 2
+        if self.nnAuto:
+            self.__nbPairsNN  = self.nbTomoN
+            self.__pairListNN = [(i, i) for i in range(self.nbTomoN)]
+        else:
+            self.__nbPairsNN  = self.nbTomoN * (self.nbTomoN+1) // 2
+            self.__pairListNN = [(i, j) for i in range(self.nbTomoN) for j in range(i, self.nbTomoN)]
         self.__nbPairsNG  = self.nbTomoN * self.nbTomoG
         self.__nbPairsGG  = self.nbTomoG * (self.nbTomoG+1) // 2
-        self.__pairListNN = [(i, j) for i in range(self.nbTomoN) for j in range(i, self.nbTomoN)]
         self.__pairListNG = [(i, j) for i in range(self.nbTomoN) for j in range(self.nbTomoG)]
         self.__pairListGG = [(i, j) for i in range(self.nbTomoG) for j in range(i, self.nbTomoG)]
         return
@@ -85,14 +93,16 @@ class TwoPointBuilder:
             labConv.gamma_t: [self.__pairListNG, self.N_theta, self.theta], 
             labConv.gamma_x: [self.__pairListNG, self.N_theta, self.theta], 
             labConv.xi_p:    [self.__pairListGG, self.N_theta, self.theta], 
-            labConv.xi_m:    [self.__pairListGG, self.N_theta, self.theta], 
-            labConv.P_nn:    [self.__pairListNN, self.N_ell,   self.ell], 
-            labConv.P_ne_E:  [self.__pairListNG, self.N_ell,   self.ell], 
-            labConv.P_ne_B:  [self.__pairListNG, self.N_ell,   self.ell], 
-            labConv.P_ee_E:  [self.__pairListGG, self.N_ell,   self.ell], 
-            labConv.P_ee_B:  [self.__pairListGG, self.N_ell,   self.ell], 
-            labConv.E_n:     [self.__pairListGG, self.nbModes, self.nArr], 
-            labConv.B_n:     [self.__pairListGG, self.nbModes, self.nArr]
+            labConv.xi_m:    [self.__pairListGG, self.N_theta, self.theta],
+            labConv.P_nn:    [self.__pairListNN, self.N_ell,   self.ell],
+            labConv.P_ne_E:  [self.__pairListNG, self.N_ell,   self.ell],
+            labConv.P_ne_B:  [self.__pairListNG, self.N_ell,   self.ell],
+            labConv.P_ee_E:  [self.__pairListGG, self.N_ell,   self.ell],
+            labConv.P_ee_B:  [self.__pairListGG, self.N_ell,   self.ell],
+            labConv.E_n:     [self.__pairListGG, self.nbModes, self.nArr],
+            labConv.B_n:     [self.__pairListGG, self.nbModes, self.nArr],
+            labConv.Psi_gm:  [self.__pairListNG, self.nbModes, self.nArr],
+            labConv.Psi_gg:  [self.__pairListNN, self.nbModes, self.nArr],
         }
         
         assert len(tomoAngDict) == len(labConv.kernelTypeDict)
@@ -212,6 +222,16 @@ class TwoPointBuilder:
         if stats == labConv.B_n:
             B_n = [0] * self.nbModes
             return B_n
+            
+        if stats == labConv.Psi_gm:
+            name = '%psi_stats_gm/bin_%d_%d.txt' % (self.prefix_CosmoSIS, j+1, i+1)
+            Psi_gm  = loadAscii(name, verbose=verbose)
+            return Psi_gm
+            
+        if stats == labConv.Psi_gg:
+            name = '%spsi_stats_gg/bin_%d_%d.txt' % (self.prefix_CosmoSIS, j+1, i+1)
+            Psi_gg  = loadAscii(name, verbose=verbose)
+            return Psi_gg
         
         return None
     
@@ -266,6 +286,10 @@ class TwoPointBuilder:
                     self.mean = fits.getdata(name, 1).field(0)
                 else:
                     self.mean = np.loadtxt(name).flatten()
+                    #mean_in = np.loadtxt(name)[:,1]
+                    #mean_in = np.roll(mean_in, 10)
+                    #mean_in[10:] = np.roll(mean_in[10:,], 40)
+                    #self.mean = mean_in * (2.0 * np.pi)#**2.0
                 if verbose:
                     print('Loaded \"%s\"' % name)
             except:
@@ -448,7 +472,9 @@ class TwoPointBuilder:
         labConv = wtp.LabelConvention()
         En  = True if labConv.E_n in statsTag else False
         Bn  = True if labConv.B_n in statsTag else False
-        ind = [En]*self.nbModes*self.__nbPairsGG + [Bn]*self.nbModes*self.__nbPairsGG
+        Psi_gm = True if labConv.Psi_gm in statsTag else False
+        Psi_gg = True if labConv.Psi_gg in statsTag else False
+        ind = [Psi_gg]*self.nbModes*self.__nbPairsNN + [Psi_gm]*self.nbModes*self.__nbPairsNG + [En]*self.nbModes*self.__nbPairsGG + [Bn]*self.nbModes*self.__nbPairsGG
         return ind
     
     @classmethod
@@ -512,10 +538,78 @@ class TwoPointBuilder:
                     self.cov = fits.getdata(name, 1)
                 else:
                     self.cov = np.loadtxt(name)
+                    #cov_in = np.loadtxt(name)
+                    #cov_tmp = np.empty((100,100))
+                    #cov_tmp[cov_in[:,0].astype(int)-1, cov_in[:,1].astype(int)-1] = cov_in[:,2]
+        
+                    #cov_re = np.roll(cov_tmp, 10, axis=(0,1))
+                    #cov_re[10:,10:] = np.roll(cov_re[10:,10:], 40, axis=(0,1))
+                    #cov_re[:10,10:] = np.roll(cov_re[:10,10:], 40, axis=1)
+                    #cov_re[10:,:10] = np.roll(cov_re[10:,:10], 40, axis=0)
+                    
+                    #ind = self._getBPIndexForCut(statsTag)
+                    #cov_tmp_out = cov_re[ind].T[ind].T * (2.0 * np.pi)**2.0
+                    #self.cov = cov_tmp_out
+                    
+                    #smf = np.loadtxt('/net/home/fohlen13/dvornik/2x2pt/data_final_fix/covariance_fix3_test2.txt')[-12:,-12:]
+                    #self.cov = np.block([[cov_tmp_out, np.zeros((100,12))],[np.zeros((12,100)),smf]])
+                    
+                    #smf1 = np.loadtxt('/net/home/fohlen13/dvornik/2x2pt/data_final_fix/covariance_fix3_test2.txt')[-12:-6,-12:-6]
+                    #smf2 = np.loadtxt('/net/home/fohlen13/dvornik/2x2pt/data_final_fix/covariance_fix3_test2.txt')[-6:,-6:]
+                    #self.cov = np.block([[cov_tmp_out, np.zeros((100,6)), np.zeros((100,6))],
+                    #                        [np.zeros((6,100)), smf1, np.zeros((6,6))],
+                    #                        [np.zeros((6,100)), np.zeros((6,6)),smf2]])
+                    
                 if verbose:
                     print('Loaded \"%s\"' % name)
             except:
                 raise OSError('\"%s\" not found' % name)
+        return
+     
+    ## 1pt
+    def _make1pt(self, name, nobsNameList):
+        if isinstance(nobsNameList, list):
+            pass
+        else:
+            nobsNameList = [nobsNameList]
+        if len(nobsNameList) == 0:
+            return None
+        
+        nobsName = nobsNameList[0]
+        if nobsName[-4:] == '.npy':
+            nobsList = [np.load(nobsName) for nobsName in nobsNameList]
+        elif nobsName[-4:] == '.fit' or nobsName[-5:] == '.fits':
+            nobsList = [fits.getdata(nobsName, 1) for nobsName in nobsNameList]
+            nobsList = [[data.field(0), data.field(1)] for data in nobsList]
+        else:
+            nobsList = [loadAscii(nobsName, verbose=self.verbose) for nobsName in nobsNameList]
+        
+        obsArr   = [nobs[0] for nobs in nobsList]
+        nobsList = [nobs[1] for nobs in nobsList]
+        obs_low = []
+        obs_high = []
+        obs_middle = []
+        for xobs in obsArr:
+            d_obs = np.log10(xobs[1]) - np.log10(xobs[0])
+            obs_low.append(10.0**(np.log10(xobs) - 0.5 * d_obs))
+            obs_high.append(10.0**(np.log10(xobs) + 0.5 * d_obs))
+            obs_middle.append(xobs)
+        nobs = twopoint.OnePointMeasurement(name, obs_middle, nobsList, obs_low, obs_high)
+        return nobs
+     
+    def setNobs(self, tag, name=None, statsTag=None, cleanNaN=True, CTag='tot', verbose=True):
+        if tag is None or tag == 'none':
+            print('No observable function')
+            return
+        elif tag == 'variable':
+            self.nobs = name ## Consider `name` as the variable which contains the covariance
+      
+        ## Otherwise, consider `name` as the path to the file
+        ## which contains the covariance matrix
+        else:
+            labConv = wtp.LabelConvention()
+            nobs = self._make1pt(labConv.onept, name)
+            self.nobs = [nobs]
         return
     
     ## n(z)
@@ -545,12 +639,13 @@ class TwoPointBuilder:
             print('No n(z)')
             return
         
-        nbTomo = self.nbTomoN + self.nbTomoG
+        nbTomo = self.nbTomoN + self.nbTomoG + self.nbObs
         
         ## Assert
         if nbTomo == len(nOfZNameList):
             nOfZNameListN = nOfZNameList[:self.nbTomoN]
-            nOfZNameListG = nOfZNameList[self.nbTomoN:]
+            nOfZNameListG = nOfZNameList[self.nbTomoN:self.nbTomoG+self.nbTomoN]
+            nOfZNameListO = nOfZNameList[self.nbTomoG+self.nbTomoN:]
         else:
             raise AssertionError('Bad length of nOfZNameList')
         
@@ -558,9 +653,11 @@ class TwoPointBuilder:
         if nGalList is None:
             nGalListN = None
             nGalListG = None
+            nGalListO = None
         elif nbTomo == len(nGalList):
             nGalListN = nGalList[:self.nbTomoN]
-            nGalListG = nGalList[self.nbTomoN:]
+            nGalListG = nGalList[self.nbTomoN:self.nbTomoG+self.nbTomoN]
+            nGalListO = nGalList[self.nbTomoG+self.nbTomoNs:]
         else:
             raise AssertionError('Bad length of nGalList')
         
@@ -578,20 +675,26 @@ class TwoPointBuilder:
         labConv = wtp.LabelConvention()
         kernelN = self._makeKernel(labConv.lens, nOfZNameListN, nGalListN, None)
         kernelG = self._makeKernel(labConv.source, nOfZNameListG, nGalListG, sigmaEpsList)
+        kernelO = self._makeKernel(labConv.obs, nOfZNameListO, nGalListO, None)
+        kernelList = [kernelN, kernelG, kernelO]
         
+        self.kernelList = [kern for kern in kernelList if kern is not None]
+        """
         if kernelN is None:
             self.kernelList = [kernelG]
         elif kernelG is None:
             self.kernelList = [kernelN]
         else:
             self.kernelList = [kernelN, kernelG]
+        """
         return
     
     ## Build up & save
     def _makeTwoPoint_withCov(self, labConv, statsTag_c):
         tomoAngDict = self.makeTomoAngDict()
         statsList_c  = statsTag_c.split('+')
-        statsList_c_complete = labConv.kernelTypeDict.keys()
+        statsList_c_complete = list(labConv.kernelTypeDict.keys())
+        statsList_c_complete.append(labConv.onept)
       
         for stats_c in statsList_c:
             if stats_c not in statsList_c_complete:
@@ -613,12 +716,23 @@ class TwoPointBuilder:
                         y = self.mean[binInd]
                         binInd += 1
                         scBuilder.add_data_point(ker1, ker2, type1, type2, i+1, j+1, x, angInd+1, y)
-    
+        
+        if self.nobs is not None:
+            for obs in self.nobs:
+                if obs.name in statsList_c:
+                    for i in range(obs.nbin):
+                        for angInd in range(obs.nsample[i]):
+                            x = obs.obs[i][angInd]
+                            y = obs.nobs[i][angInd]
+                            binInd += 1
+                            scBuilder.add_one_point(obs.name, i+1, x, angInd+1, y)
+                
+      
         ## Make TP
         scBuilder.set_names(statsNameDict)
         spectra, cov_info = scBuilder.generate(self.cov, 'arcmin')
         
-        TP = wtp.TwoPointWrapper.from_spectra(spectra, kernels=self.kernelList, covmat_info=cov_info) ## kernels & covmat_info can be None
+        TP = wtp.TwoPointWrapper.from_spectra(spectra, kernels=self.kernelList, nobs=self.nobs, covmat_info=cov_info) ## kernels & covmat_info can be None
         return TP
     
     def _makeTwoPoint_withoutCov(self, labConv, statsTag_c):
@@ -648,12 +762,22 @@ class TwoPointBuilder:
                 spec = sBuilder.makeSpectrum(stats_c, (type1, type2), unit, kernels=(ker1, ker2)) ## kernels can be None
                 spectra.append(spec)
         
+        if self.nobs is not None:
+            for obs in self.nobs:
+                if obs.name in statsList_c:
+                    for i in range(obs.nbin):
+                        for angInd in range(sum(obs.nsample[i])):
+                            x = obs.obs[i][angInd]
+                            y = obs.nobs[i][angInd]
+                            binInd += 1
+                            scBuilder.add_one_point(obs.name, i+1, x, angInd+1, y)
+        
         ## Make
-        TP = wtp.TwoPointWrapper.from_spectra(spectra, kernels=self.kernelList, covmat_info=None) ## kernels & covmat_info can be None
+        TP = wtp.TwoPointWrapper.from_spectra(spectra, kernels=self.kernelList, nobs=self.nobs, covmat_info=None) ## kernels & covmat_info can be None
         return TP
     
     def _makeTwoPoint_onlyNOfZ(self):
-        TP = wtp.TwoPointWrapper.from_spectra([], kernels=self.kernelList, covmat_info=None) ## spectra = [], kernels & covmat_info can be None
+        TP = wtp.TwoPointWrapper.from_spectra([], kernels=self.kernelList, nobs=None, covmat_info=None) ## spectra = [], kernels & covmat_info can be None
         return TP
     
     def makeTwoPoint(self, labConv, statsTag_c):
@@ -699,15 +823,16 @@ def getPrefix():
 ## Main function snippet
 
 def saveFitsTwoPoint(
-        nbTomoN=2, nbTomoG=5,
-        N_theta=9, theta_min=0.5, theta_max=300,
+        nbTomoN=2, nbTomoG=3, nbObs=1,
+        N_theta=12, theta_min=0.5, theta_max=300,
         N_ell=8, ell_min=100, ell_max=1500,
-        nbModes=5,
+        nbModes=5, nnAuto=False,
         prefix_Flinc=None,
         prefix_CosmoSIS=None,
         scDict={},
         meanTag=None, meanName=None,
         covTag=None, covName=None,
+        nobsTag=None, nobsName=None,
         nOfZNameList=None, nGalList=None, sigmaEpsList=None,
         saveName=None
     ):
@@ -716,10 +841,10 @@ def saveFitsTwoPoint(
     
     ## Custom
     TPBuilder = TwoPointBuilder(
-        nbTomoN=nbTomoN, nbTomoG=nbTomoG,
+        nbTomoN=nbTomoN, nbTomoG=nbTomoG, nbObs=nbObs,
         N_theta=N_theta, theta_min=theta_min, theta_max=theta_max,
         N_ell=N_ell, ell_min=ell_min, ell_max=ell_max,
-        nbModes=nbModes,
+        nbModes=nbModes, nnAuto=nnAuto,
         prefix_Flinc=prefix_Flinc,
         prefix_CosmoSIS=prefix_CosmoSIS
     )
@@ -737,6 +862,7 @@ def saveFitsTwoPoint(
     TPBuilder.setMean(meanTag, name=meanName, statsTag=statsTag)
     TPBuilder.setCov(covTag, name=covName, statsTag=statsTag)
     TPBuilder.setNOfZ(nOfZNameList, nGalList=nGalList, sigmaEpsList=sigmaEpsList)
+    TPBuilder.setNobs(nobsTag, name=nobsName)
     TP = TPBuilder.makeTwoPoint(labConv, statsTag_c)
     
     ## Cut
